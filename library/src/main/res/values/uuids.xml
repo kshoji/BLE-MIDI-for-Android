@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Advertise and Services UUID for MIDI -->
+    <string-array name="uuidListForService">
+        <item>0001</item><!-- same as nRF-UART-App device -->
+    </string-array>
+
+    <!-- Characteristics UUID for MIDI Input -->
+    <string-array name="uuidListForInputCharacteristic">
+        <item>0003</item><!-- short style: same as BLE Serial tx -->
+    </string-array>
+
+    <!-- Characteristics UUID for MIDI Output -->
+    <string-array name="uuidListForOutputCharacteristic">
+        <item>0002</item><!-- short style: same as BLE Serial rx -->
+    </string-array>
+</resources>
