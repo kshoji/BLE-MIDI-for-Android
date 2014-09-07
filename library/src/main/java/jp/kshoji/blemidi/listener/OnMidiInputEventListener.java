@@ -1,5 +1,7 @@
 package jp.kshoji.blemidi.listener;
 
+import jp.kshoji.blemidi.device.MidiInputDevice;
+
 /**
  * Listener for MIDI events
  *
@@ -10,142 +12,170 @@ public interface OnMidiInputEventListener {
 	/**
 	 * SysEx
 	 *
-	 * @param systemExclusive
+     * @param sender the device sent this message
+	 * @param systemExclusive received message
 	 */
-	void onMidiSystemExclusive(byte[] systemExclusive);
+	void onMidiSystemExclusive(MidiInputDevice sender, byte[] systemExclusive);
 	
 	/**
 	 * Note-off
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param note 0-127
 	 * @param velocity 0-127
 	 */
-	void onMidiNoteOff(int channel, int note, int velocity);
+	void onMidiNoteOff(MidiInputDevice sender, int channel, int note, int velocity);
 	
 	/**
 	 * Note-on
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param note 0-127
 	 * @param velocity 0-127
 	 */
-	void onMidiNoteOn(int channel, int note, int velocity);
+	void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity);
 	
 	/**
 	 * Poly-KeyPress
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param note 0-127
 	 * @param pressure 0-127
 	 */
-	void onMidiPolyphonicAftertouch(int channel, int note, int pressure);
+	void onMidiPolyphonicAftertouch(MidiInputDevice sender, int channel, int note, int pressure);
 	
 	/**
 	 * Control Change
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param function 0-127
 	 * @param value 0-127
 	 */
-	void onMidiControlChange(int channel, int function, int value);
+	void onMidiControlChange(MidiInputDevice sender, int channel, int function, int value);
 	
 	/**
 	 * Program Change
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param program 0-127
 	 */
-	void onMidiProgramChange(int channel, int program);
+	void onMidiProgramChange(MidiInputDevice sender, int channel, int program);
 	
 	/**
 	 * Channel Pressure
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param pressure 0-127
 	 */
-	void onMidiChannelAftertouch(int channel, int pressure);
+	void onMidiChannelAftertouch(MidiInputDevice sender, int channel, int pressure);
 	
 	/**
 	 * PitchBend Change
 	 *
+     * @param sender the device sent this message
 	 * @param channel 0-15
 	 * @param amount 0(low)-8192(center)-16383(high)
 	 */
-	void onMidiPitchWheel(int channel, int amount);
+	void onMidiPitchWheel(MidiInputDevice sender, int channel, int amount);
 
     /**
      * MIDI Time Code(MTC) Quarter Frame
+     *
+     * @param sender the device sent this message
      * @param timing 0-127
      */
-    void onMidiTimeCodeQuarterFrame(int timing);
+    void onMidiTimeCodeQuarterFrame(MidiInputDevice sender, int timing);
 
     /**
      * Song Select
      *
+     * @param sender the device sent this message
      * @param song 0-127
      */
-    void onMidiSongSelect(int song);
+    void onMidiSongSelect(MidiInputDevice sender, int song);
 
     /**
      * Song Position Pointer
      *
+     * @param sender the device sent this message
      * @param position 0-16383
      */
-    void onMidiSongPositionPointer(int position);
+    void onMidiSongPositionPointer(MidiInputDevice sender, int position);
 
     /**
      * Tune Request
+     *
+     * @param sender the device sent this message
      */
-    void onMidiTuneRequest();
+    void onMidiTuneRequest(MidiInputDevice sender);
 
     /**
      * Timing Clock
+     *
+     * @param sender the device sent this message
      */
-    void onMidiTimingClock();
+    void onMidiTimingClock(MidiInputDevice sender);
 
     /**
      * Start Playing
+     *
+     * @param sender the device sent this message
      */
-    void onMidiStart();
+    void onMidiStart(MidiInputDevice sender);
 
     /**
      * Continue Playing
+     *
+     * @param sender the device sent this message
      */
-    void onMidiContinue();
+    void onMidiContinue(MidiInputDevice sender);
 
     /**
      * Stop Playing
+     *
+     * @param sender the device sent this message
      */
-    void onMidiStop();
+    void onMidiStop(MidiInputDevice sender);
 
     /**
      * Active Sensing
+     *
+     * @param sender the device sent this message
      */
-    void onMidiActiveSensing();
+    void onMidiActiveSensing(MidiInputDevice sender);
 
     /**
      * Reset Device
+     *
+     * @param sender the device sent this message
      */
-    void onMidiReset();
+    void onMidiReset(MidiInputDevice sender);
 
     /**
      * RPN message<br />
      * invoked when value's MSB or LSB changed
      *
+     * @param sender the device sent this message
      * @param channel 0-15
      * @param function 14bits
      * @param value 7 bits or 14 bits
      */
-    void onRPNMessage(int channel, int function, int value);
+    void onRPNMessage(MidiInputDevice sender, int channel, int function, int value);
 
     /**
      * NRPN message<br />
      * invoked when value's MSB or LSB changed
      *
+     * @param sender the device sent this message
      * @param channel 0-15
      * @param function 14bits
      * @param value 7 bits or 14 bits
      */
-    void onNRPNMessage(int channel, int function, int value);
+    void onNRPNMessage(MidiInputDevice sender, int channel, int function, int value);
 }

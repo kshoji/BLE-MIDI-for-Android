@@ -1,9 +1,7 @@
 package jp.kshoji.blemidi.listener;
 
-import android.hardware.usb.UsbDevice;
-
-import jp.kshoji.blemidi.device.BleMidiInputDevice;
-import jp.kshoji.blemidi.device.BleMidiOutputDevice;
+import jp.kshoji.blemidi.device.MidiInputDevice;
+import jp.kshoji.blemidi.device.MidiOutputDevice;
 
 /**
  * Listener for MIDI attached events
@@ -17,12 +15,12 @@ public interface OnMidiDeviceAttachedListener {
      *
      * @param midiInputDevice
      */
-    void onMidiInputDeviceAttached(BleMidiInputDevice midiInputDevice);
+    void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice);
 
     /**
      * MIDI output device has been attached
      *
      * @param midiOutputDevice
      */
-    void onMidiOutputDeviceAttached(BleMidiOutputDevice midiOutputDevice);
+    void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice);
 }

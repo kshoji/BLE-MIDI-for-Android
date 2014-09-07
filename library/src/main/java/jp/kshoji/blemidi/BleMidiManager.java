@@ -11,8 +11,8 @@ import android.util.Log;
 import java.util.Set;
 
 import jp.kshoji.blemidi.callback.BleMidiCallback;
-import jp.kshoji.blemidi.device.BleMidiInputDevice;
-import jp.kshoji.blemidi.device.BleMidiOutputDevice;
+import jp.kshoji.blemidi.device.MidiInputDevice;
+import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.util.Constants;
@@ -101,11 +101,11 @@ public class BleMidiManager {
         bluetoothAdapter.stopLeScan(leScanCallback);
     }
 
-    public Set<BleMidiInputDevice> getMidiInputDevices() {
+    public Set<MidiInputDevice> getMidiInputDevices() {
         return midiCallback.getMidiInputDevices();
     }
 
-    public Set<BleMidiOutputDevice> getMidiOutputDevices() {
+    public Set<MidiOutputDevice> getMidiOutputDevices() {
         return midiCallback.getMidiOutputDevices();
     }
 

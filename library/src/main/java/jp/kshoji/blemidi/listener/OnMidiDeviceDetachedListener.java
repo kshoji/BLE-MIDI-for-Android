@@ -1,7 +1,7 @@
 package jp.kshoji.blemidi.listener;
 
-import jp.kshoji.blemidi.device.BleMidiInputDevice;
-import jp.kshoji.blemidi.device.BleMidiOutputDevice;
+import jp.kshoji.blemidi.device.MidiInputDevice;
+import jp.kshoji.blemidi.device.MidiOutputDevice;
 
 /**
  * Listener for MIDI detached events
@@ -15,12 +15,12 @@ public interface OnMidiDeviceDetachedListener {
      *
      * @param midiInputDevice
      */
-    void onMidiInputDeviceDetached(BleMidiInputDevice midiInputDevice);
+    void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice);
 
     /**
      * MIDI output device has been attached
      *
      * @param midiOutputDevice
      */
-    void onMidiOutputDeviceDetached(BleMidiOutputDevice midiOutputDevice);
+    void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice);
 }
