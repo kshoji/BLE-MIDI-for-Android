@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.Arrays;
 import java.util.List;
 
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
@@ -16,6 +17,8 @@ import jp.kshoji.blemidi.util.ReusableByteArrayOutputStream;
 
 /**
  * Represents BLE MIDI Input Device
+ *
+ * @author K.Shoji
  */
 public class MidiInputDevice {
 
@@ -87,6 +90,8 @@ public class MidiInputDevice {
             // ignore it
         }
 
+        midiInputEventListener = null;
+
         bluetoothGatt.disconnect();
         bluetoothGatt.close();
     }
@@ -98,6 +103,11 @@ public class MidiInputDevice {
      */
     public String getDeviceName() {
         return bluetoothGatt.getDevice().getName() + ".input";
+    }
+
+    @Override
+    public String toString() {
+        return getDeviceName();
     }
 
     private int midiState = MIDI_STATE_WAIT;
@@ -421,6 +431,7 @@ public class MidiInputDevice {
     }
 
     public void incomingData(byte[] data) {
+        Log.i(Constants.TAG, "data: " + Arrays.toString(data));
         for (byte dat : data) {
             parseMidiEvent(dat);
         }

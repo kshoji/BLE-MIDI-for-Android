@@ -22,3 +22,14 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
+
+apply plugin: 'maven'
+group = 'jp.kshoji'
+uploadArchives {
+    repositories.mavenDeployer {
+        repository url: 'file://' + file('repository').absolutePath
+        pom.version = '0.0.1-SNAPSHOT'
+        pom.artifactId = 'ble-midi'
+    }
+}
+task install(dependsOn: uploadArchives)

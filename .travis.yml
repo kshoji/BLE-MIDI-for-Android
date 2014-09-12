@@ -7,6 +7,8 @@ android:
     - android-18
   licenses:
     - '.+'
+before_install:
+ - chmod +x gradlew
 script:
   - ./gradlew check
 

@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
+import android.util.Log;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
+import jp.kshoji.blemidi.util.Constants;
 
 /**
  * BluetoothGattCallback implementation for BLE MIDI devices.
@@ -55,20 +57,24 @@ public class BleMidiCallback extends BluetoothGattCallback {
             // invoke event listener
             if (midiDeviceDetachedListener != null) {
                 Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt);
-                for (MidiInputDevice midiInputDevice : midiInputDevices) {
-                    midiInputDevice.finalize();
-                    midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
+                if (midiInputDevices != null) {
+                    for (MidiInputDevice midiInputDevice : midiInputDevices) {// java.lang.NullPointerException: Attempt to invoke interface method 'java.util.Iterator java.util.Set.iterator()' on a null object reference
+                        midiInputDevice.finalize();
+                        midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
+                    }
+                    midiInputDevices.clear();
+                    midiInputDevicesMap.remove(gatt);
                 }
-                midiInputDevices.clear();
-                midiInputDevicesMap.remove(gatt);
 
                 Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt);
-                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                    midiOutputDevice.finalize();
-                    midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
+                if (midiOutputDevices != null) {
+                    for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                        midiOutputDevice.finalize();
+                        midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
+                    }
+                    midiOutputDevices.clear();
+                    midiOutputDevicesMap.remove(gatt);
                 }
-                midiOutputDevices.clear();
-                midiOutputDevicesMap.remove(gatt);
             }
         }
     }
@@ -81,44 +87,53 @@ public class BleMidiCallback extends BluetoothGattCallback {
             // find MIDI Input device
             MidiInputDevice midiInputDevice = MidiInputDevice.getInstance(context, gatt);
             if (midiInputDevice != null) {
-                synchronized (midiInputDevicesMap) {
-                    Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt);
-                    if (midiInputDevices == null) {
-                        midiInputDevices = new HashSet<MidiInputDevice>();
-                        midiInputDevicesMap.put(gatt, midiInputDevices);
+                if (!midiOutputDevicesMap.containsKey(gatt)) {
+                    synchronized (midiInputDevicesMap) {
+                        Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt);
+                        if (midiInputDevices == null) {
+                            midiInputDevices = new HashSet<MidiInputDevice>();
+                            midiInputDevicesMap.put(gatt, midiInputDevices);
+                        }
+
+                        midiInputDevices.add(midiInputDevice);
                     }
 
-                    midiInputDevices.add(midiInputDevice);
-                }
-
-                if (midiDeviceAttachedListener != null) {
-                    midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
+                    if (midiDeviceAttachedListener != null) {
+                        midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
+                    }
                 }
             }
 
             // find MIDI Output device
             MidiOutputDevice midiOutputDevice = MidiOutputDevice.getInstance(context, gatt);
             if (midiOutputDevice != null) {
-                synchronized (midiOutputDevicesMap) {
-                    Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt);
-                    if (midiOutputDevices == null) {
-                        midiOutputDevices = new HashSet<MidiOutputDevice>();
-                        midiOutputDevicesMap.put(gatt, midiOutputDevices);
+                if (!midiOutputDevicesMap.containsKey(gatt)) {
+                    synchronized (midiOutputDevicesMap) {
+                        Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt);
+                        if (midiOutputDevices == null) {
+                            midiOutputDevices = new HashSet<MidiOutputDevice>();
+                            midiOutputDevicesMap.put(gatt, midiOutputDevices);
+                        }
+
+                        midiOutputDevices.add(midiOutputDevice);
                     }
 
-                    midiOutputDevices.add(midiOutputDevice);
-                }
-
-                if (midiDeviceAttachedListener != null) {
-                    midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
+                    if (midiDeviceAttachedListener != null) {
+                        midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
+                    }
                 }
             }
         }
     }
 
+    long lastCalled = 0L;
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         super.onCharacteristicChanged(gatt, characteristic);
+        if (lastCalled > 0L) {
+            Log.i(Constants.TAG, "difference:" + (System.currentTimeMillis() - lastCalled));
+        }
+        lastCalled = System.currentTimeMillis();
 
         Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt);
         for (MidiInputDevice midiInputDevice : midiInputDevices) {

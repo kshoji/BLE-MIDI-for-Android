@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Handler;
-import android.util.Log;
 
 import java.util.Set;
 
@@ -15,7 +14,6 @@ import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
-import jp.kshoji.blemidi.util.Constants;
 
 /**
  * List up paired ble devices
@@ -34,7 +32,6 @@ public class BleMidiManager {
             if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE) {
                 return;
             }
-            Log.i(Constants.TAG, "device scanned: " + bluetoothDevice.getName());
 
             bluetoothDevice.connectGatt(context, true, midiCallback);
         }
@@ -54,6 +51,7 @@ public class BleMidiManager {
 
             BluetoothAdapter bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
             if (bluetoothAdapter != null) {
+                bluetoothAdapter.disable();
                 return true;
             }
         } catch (Throwable t) {
@@ -70,6 +68,8 @@ public class BleMidiManager {
         if (bluetoothAdapter == null) {
             throw new UnsupportedOperationException("Bluetooth is not available.");
         }
+
+        bluetoothAdapter.
 
         this.context = context;
         this.midiCallback = new BleMidiCallback(context);
