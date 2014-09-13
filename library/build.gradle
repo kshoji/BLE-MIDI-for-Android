@@ -1,13 +1,13 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 18
+    compileSdkVersion "android-L"
     buildToolsVersion "20.0.0"
 
     defaultConfig {
         applicationId "jp.kshoji.blemidi"
         minSdkVersion 18
-        targetSdkVersion 18
+        targetSdkVersion "L"
         versionCode 1
         versionName "1.0"
     }

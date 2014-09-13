@@ -2,7 +2,7 @@
 <resources>
 
     <string name="app_name">BleMidiSample</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="app_name_peripheral">BleMidiPeripheral</string>
     <string name="action_settings">Settings</string>
 
 </resources>

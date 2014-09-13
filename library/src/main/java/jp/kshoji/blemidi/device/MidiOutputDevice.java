@@ -21,6 +21,7 @@ public class MidiOutputDevice {
 
     /**
      * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
+     * for Central
      *
      * @param context
      * @param bluetoothGatt
@@ -37,7 +38,7 @@ public class MidiOutputDevice {
     }
 
     /**
-     * Constructor
+     * Constructor for Central
      *
      * @param context
      * @param bluetoothGatt
@@ -56,6 +57,32 @@ public class MidiOutputDevice {
             throw new IllegalArgumentException("MIDI GattCharacteristic not found.");
         }
 
+        midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+    }
+
+    /**
+     * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
+     * for Peripheral
+     *
+     * @param context
+     * @param bluetoothGatt
+     * @return null if the device doesn't contain BLE MIDI service
+     */
+    public static MidiOutputDevice getInstance(final Context context, final BluetoothGatt bluetoothGatt, final BluetoothGattCharacteristic characteristic) {
+        // create instance if available
+        return new MidiOutputDevice(context, bluetoothGatt, characteristic);
+    }
+
+    /**
+     * Constructor for Peripheral
+     *
+     * @param context
+     * @param bluetoothGatt
+     * @param characteristic
+     */
+    private MidiOutputDevice(final Context context, final BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic characteristic) {
+        this.bluetoothGatt = bluetoothGatt;
+        midiOutputCharacteristic = characteristic;
         midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
     }
 
