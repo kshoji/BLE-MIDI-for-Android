@@ -87,7 +87,9 @@ public class BleMidiCallback extends BluetoothGattCallback {
             // find MIDI Input device
             MidiInputDevice midiInputDevice = MidiInputDevice.getInstance(context, gatt);
             if (midiInputDevice != null) {
-                if (!midiOutputDevicesMap.containsKey(gatt)) {
+                if (!midiInputDevicesMap.containsKey(gatt)) {
+                    Log.d(Constants.TAG, "midiInputDevice connected: " + midiInputDevice.getDeviceName());
+
                     synchronized (midiInputDevicesMap) {
                         Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt);
                         if (midiInputDevices == null) {
@@ -108,6 +110,8 @@ public class BleMidiCallback extends BluetoothGattCallback {
             MidiOutputDevice midiOutputDevice = MidiOutputDevice.getInstance(context, gatt);
             if (midiOutputDevice != null) {
                 if (!midiOutputDevicesMap.containsKey(gatt)) {
+                    Log.d(Constants.TAG, "midiOutputDevice connected: " + midiOutputDevice.getDeviceName());
+
                     synchronized (midiOutputDevicesMap) {
                         Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt);
                         if (midiOutputDevices == null) {

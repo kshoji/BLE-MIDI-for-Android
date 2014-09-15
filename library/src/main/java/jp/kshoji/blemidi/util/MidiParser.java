@@ -199,6 +199,7 @@ public class MidiParser {
                             break;
                     }
                 }
+                    break;
                 default:
                     // illegal state
                     midiState = MIDI_STATE_WAIT;
