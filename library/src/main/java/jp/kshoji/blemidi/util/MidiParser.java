@@ -235,7 +235,11 @@ public class MidiParser {
                 case 0x90: // note on
                     midiEventVelocity = midiEvent;
                     if (midiInputEventListener != null) {
-                        midiInputEventListener.onMidiNoteOn(sender, midiEventKind & 0xf, midiEventNote, midiEventVelocity);
+                        if (midiEventVelocity == 0) {
+                            midiInputEventListener.onMidiNoteOff(sender, midiEventKind & 0xf, midiEventNote, midiEventVelocity);
+                        } else {
+                            midiInputEventListener.onMidiNoteOn(sender, midiEventKind & 0xf, midiEventNote, midiEventVelocity);
+                        }
                     }
                     midiState = MIDI_STATE_WAIT;
                     break;

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Android L pre-release disabled checks -->
+    <issue id="Override" severity="ignore"/>
+</lint>
