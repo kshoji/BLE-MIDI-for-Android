@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="TypographyDashes">
+    <!-- Advertise and Services UUID for MIDI -->
+    <string-array name="uuidListForService">
+        <item>0000</item><!-- short style -->
+        <item>0001</item><!-- short style -->
+        <item>713d0000-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit -->
+        <item>6e400001-b5a3-f393-e0a9-e50e24dcca9e</item><!-- Nordic Semiconductor nRF-UART-App -->
+    </string-array>
+
+    <!-- Characteristics UUID for MIDI Input -->
+    <!-- Notify -->
+    <string-array name="uuidListForInputCharacteristic">
+        <item>0002</item><!-- short style: same as BLE Serial rx -->
+        <item>713d0002-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit RX -->
+    </string-array>
+
+    <!-- Characteristics UUID for MIDI Output -->
+    <!-- Write without Response -->
+    <string-array name="uuidListForOutputCharacteristic">
+        <item>0003</item><!-- short style: same as BLE Serial tx -->
+        <item>713d0003-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit TX -->
+    </string-array>
+</resources>

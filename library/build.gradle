@@ -1,0 +1,35 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion "android-L"
+    buildToolsVersion "20.0.0"
+
+    defaultConfig {
+        applicationId "jp.kshoji.blemidi"
+        minSdkVersion 18
+        targetSdkVersion "L"
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+apply plugin: 'maven'
+group = 'jp.kshoji'
+uploadArchives {
+    repositories.mavenDeployer {
+        repository url: 'file://' + file('repository').absolutePath
+        pom.version = '0.0.1'
+        pom.artifactId = 'ble-midi'
+    }
+}
+task install(dependsOn: uploadArchives)
