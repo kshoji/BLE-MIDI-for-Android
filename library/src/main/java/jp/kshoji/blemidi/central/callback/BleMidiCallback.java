@@ -59,7 +59,7 @@ public class BleMidiCallback extends BluetoothGattCallback {
                 Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt);
                 if (midiInputDevices != null) {
                     for (MidiInputDevice midiInputDevice : midiInputDevices) {// java.lang.NullPointerException: Attempt to invoke interface method 'java.util.Iterator java.util.Set.iterator()' on a null object reference
-                        midiInputDevice.finalize();
+                        midiInputDevice.close();
                         midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
                     }
                     midiInputDevices.clear();
@@ -69,7 +69,7 @@ public class BleMidiCallback extends BluetoothGattCallback {
                 Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt);
                 if (midiOutputDevices != null) {
                     for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                        midiOutputDevice.finalize();
+                        midiOutputDevice.close();
                         midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                     }
                     midiOutputDevices.clear();
@@ -130,7 +130,6 @@ public class BleMidiCallback extends BluetoothGattCallback {
         }
     }
 
-    // FIXME not called at frequent data transfer, up to 6 times per a second.
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         super.onCharacteristicChanged(gatt, characteristic);
@@ -143,6 +142,10 @@ public class BleMidiCallback extends BluetoothGattCallback {
         }
     }
 
+    /**
+     * Obtains connected input devices
+     * @return Set of {@link jp.kshoji.blemidi.device.MidiInputDevice}
+     */
     public Set<MidiInputDevice> getMidiInputDevices() {
         Collection<Set<MidiInputDevice>> values = midiInputDevicesMap.values();
 
@@ -154,6 +157,10 @@ public class BleMidiCallback extends BluetoothGattCallback {
         return Collections.unmodifiableSet(result);
     }
 
+    /**
+     * Obtains connected output devices
+     * @return Set of {@link jp.kshoji.blemidi.device.MidiOutputDevice}
+     */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
         Collection<Set<MidiOutputDevice>> values = midiOutputDevicesMap.values();
 
@@ -165,10 +172,18 @@ public class BleMidiCallback extends BluetoothGattCallback {
         return Collections.unmodifiableSet(result);
     }
 
+    /**
+     * Set the event listener to listen the Device attachment event
+     * @param midiDeviceAttachedListener
+     */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
         this.midiDeviceAttachedListener = midiDeviceAttachedListener;
     }
 
+    /**
+     * Set the event listener to listen the Device attachment event
+     * @param midiDeviceDetachedListener
+     */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiDeviceDetachedListener = midiDeviceDetachedListener;
     }

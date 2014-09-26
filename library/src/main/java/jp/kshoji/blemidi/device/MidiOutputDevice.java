@@ -86,14 +86,10 @@ public class MidiOutputDevice {
         midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
     }
 
-    @Override
-    public void finalize() {
-        try {
-            super.finalize();
-        } catch (Throwable throwable) {
-            // ignore it
-        }
-
+    /**
+     * Close the device
+     */
+    public void close() {
         bluetoothGatt.disconnect();
         bluetoothGatt.close();
     }

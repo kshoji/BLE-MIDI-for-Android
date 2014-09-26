@@ -2,9 +2,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="TypographyDashes">
     <!-- Advertise and Services UUID for MIDI -->
     <string-array name="uuidListForService">
+        <item>0000</item><!-- short style -->
         <item>0001</item><!-- short style -->
-        <item>6e400001-b5a3-f393-e0a9-e50e24dcca9e</item><!-- Nordic Semiconductor nRF-UART-App -->
         <item>713d0000-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit -->
+        <item>6e400001-b5a3-f393-e0a9-e50e24dcca9e</item><!-- Nordic Semiconductor nRF-UART-App -->
     </string-array>
 
     <!-- Characteristics UUID for MIDI Input -->

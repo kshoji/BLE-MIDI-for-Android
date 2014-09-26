@@ -35,6 +35,7 @@ import jp.kshoji.blemidi.util.Constants;
  * Represents BLE MIDI Peripheral functions<br />
  * Supported with Android L or newer. (Currently, Nexus 5 only)
  *
+ * FIXME work in progress, this class is not tested.
  * TODO create MidiInputDevice, MidiOutputDevice from bluetooth* instances
  *
  * @author K.Shoji

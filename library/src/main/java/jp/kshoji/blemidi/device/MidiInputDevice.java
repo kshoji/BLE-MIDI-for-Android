@@ -107,18 +107,18 @@ public class MidiInputDevice {
         bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
     }
 
+    /**
+     * Attaches {@link jp.kshoji.blemidi.listener.OnMidiInputEventListener}
+     * @param midiInputEventListener
+     */
     public void setOnMidiInputEventListener(OnMidiInputEventListener midiInputEventListener) {
         midiParser.setMidiInputEventListener(midiInputEventListener);
     }
 
-    @Override
-    public void finalize() {
-        try {
-            super.finalize();
-        } catch (Throwable throwable) {
-            // ignore it
-        }
-
+    /**
+     * Close the device
+     */
+    public void close() {
         midiParser.setMidiInputEventListener(null);
 
         bluetoothGatt.disconnect();
@@ -139,10 +139,18 @@ public class MidiInputDevice {
         return getDeviceName();
     }
 
+    /**
+     * Notifies MIDI data
+     * @param data
+     */
     public void incomingData(byte[] data) {
         midiParser.parse(data);
     }
 
+    /**
+     * Obtain the {@link android.bluetooth.BluetoothGattCharacteristic} of this device
+     * @return
+     */
     public BluetoothGattCharacteristic getCharacteristic() {
         return midiInputCharacteristic;
     }
