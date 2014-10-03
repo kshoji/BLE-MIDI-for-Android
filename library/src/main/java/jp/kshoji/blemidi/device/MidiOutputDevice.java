@@ -14,7 +14,7 @@ import jp.kshoji.blemidi.util.Constants;
  *
  * @author K.Shoji
  */
-public class MidiOutputDevice {
+public final class MidiOutputDevice {
 
     private BluetoothGattCharacteristic midiOutputCharacteristic;
     private final BluetoothGatt bluetoothGatt;

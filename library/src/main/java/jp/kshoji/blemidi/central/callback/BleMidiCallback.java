@@ -25,7 +25,7 @@ import jp.kshoji.blemidi.util.Constants;
  *
  * @author K.Shoji
  */
-public class BleMidiCallback extends BluetoothGattCallback {
+public final class BleMidiCallback extends BluetoothGattCallback {
     final Map<BluetoothGatt, Set<MidiInputDevice>> midiInputDevicesMap = new HashMap<BluetoothGatt, Set<MidiInputDevice>>();
     final Map<BluetoothGatt, Set<MidiOutputDevice>> midiOutputDevicesMap = new HashMap<BluetoothGatt, Set<MidiOutputDevice>>();
     final Context context;

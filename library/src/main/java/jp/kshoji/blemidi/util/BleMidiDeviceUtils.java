@@ -15,7 +15,7 @@ import jp.kshoji.blemidi.R;
  *
  * @author K.Shoji
  */
-public class BleMidiDeviceUtils {
+public final class BleMidiDeviceUtils {
 
     /**
      * Obtains BluetoothGattService for MIDI

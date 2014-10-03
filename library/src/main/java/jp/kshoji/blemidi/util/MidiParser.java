@@ -13,7 +13,7 @@ import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
  *
  * @author K.Shoji
  */
-public class MidiParser {
+public final class MidiParser {
     private int midiState = MIDI_STATE_WAIT;
     private int midiEventKind = 0;
     private int midiEventNote = 0;

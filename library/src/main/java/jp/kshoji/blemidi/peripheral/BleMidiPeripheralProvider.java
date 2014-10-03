@@ -41,7 +41,7 @@ import jp.kshoji.blemidi.util.Constants;
  * @author K.Shoji
  */
 @TargetApi(Build.VERSION_CODES.L)
-public class BleMidiPeripheralProvider {
+public final class BleMidiPeripheralProvider {
     final BluetoothManager bluetoothManager;
     final BluetoothLeAdvertiser bluetoothLeAdvertiser;
     final BluetoothGattServer gattServer;

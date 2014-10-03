@@ -19,7 +19,7 @@ import jp.kshoji.blemidi.util.MidiParser;
  *
  * @author K.Shoji
  */
-public class MidiInputDevice {
+public final class MidiInputDevice {
 
     private BluetoothGattCharacteristic midiInputCharacteristic;
     private final BluetoothGatt bluetoothGatt;

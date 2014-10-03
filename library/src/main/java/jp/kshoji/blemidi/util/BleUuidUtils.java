@@ -7,7 +7,7 @@ import java.util.UUID;
  *
  * @author K.Shoji
  */
-public class BleUuidUtils {
+public final class BleUuidUtils {
 
     /**
      * Parses a UUID string with the format defined by toString().

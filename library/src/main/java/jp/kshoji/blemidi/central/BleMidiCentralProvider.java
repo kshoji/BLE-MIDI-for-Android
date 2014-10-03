@@ -20,12 +20,15 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
  *
  * @author K.Shoji
  */
-public class BleMidiCentralProvider {
+public final class BleMidiCentralProvider {
     final BluetoothAdapter bluetoothAdapter;
     final Context context;
     final Handler handler;
     final BleMidiCallback midiCallback;
 
+    /**
+     * Callback for BLE device scanning
+     */
     private final BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) {

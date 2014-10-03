@@ -19,7 +19,11 @@ import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 import jp.kshoji.blemidi.device.MidiInputDevice;
@@ -27,14 +31,16 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.sample.util.SoundMaker;
+import jp.kshoji.blemidi.sample.util.Tone;
 
 /**
- * Activity for Sample Application
+ * Activity for BLE MIDI Central Application
  *
  * @author K.Shoji
  */
 public class CentralActivity extends Activity {
-    BleMidiCentralProvider bluetoothMidiManager;
+    BleMidiCentralProvider bleMidiCentralProvider;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -51,10 +57,10 @@ public class CentralActivity extends Activity {
         int id = item.getItemId();
         switch (id) {
             case R.id.action_start_scan:
-                bluetoothMidiManager.startScanDevice(0);
+                bleMidiCentralProvider.startScanDevice(0);
                 return true;
             case R.id.action_stop_scan:
-                bluetoothMidiManager.stopScanDevice();
+                bleMidiCentralProvider.stopScanDevice();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -111,12 +117,12 @@ public class CentralActivity extends Activity {
     ArrayAdapter<MidiOutputDevice> connectedOutputDevicesAdapter;
 
     // Play sounds
-//    AudioTrack audioTrack;
-//    Timer timer;
-//    TimerTask timerTask;
-//    SoundMaker soundMaker;
-//    final Set<Tone> tones = new HashSet<Tone>();
-//    int currentProgram = 0;
+    AudioTrack audioTrack;
+    Timer timer;
+    TimerTask timerTask;
+    SoundMaker soundMaker;
+    final Set<Tone> tones = new HashSet<Tone>();
+    int currentProgram = 0;
 
     /**
      * Choose device from spinner
@@ -127,7 +133,7 @@ public class CentralActivity extends Activity {
         if (deviceSpinner != null && deviceSpinner.getSelectedItemPosition() >= 0 && connectedOutputDevicesAdapter != null && !connectedOutputDevicesAdapter.isEmpty()) {
             MidiOutputDevice device = connectedOutputDevicesAdapter.getItem(deviceSpinner.getSelectedItemPosition());
             if (device != null) {
-                Set<MidiOutputDevice> midiOutputDevices = bluetoothMidiManager.getMidiOutputDevices();
+                Set<MidiOutputDevice> midiOutputDevices = bleMidiCentralProvider.getMidiOutputDevices();
 
                 if (midiOutputDevices.size() > 0) {
                     // returns the first one.
@@ -158,15 +164,15 @@ public class CentralActivity extends Activity {
                 midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "NoteOff from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
             }
 
-//            synchronized (tones) {
-//                Iterator<Tone> it = tones.iterator();
-//                while (it.hasNext()) {
-//                    Tone tone = it.next();
-//                    if (tone.getNote() == note) {
-//                        it.remove();
-//                    }
-//                }
-//            }
+            synchronized (tones) {
+                Iterator<Tone> it = tones.iterator();
+                while (it.hasNext()) {
+                    Tone tone = it.next();
+                    if (tone.getNote() == note) {
+                        it.remove();
+                    }
+                }
+            }
         }
 
         @Override
@@ -178,19 +184,19 @@ public class CentralActivity extends Activity {
                 midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "NoteOn from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
             }
 
-//            synchronized (tones) {
-//                if (velocity == 0) {
-//                    Iterator<Tone> it = tones.iterator();
-//                    while (it.hasNext()) {
-//                        Tone tone = it.next();
-//                        if (tone.getNote() == note) {
-//                            it.remove();
-//                        }
-//                    }
-//                } else {
-//                    tones.add(new Tone(note, velocity / 127.0, currentProgram));
-//                }
-//            }
+            synchronized (tones) {
+                if (velocity == 0) {
+                    Iterator<Tone> it = tones.iterator();
+                    while (it.hasNext()) {
+                        Tone tone = it.next();
+                        if (tone.getNote() == note) {
+                            it.remove();
+                        }
+                    }
+                } else {
+                    tones.add(new Tone(note, velocity / 127.0, currentProgram));
+                }
+            }
         }
 
         @Override
@@ -222,12 +228,12 @@ public class CentralActivity extends Activity {
                 midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "ProgramChange from: " + sender.getDeviceName() + ", channel: " + channel + ", program: " + program));
             }
 
-//            currentProgram = program % Tone.FORM_MAX;
-//            synchronized (tones) {
-//                for (Tone tone : tones) {
-//                    tone.setForm(currentProgram);
-//                }
-//            }
+            currentProgram = program % Tone.FORM_MAX;
+            synchronized (tones) {
+                for (Tone tone : tones) {
+                    tone.setForm(currentProgram);
+                }
+            }
         }
 
         @Override
@@ -361,18 +367,14 @@ public class CentralActivity extends Activity {
         }
     };
 
-    /*
-     * (non-Javadoc)
-     * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onCreate(android.os.Bundle)
-     */
     @Override
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bluetoothMidiManager = new BleMidiCentralProvider(this);
+        bleMidiCentralProvider = new BleMidiCentralProvider(this);
 
-        bluetoothMidiManager.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
+        bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
                 midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
@@ -387,7 +389,7 @@ public class CentralActivity extends Activity {
             }
         });
 
-        bluetoothMidiManager.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
+        bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
             @Override
             public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
                 // do nothing
@@ -403,7 +405,7 @@ public class CentralActivity extends Activity {
         });
 
         // scan devices for 30 seconds
-        bluetoothMidiManager.startScanDevice(30000);
+        bleMidiCentralProvider.startScanDevice(30000);
 
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
         midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
@@ -422,10 +424,6 @@ public class CentralActivity extends Activity {
 
         View.OnTouchListener onToneButtonTouchListener = new View.OnTouchListener() {
 
-            /*
-             * (non-Javadoc)
-             * @see android.view.View.OnTouchListener#onTouch(android.view.View, android.view.MotionEvent)
-             */
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 MidiOutputDevice midiOutputDevice = getBleMidiOutputDeviceFromSpinner();
@@ -480,70 +478,62 @@ public class CentralActivity extends Activity {
         findViewById(R.id.buttonB).getBackground().setColorFilter(whiteKeyColor, PorterDuff.Mode.MULTIPLY);
         findViewById(R.id.buttonC2).getBackground().setColorFilter(whiteKeyColor, PorterDuff.Mode.MULTIPLY);
 
-//        soundMaker = SoundMaker.getInstance();
-//        final int bufferSize = AudioTrack.getMinBufferSize(soundMaker.getSamplingRate(), AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-//        int timerRate = bufferSize * 1000 / soundMaker.getSamplingRate() / 2;
-//        final short[] wav = new short[bufferSize / 2];
-//
-//        audioTrack = prepareAudioTrack(soundMaker.getSamplingRate());
-//        timer = new Timer();
-//        timerTask = new TimerTask() {
-//            /*
-//             * (non-Javadoc)
-//             * @see java.util.TimerTask#run()
-//             */
-//            @Override
-//            public void run() {
-//                if (soundMaker != null) {
-//                    synchronized (tones) {
-//                        for (int i = 0; i < wav.length; i++) {
-//                            wav[i] = (short) (soundMaker.makeWaveStream(tones) * 1024);
-//                        }
-//                    }
-//                    try {
-//                        if (audioTrack != null) {
-//                            audioTrack.write(wav, 0, wav.length);
-//                        }
-//                    } catch (IllegalStateException e) {
-//                        // do nothing
-//                    } catch (NullPointerException e) {
-//                        // do nothing
-//                    }
-//                }
-//            }
-//        };
-//        timer.scheduleAtFixedRate(timerTask, 10, timerRate);
+        soundMaker = SoundMaker.getInstance();
+        final int bufferSize = AudioTrack.getMinBufferSize(soundMaker.getSamplingRate(), AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int timerRate = bufferSize * 1000 / soundMaker.getSamplingRate() / 2;
+        final short[] wav = new short[bufferSize / 2];
+
+        audioTrack = prepareAudioTrack(soundMaker.getSamplingRate());
+        timer = new Timer();
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (soundMaker != null) {
+                    synchronized (tones) {
+                        for (int i = 0; i < wav.length; i++) {
+                            wav[i] = (short) (soundMaker.makeWaveStream(tones) * 1024);
+                        }
+                    }
+                    try {
+                        if (audioTrack != null) {
+                            audioTrack.write(wav, 0, wav.length);
+                        }
+                    } catch (IllegalStateException e) {
+                        // do nothing
+                    } catch (NullPointerException e) {
+                        // do nothing
+                    }
+                }
+            }
+        };
+        timer.scheduleAtFixedRate(timerTask, 10, timerRate);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onDestroy()
-     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-//        if (timer != null) {
-//            try {
-//                timer.cancel();
-//                timer.purge();
-//            } catch (Throwable t) {
-//                // do nothing
-//            } finally {
-//                timer = null;
-//            }
-//        }
-//        if (audioTrack != null) {
-//            try {
-//                audioTrack.stop();
-//                audioTrack.flush();
-//                audioTrack.release();
-//            } catch (Throwable t) {
-//                // do nothing
-//            } finally {
-//                audioTrack = null;
-//            }
-//        }
+        if (timer != null) {
+            try {
+                timer.cancel();
+                timer.purge();
+            } catch (Throwable t) {
+                // do nothing
+            } finally {
+                timer = null;
+            }
+        }
+        if (audioTrack != null) {
+            try {
+                audioTrack.stop();
+                audioTrack.flush();
+                audioTrack.release();
+            } catch (Throwable t) {
+                // do nothing
+            } finally {
+                audioTrack = null;
+            }
+        }
     }
 
     /**

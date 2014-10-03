@@ -7,7 +7,7 @@ import java.io.ByteArrayOutputStream;
  * 
  * @author K.Shoji
  */
-public class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
+public final class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
 	private static final int DEFAULT_BUFFER_LIMIT = 1024;
 	private final byte[] fixedSizeBuffer;
 
@@ -29,10 +29,6 @@ public class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
 		this(DEFAULT_BUFFER_LIMIT);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.io.ByteArrayOutputStream#reset()
-	 */
 	@Override
 	public synchronized void reset() {
 		super.reset();
