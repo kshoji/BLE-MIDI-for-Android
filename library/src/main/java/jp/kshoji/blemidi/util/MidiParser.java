@@ -357,12 +357,15 @@ public final class MidiParser {
 
     /**
      * Updates incoming data
-     * @param data
+     * @param data incoming data
      */
     public void parse(byte[] data) {
-        Log.i(Constants.TAG, "data: " + Arrays.toString(data));
-        for (byte dat : data) {
-            parseMidiEvent(dat);
+        Log.d(Constants.TAG, "data: " + Arrays.toString(data));
+
+        if (data.length > 2) {
+            for (int i = 2; i < data.length; i++) {
+                parseMidiEvent(data[i]);
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package jp.kshoji.blemidi.util;
 
+import android.os.ParcelUuid;
+
 import java.util.UUID;
 
 /**
@@ -22,8 +24,37 @@ public final class BleUuidUtils {
             return UUID.fromString(uuidString);
         } catch (IllegalArgumentException e) {
             // may be a short style
-            return UUID.fromString("0000" + uuidString + "-0000-0000-0000-000000000000");
+            return UUID.fromString("0000" + uuidString + "-0000-1000-8000-00805F9B34FB");
         }
+    }
+
+    /**
+     * Obtains a UUID from Short style value.
+     *
+     * @param uuidShortValue the Short style UUID value.
+     * @return an UUID instance.
+     */
+    public static UUID fromShortValue(final int uuidShortValue) {
+        return UUID.fromString("0000" + String.format("%04X", uuidShortValue & 0xffff) + "-0000-1000-8000-00805F9B34FB");
+    }
+
+    /**
+     * Obtains a ParcelUuid from Short style value.
+     *
+     * @param uuidShortValue the Short style UUID value.
+     * @return an UUID instance.
+     */
+    public static ParcelUuid parcelFromShortValue(final int uuidShortValue) {
+        return ParcelUuid.fromString("0000" + String.format("%04X", uuidShortValue & 0xffff) + "-0000-1000-8000-00805F9B34FB");
+    }
+
+    /**
+     * UUID to short style value
+     * @param uuid
+     * @return short style value, -1 if the specified UUID is not short style
+     */
+    public static int toShortValue(UUID uuid) {
+        return (int)((uuid.getMostSignificantBits() >> 32) & 0xffff);
     }
 
     /**

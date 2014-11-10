@@ -94,7 +94,7 @@ public final class BleMidiCentralProvider {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    bluetoothAdapter.stopLeScan(leScanCallback);
+                    stopScanDevice();
                 }
             }, timeoutInMilliSeconds);
         }
