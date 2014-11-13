@@ -118,7 +118,34 @@ public final class MidiOutputDevice {
             return;
         }
 
-        byte[] writeBuffer = new byte[] { (byte) byte1 };
+        byte[] writeBuffer = new byte[] { (byte) 0x80, (byte) 0x80, (byte) byte1 };
+
+        midiOutputCharacteristic.setValue(writeBuffer);
+        try {
+            bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
+        } catch (Throwable t) {
+            // android.os.DeadObjectException will be thrown
+            // ignore it
+        }
+    }
+
+    /**
+     * Sends MIDI message to output device.
+     *
+     * @param byte1
+     * @param byte2
+     */
+    private void sendMidiMessage(int byte1, int byte2) {
+        if (midiOutputCharacteristic == null) {
+            return;
+        }
+
+        byte[] writeBuffer = new byte[4];
+
+        writeBuffer[0] = (byte) 0x80;
+        writeBuffer[1] = (byte) 0x80;
+        writeBuffer[2] = (byte) byte1;
+        writeBuffer[3] = (byte) byte2;
 
         midiOutputCharacteristic.setValue(writeBuffer);
         try {
@@ -141,11 +168,13 @@ public final class MidiOutputDevice {
             return;
         }
 
-        byte[] writeBuffer = new byte[3];
+        byte[] writeBuffer = new byte[5];
 
-        writeBuffer[0] = (byte) byte1;
-        writeBuffer[1] = (byte) byte2;
-        writeBuffer[2] = (byte) byte3;
+        writeBuffer[0] = (byte) 0x80;
+        writeBuffer[1] = (byte) 0x80;
+        writeBuffer[2] = (byte) byte1;
+        writeBuffer[3] = (byte) byte2;
+        writeBuffer[4] = (byte) byte3;
 
         midiOutputCharacteristic.setValue(writeBuffer);
         try {
@@ -166,11 +195,17 @@ public final class MidiOutputDevice {
             return;
         }
 
+        // TODO test
+        byte[] headerAddedSystemExclusive = new byte[systemExclusive.length + 2];
+        System.arraycopy(systemExclusive, 0, headerAddedSystemExclusive, 2, systemExclusive.length);
+        headerAddedSystemExclusive[0] = (byte) 0x80;
+        headerAddedSystemExclusive[1] = (byte) 0x80;
+
         // split into 20 bytes. BLE can't send more than 20 bytes.
         byte []buffer = new byte[20];
-        for (int i = 0; i < systemExclusive.length; i += 20) {
-            if (i + 20 <= systemExclusive.length) {
-                System.arraycopy(systemExclusive, i, buffer, 0, 20);
+        for (int i = 0; i < headerAddedSystemExclusive.length; i += 20) {
+            if (i + 20 <= headerAddedSystemExclusive.length) {
+                System.arraycopy(headerAddedSystemExclusive, i, buffer, 0, 20);
                 midiOutputCharacteristic.setValue(buffer);
                 try {
                     bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
@@ -180,8 +215,8 @@ public final class MidiOutputDevice {
                 }
             } else {
                 // last message
-                buffer = new byte[systemExclusive.length - i];
-                System.arraycopy(systemExclusive, i, buffer, 0, systemExclusive.length - i);
+                buffer = new byte[headerAddedSystemExclusive.length - i];
+                System.arraycopy(headerAddedSystemExclusive, i, buffer, 0, headerAddedSystemExclusive.length - i);
                 midiOutputCharacteristic.setValue(buffer);
                 try {
                     bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
@@ -244,7 +279,7 @@ public final class MidiOutputDevice {
      * @param program 0-127
      */
     public void sendMidiProgramChange(int channel, int program) {
-        sendMidiMessage(0xc0 | (channel & 0xf), program, 0);
+        sendMidiMessage(0xc0 | (channel & 0xf), program);
     }
 
     /**
@@ -254,7 +289,7 @@ public final class MidiOutputDevice {
      * @param pressure 0-127
      */
     public void sendMidiChannelAftertouch(int channel, int pressure) {
-        sendMidiMessage(0xd0 | (channel & 0xf), pressure, 0);
+        sendMidiMessage(0xd0 | (channel & 0xf), pressure);
     }
 
     /**
@@ -272,22 +307,7 @@ public final class MidiOutputDevice {
      * @param timing 0-127
      */
     public void sendMidiTimeCodeQuarterFrame(int timing) {
-        if (midiOutputCharacteristic == null) {
-            return;
-        }
-
-        byte[] writeBuffer = new byte[2];
-
-        writeBuffer[0] = (byte) 0xf1;
-        writeBuffer[1] = (byte) (timing & 0x7f);
-
-        midiOutputCharacteristic.setValue(writeBuffer);
-        try {
-            bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-        } catch (Throwable t) {
-            // android.os.DeadObjectException will be thrown
-            // ignore it
-        }
+        sendMidiMessage(0xf1, timing & 0x7f);
     }
 
     /**
@@ -296,22 +316,7 @@ public final class MidiOutputDevice {
      * @param song 0-127
      */
     public void sendMidiSongSelect(int song) {
-        if (midiOutputCharacteristic == null) {
-            return;
-        }
-
-        byte[] writeBuffer = new byte[2];
-
-        writeBuffer[0] = (byte) 0xf3;
-        writeBuffer[1] = (byte) (song & 0x7f);
-
-        midiOutputCharacteristic.setValue(writeBuffer);
-        try {
-            bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-        } catch (Throwable t) {
-            // android.os.DeadObjectException will be thrown
-            // ignore it
-        }
+        sendMidiMessage(0xf3, song & 0x7f);
     }
 
     /**
