@@ -1,10 +1,15 @@
 package jp.kshoji.blemidi.central;
 
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 
 import java.util.Set;
@@ -39,6 +44,11 @@ public final class BleMidiCentralProvider {
             bluetoothDevice.connectGatt(context, true, midiCallback);
         }
     };
+
+    /**
+     * Callback for BLE device scanning (for Lollipop or later)
+     */
+    private final ScanCallback scanCallback;
 
     /**
      * Check if Bluetooth LE device supported on the running environment.
@@ -80,6 +90,27 @@ public final class BleMidiCentralProvider {
         this.context = context;
         this.midiCallback = new BleMidiCallback(context);
         this.handler = new Handler();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scanCallback = new ScanCallback() {
+                @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    super.onScanResult(callbackType, result);
+                    if (callbackType == ScanSettings.CALLBACK_TYPE_ALL_MATCHES) {
+                        BluetoothDevice bluetoothDevice = result.getDevice();
+
+                        if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE) {
+                            return;
+                        }
+
+                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                    }
+                }
+            };
+        } else {
+            scanCallback = null;
+        }
     }
 
     /**
@@ -88,7 +119,11 @@ public final class BleMidiCentralProvider {
      * @param timeoutInMilliSeconds 0 or negative value : no timeout
      */
     public void startScanDevice(int timeoutInMilliSeconds) {
-        bluetoothAdapter.startLeScan(leScanCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            bluetoothAdapter.getBluetoothLeScanner().startScan(scanCallback);
+        } else {
+            bluetoothAdapter.startLeScan(leScanCallback);
+        }
 
         if (timeoutInMilliSeconds > 0) {
             handler.postDelayed(new Runnable() {
@@ -104,7 +139,11 @@ public final class BleMidiCentralProvider {
      * Stops to scan devices
      */
     public void stopScanDevice() {
-        bluetoothAdapter.stopLeScan(leScanCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
+        } else {
+            bluetoothAdapter.stopLeScan(leScanCallback);
+        }
     }
 
     public Set<MidiInputDevice> getMidiInputDevices() {

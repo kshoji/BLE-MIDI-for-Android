@@ -6,6 +6,11 @@ import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
 import jp.kshoji.blemidi.util.Constants;
 
@@ -49,12 +54,16 @@ public final class MidiOutputDevice {
 
         BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt);
         if (midiService == null) {
-            throw new IllegalArgumentException("MIDI GattService not found.");
+            List<UUID> uuidList = new ArrayList<UUID>();
+            for (BluetoothGattService service : bluetoothGatt.getServices()) {
+                uuidList.add(service.getUuid());
+            }
+            throw new IllegalArgumentException("MIDI GattService not found. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
         }
 
         midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService);
         if (midiOutputCharacteristic == null) {
-            throw new IllegalArgumentException("MIDI GattCharacteristic not found.");
+            throw new IllegalArgumentException("MIDI GattCharacteristic not found. Service UUID:" + midiService.getUuid());
         }
 
         midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
@@ -100,7 +109,7 @@ public final class MidiOutputDevice {
      * @return device name + ".output"
      */
     public String getDeviceName() {
-        return bluetoothGatt.getDevice().getName() + ".output";
+        return bluetoothGatt.getDevice().getName();
     }
 
     @Override
@@ -195,35 +204,32 @@ public final class MidiOutputDevice {
             return;
         }
 
-        // TODO test
-        byte[] headerAddedSystemExclusive = new byte[systemExclusive.length + 2];
-        System.arraycopy(systemExclusive, 0, headerAddedSystemExclusive, 2, systemExclusive.length);
-        headerAddedSystemExclusive[0] = (byte) 0x80;
-        headerAddedSystemExclusive[1] = (byte) 0x80;
+        byte[] timestampAddedSystemExclusive = new byte[systemExclusive.length + 2];
+        System.arraycopy(systemExclusive, 0, timestampAddedSystemExclusive, 1, systemExclusive.length);
+        timestampAddedSystemExclusive[0] = (byte) 0x80;
+        timestampAddedSystemExclusive[systemExclusive.length] = (byte) 0x80;
 
         // split into 20 bytes. BLE can't send more than 20 bytes.
-        byte []buffer = new byte[20];
-        for (int i = 0; i < headerAddedSystemExclusive.length; i += 20) {
-            if (i + 20 <= headerAddedSystemExclusive.length) {
-                System.arraycopy(headerAddedSystemExclusive, i, buffer, 0, 20);
-                midiOutputCharacteristic.setValue(buffer);
-                try {
-                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-                } catch (Throwable t) {
-                    // android.os.DeadObjectException will be thrown
-                    // ignore it
-                }
+        byte[] buffer = new byte[20];
+        buffer[0] = (byte) 0x80;
+
+        for (int i = 0; i < timestampAddedSystemExclusive.length; i += 19) {
+            if (i + 20 <= timestampAddedSystemExclusive.length) {
+                System.arraycopy(timestampAddedSystemExclusive, i, buffer, 1, 19);
             } else {
                 // last message
-                buffer = new byte[headerAddedSystemExclusive.length - i];
-                System.arraycopy(headerAddedSystemExclusive, i, buffer, 0, headerAddedSystemExclusive.length - i);
-                midiOutputCharacteristic.setValue(buffer);
-                try {
-                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-                } catch (Throwable t) {
-                    // android.os.DeadObjectException will be thrown
-                    // ignore it
-                }
+                buffer = new byte[timestampAddedSystemExclusive.length - i + 1];
+                buffer[0] = (byte) 0x80;
+
+                System.arraycopy(timestampAddedSystemExclusive, i, buffer, 1, timestampAddedSystemExclusive.length - i);
+            }
+
+            midiOutputCharacteristic.setValue(buffer);
+            try {
+                bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
+            } catch (Throwable t) {
+                // android.os.DeadObjectException will be thrown
+                // ignore it
             }
         }
     }

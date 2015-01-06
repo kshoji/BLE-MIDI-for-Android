@@ -1,17 +1,18 @@
-BLE-MIDI-for-Android
+BLE MIDI for Android
 ====================
-[![Build Status](https://travis-ci.org/kshoji/BLE-MIDI-for-Android.svg?branch=master)](https://travis-ci.org/kshoji/BLE-MIDI-for-Android)
+[![Build Status](https://travis-ci.org/kshoji/BLE-MIDI-for-Android.svg?branch=develop)](https://travis-ci.org/kshoji/BLE-MIDI-for-Android)
 
-MIDI over Bluetooth LE driver for Android 4.3 or later
+MIDI over Bluetooth LE driver for Android 4.4 (API Level 19) or later
 
 ﻿Status
 ------
 
 **Work in the progress**
 
-- I'll receive the first BLE MIDI device at this month.
 - BLE Central function provider is mostly done. Now refactoring and cleaning up the code.
-- BLE Peripheral function provider is not finished. The function needs a Nexus 5 with Android L, but I don't have it.
+    - [Apple Bluetooth Low Energy MIDI Specification](https://developer.apple.com/bluetooth/Apple-Bluetooth-Low-Energy-MIDI-Specification.pdf) has been revealed, so I'm trying to fit the implementation.
+    - The specification needs `BLE bonding` feature that is implemented at Android KitKat(API Level 19), so this library also needs `API Level 19`.
+- BLE Peripheral function provider is not finished. The function needs a Nexus 5 or newer Nexus series with Android Lollipop, but I don't have it.
 
 Usage of the library
 --------------------

@@ -7,10 +7,14 @@ import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
+import jp.kshoji.blemidi.util.BleUuidUtils;
 import jp.kshoji.blemidi.util.Constants;
 import jp.kshoji.blemidi.util.MidiParser;
 
@@ -56,21 +60,32 @@ public final class MidiInputDevice {
 
         BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt);
         if (midiService == null) {
-            throw new IllegalArgumentException("MIDI GattService not found.");
+            List<UUID> uuidList = new ArrayList<UUID>();
+            for (BluetoothGattService service : bluetoothGatt.getServices()) {
+                uuidList.add(service.getUuid());
+                Log.i(Constants.TAG, "service UUID:" + service.getUuid());
+                for (BluetoothGattCharacteristic characteristic :service.getCharacteristics()) {
+                    Log.i(Constants.TAG, "characteristic UUID:" + characteristic.getUuid() + "\tproperties:" + characteristic.getProperties());
+                }
+            }
+            throw new IllegalArgumentException("MIDI GattService not found. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
         }
 
         midiInputCharacteristic = BleMidiDeviceUtils.getMidiInputCharacteristic(context, midiService);
         if (midiInputCharacteristic == null) {
-            throw new IllegalArgumentException("MIDI GattCharacteristic not found.");
+            throw new IllegalArgumentException("MIDI GattCharacteristic not found. Service UUID:" + midiService.getUuid());
         }
+
+        bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
 
         List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
-
         for (BluetoothGattDescriptor descriptor : descriptors) {
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            bluetoothGatt.writeDescriptor(descriptor);
+            if (BleUuidUtils.matches(BleUuidUtils.fromShortValue(0x2902), descriptor.getUuid())) {
+                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                boolean writeDescriptor = bluetoothGatt.writeDescriptor(descriptor);
+                Log.i(Constants.TAG, "wrote descriptor: " + writeDescriptor + " data: " + Arrays.toString(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE));
+            }
         }
-        bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
     }
 
     /**
@@ -98,12 +113,12 @@ public final class MidiInputDevice {
         this.bluetoothGatt = bluetoothGatt;
         midiInputCharacteristic = characteristic;
 
-        List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
-
-        for (BluetoothGattDescriptor descriptor : descriptors) {
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            bluetoothGatt.writeDescriptor(descriptor);
-        }
+//        List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
+//
+//        for (BluetoothGattDescriptor descriptor : descriptors) {
+//            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+//            bluetoothGatt.writeDescriptor(descriptor);
+//        }
         bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
     }
 
@@ -125,13 +140,40 @@ public final class MidiInputDevice {
         bluetoothGatt.close();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        MidiInputDevice that = (MidiInputDevice) o;
+
+        if (midiInputCharacteristic == null && that.midiInputCharacteristic == null) {
+            return true;
+        }
+
+        if (midiInputCharacteristic == null || that.midiInputCharacteristic == null) {
+            return false;
+        }
+
+        return midiInputCharacteristic.getUuid().equals(that.midiInputCharacteristic.getUuid());
+    }
+
+    @Override
+    public int hashCode() {
+        return midiInputCharacteristic.getUuid().hashCode();
+    }
+
     /**
      * Obtains the device name
      *
-     * @return device name + ".input"
+     * @return device name
      */
     public String getDeviceName() {
-        return bluetoothGatt.getDevice().getName() + ".input";
+        return bluetoothGatt.getDevice().getName();
     }
 
     @Override
@@ -144,6 +186,8 @@ public final class MidiInputDevice {
      * @param data
      */
     public void incomingData(byte[] data) {
+        Log.d(Constants.TAG, "inputDevice: " + this.hashCode() + ", data: " + Arrays.toString(data));
+
         midiParser.parse(data);
     }
 
