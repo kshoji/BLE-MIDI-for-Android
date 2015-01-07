@@ -13,7 +13,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseSettings;
-import android.bluetooth.le.AdvertisementData;
+import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
 import android.os.Build;
@@ -40,7 +40,7 @@ import jp.kshoji.blemidi.util.Constants;
  *
  * @author K.Shoji
  */
-@TargetApi(Build.VERSION_CODES.L)
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public final class BleMidiPeripheralProvider {
     final BluetoothManager bluetoothManager;
     final BluetoothLeAdvertiser bluetoothLeAdvertiser;
@@ -85,17 +85,15 @@ public final class BleMidiPeripheralProvider {
         AdvertiseSettings advertiseSettings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
-                .setType(AdvertiseSettings.ADVERTISE_TYPE_CONNECTABLE)
+                .setConnectable(true)
                 .build();
 
         // set up advertising data
         // TODO device name
         List<ParcelUuid> serviceUuids = new ArrayList<ParcelUuid>();
-        serviceUuids.add(new ParcelUuid(BleUuidUtils.fromString("0001")));
-        AdvertisementData advertiseData = new AdvertisementData.Builder()
+        AdvertiseData advertiseData = new AdvertiseData.Builder()
                 .setIncludeTxPowerLevel(false)
-                .setServiceUuids(serviceUuids)
-                .setServiceData(new ParcelUuid(BleUuidUtils.fromString("0009")), "\0\11DATA".getBytes())
+                .addServiceUuid(new ParcelUuid(BleUuidUtils.fromString("0001")))
                 .build();
 
         bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback);
@@ -106,32 +104,15 @@ public final class BleMidiPeripheralProvider {
      */
     final AdvertiseCallback advertiseCallback = new AdvertiseCallback() {
         @Override
-        public void onSuccess(AdvertiseSettings settingsInEffect) {
-            Log.i(Constants.TAG, "AdvertiseCallback.onSuccess settingsInEffect:" + settingsInEffect);
+        public void onStartSuccess(AdvertiseSettings settingsInEffect) {
+            super.onStartSuccess(settingsInEffect);
+            Log.d(Constants.TAG, "AdvertiseCallback.onStartSuccess settingsInEffect:" + settingsInEffect);
         }
 
         @Override
-        public void onFailure(int errorCode) {
-            switch (errorCode) {
-                case AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED:
-                    Log.i(Constants.TAG, "ADVERTISE_FAILED_ALREADY_STARTED");
-                    break;
-                case AdvertiseCallback.ADVERTISE_FAILED_CONTROLLER_FAILURE:
-                    Log.i(Constants.TAG, "ADVERTISE_FAILED_CONTROLLER_FAILURE");
-                    break;
-                case AdvertiseCallback.ADVERTISE_FAILED_NOT_STARTED:
-                    Log.i(Constants.TAG, "ADVERTISE_FAILED_NOT_STARTED");
-                    break;
-                case AdvertiseCallback.ADVERTISE_FAILED_SERVICE_UNKNOWN:
-                    Log.i(Constants.TAG, "ADVERTISE_FAILED_SERVICE_UNKNOWN");
-                    break;
-                case AdvertiseCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS:
-                    Log.i(Constants.TAG, "ADVERTISE_FAILED_TOO_MANY_ADVERTISERS");
-                    break;
-                default:
-                    Log.i(Constants.TAG, "ADVERTISE_FAILED with unknown error!");
-                    break;
-            }
+        public void onStartFailure(int errorCode) {
+            super.onStartFailure(errorCode);
+            Log.d(Constants.TAG, "AdvertiseCallback.onStartFailure with errorCode: " + errorCode);
         }
     };
 
