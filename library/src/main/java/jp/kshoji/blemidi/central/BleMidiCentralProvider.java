@@ -1,5 +1,6 @@
 package jp.kshoji.blemidi.central;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -82,6 +83,7 @@ public final class BleMidiCentralProvider {
      *
      * @param context
      */
+    @SuppressLint("NewApi")
     public BleMidiCentralProvider(final Context context) {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
@@ -126,6 +128,7 @@ public final class BleMidiCentralProvider {
      *
      * @param timeoutInMilliSeconds 0 or negative value : no timeout
      */
+    @SuppressLint({ "Deprecation", "NewApi" })
     public void startScanDevice(int timeoutInMilliSeconds) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             bluetoothAdapter.getBluetoothLeScanner().startScan(scanCallback);
@@ -154,6 +157,7 @@ public final class BleMidiCentralProvider {
     /**
      * Stops to scan devices
      */
+    @SuppressLint({ "Deprecation", "NewApi" })
     public void stopScanDevice() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);

@@ -1,5 +1,6 @@
 package jp.kshoji.blemidi.central.callback;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -107,6 +108,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         }
     }
 
+    @SuppressLint("NewApi")
     @Override
     public void onServicesDiscovered(final BluetoothGatt gatt, int status) {
         super.onServicesDiscovered(gatt, status);
