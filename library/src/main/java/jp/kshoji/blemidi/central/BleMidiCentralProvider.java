@@ -3,6 +3,7 @@ package jp.kshoji.blemidi.central;
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -11,6 +12,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
+import android.util.Log;
 
 import java.util.Set;
 
@@ -19,6 +21,8 @@ import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
+import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
+import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Client for BLE MIDI Peripheral device service
@@ -37,7 +41,7 @@ public final class BleMidiCentralProvider {
     private final BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) {
-            if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE) {
+            if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
                 return;
             }
 
@@ -78,7 +82,7 @@ public final class BleMidiCentralProvider {
      *
      * @param context
      */
-    public BleMidiCentralProvider(Context context) {
+    public BleMidiCentralProvider(final Context context) {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
@@ -89,7 +93,7 @@ public final class BleMidiCentralProvider {
 
         this.context = context;
         this.midiCallback = new BleMidiCallback(context);
-        this.handler = new Handler();
+        this.handler = new Handler(context.getMainLooper());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             scanCallback = new ScanCallback() {
@@ -97,14 +101,16 @@ public final class BleMidiCentralProvider {
                 @Override
                 public void onScanResult(int callbackType, ScanResult result) {
                     super.onScanResult(callbackType, result);
-                    if (callbackType == ScanSettings.CALLBACK_TYPE_ALL_MATCHES) {
-                        BluetoothDevice bluetoothDevice = result.getDevice();
 
-                        if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE) {
+                    if (callbackType == ScanSettings.CALLBACK_TYPE_ALL_MATCHES) {
+                        final BluetoothDevice bluetoothDevice = result.getDevice();
+
+                        if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
                             return;
                         }
 
-                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                        BluetoothGatt bluetoothGatt = bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                        Log.i(Constants.TAG, "connectGatt: " + bluetoothGatt.getDevice().getName());
                     }
                 }
             };
@@ -112,6 +118,8 @@ public final class BleMidiCentralProvider {
             scanCallback = null;
         }
     }
+
+    private volatile boolean isScanning = false;
 
     /**
      * Starts to scan devices
@@ -124,12 +132,20 @@ public final class BleMidiCentralProvider {
         } else {
             bluetoothAdapter.startLeScan(leScanCallback);
         }
+        isScanning = true;
+        if (onMidiScanStatusListener != null) {
+            onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+        }
 
         if (timeoutInMilliSeconds > 0) {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     stopScanDevice();
+                    isScanning = false;
+                    if (onMidiScanStatusListener != null) {
+                        onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+                    }
                 }
             }, timeoutInMilliSeconds);
         }
@@ -144,6 +160,20 @@ public final class BleMidiCentralProvider {
         } else {
             bluetoothAdapter.stopLeScan(leScanCallback);
         }
+        isScanning = false;
+        if (onMidiScanStatusListener != null) {
+            onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+        }
+    }
+
+    public boolean isScanning() {
+        return isScanning;
+    }
+
+    OnMidiScanStatusListener onMidiScanStatusListener;
+
+    public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
+        this.onMidiScanStatusListener = onMidiScanStatusListener;
     }
 
     public Set<MidiInputDevice> getMidiInputDevices() {

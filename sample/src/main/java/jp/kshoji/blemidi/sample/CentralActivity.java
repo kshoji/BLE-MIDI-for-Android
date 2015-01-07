@@ -13,6 +13,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.ToggleButton;
@@ -31,6 +32,7 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
 import jp.kshoji.blemidi.sample.util.SoundMaker;
 import jp.kshoji.blemidi.sample.util.Tone;
 
@@ -42,10 +44,20 @@ import jp.kshoji.blemidi.sample.util.Tone;
 public class CentralActivity extends Activity {
     BleMidiCentralProvider bleMidiCentralProvider;
 
+    MenuItem toggleScanMenu;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        toggleScanMenu = menu.getItem(0);
+
+        if (bleMidiCentralProvider.isScanning()) {
+            toggleScanMenu.setTitle("STOP SCAN");
+        } else {
+            toggleScanMenu.setTitle("START SCAN");
+        }
+
         return true;
     }
 
@@ -56,11 +68,12 @@ public class CentralActivity extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         switch (id) {
-            case R.id.action_start_scan:
-                bleMidiCentralProvider.startScanDevice(0);
-                return true;
-            case R.id.action_stop_scan:
-                bleMidiCentralProvider.stopScanDevice();
+            case R.id.action_toggle_scan:
+                if (bleMidiCentralProvider.isScanning()) {
+                    bleMidiCentralProvider.stopScanDevice();
+                } else {
+                    bleMidiCentralProvider.startScanDevice(0);
+                }
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -177,7 +190,7 @@ public class CentralActivity extends Activity {
 
         @Override
         public void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity) {
-            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn  from: " + sender.getDeviceName() + "channel: " + channel + ", note: " + note + ", velocity: " + velocity));
+            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
                 getBleMidiOutputDeviceFromSpinner().sendMidiNoteOn(channel, note, velocity);
@@ -404,6 +417,19 @@ public class CentralActivity extends Activity {
             }
         });
 
+        bleMidiCentralProvider.setOnMidiScanStatusListener(new OnMidiScanStatusListener() {
+            @Override
+            public void onMidiScanStatusChanged(boolean isScanning) {
+                if (toggleScanMenu != null) {
+                    if (isScanning) {
+                        toggleScanMenu.setTitle("STOP SCAN");
+                    } else {
+                        toggleScanMenu.setTitle("START SCAN");
+                    }
+                }
+            }
+        });
+
         // scan devices for 30 seconds
         bleMidiCentralProvider.startScanDevice(30000);
 
@@ -419,7 +445,7 @@ public class CentralActivity extends Activity {
         thruToggleButton = (ToggleButton) findViewById(R.id.toggleButtonThru);
 
         deviceSpinner = (Spinner) findViewById(R.id.deviceNameSpinner);
-        connectedOutputDevicesAdapter = new ArrayAdapter<MidiOutputDevice>(getApplicationContext(), android.R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
+        connectedOutputDevicesAdapter = new ArrayAdapter<MidiOutputDevice>(getApplicationContext(), R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
         deviceSpinner.setAdapter(connectedOutputDevicesAdapter);
 
         View.OnTouchListener onToneButtonTouchListener = new View.OnTouchListener() {
@@ -507,6 +533,17 @@ public class CentralActivity extends Activity {
             }
         };
         timer.scheduleAtFixedRate(timerTask, 10, timerRate);
+
+        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MidiOutputDevice bleMidiOutputDeviceFromSpinner = getBleMidiOutputDeviceFromSpinner();
+                if (bleMidiOutputDeviceFromSpinner != null) {
+                    bleMidiOutputDeviceFromSpinner.close();
+                }
+            }
+        });
     }
 
     @Override

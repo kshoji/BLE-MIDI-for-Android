@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ public final class MidiOutputDevice {
     private BluetoothGattCharacteristic midiOutputCharacteristic;
     private final BluetoothGatt bluetoothGatt;
 
+    private final Handler handler;
+
     /**
      * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
      * for Central
@@ -37,7 +40,7 @@ public final class MidiOutputDevice {
         try {
             return new MidiOutputDevice(context, bluetoothGatt);
         } catch (IllegalArgumentException e) {
-            Log.i(Constants.TAG, e.getMessage(), e);
+            Log.i(Constants.TAG, e.getMessage());
             return null;
         }
     }
@@ -58,15 +61,15 @@ public final class MidiOutputDevice {
             for (BluetoothGattService service : bluetoothGatt.getServices()) {
                 uuidList.add(service.getUuid());
             }
-            throw new IllegalArgumentException("MIDI GattService not found. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
+            throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
         }
 
         midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService);
         if (midiOutputCharacteristic == null) {
-            throw new IllegalArgumentException("MIDI GattCharacteristic not found. Service UUID:" + midiService.getUuid());
+            throw new IllegalArgumentException("MIDI Output GattCharacteristic not found. Service UUID:" + midiService.getUuid());
         }
 
-        midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+        this.handler = new Handler(context.getMainLooper());
     }
 
     /**
@@ -93,6 +96,8 @@ public final class MidiOutputDevice {
         this.bluetoothGatt = bluetoothGatt;
         midiOutputCharacteristic = characteristic;
         midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+
+        this.handler = new Handler(context.getMainLooper());
     }
 
     /**
@@ -100,13 +105,12 @@ public final class MidiOutputDevice {
      */
     public void close() {
         bluetoothGatt.disconnect();
-        bluetoothGatt.close();
     }
 
     /**
      * Obtains the device name
      *
-     * @return device name + ".output"
+     * @return device name
      */
     public String getDeviceName() {
         return bluetoothGatt.getDevice().getName();
@@ -209,7 +213,7 @@ public final class MidiOutputDevice {
         timestampAddedSystemExclusive[0] = (byte) 0x80;
         timestampAddedSystemExclusive[systemExclusive.length] = (byte) 0x80;
 
-        // split into 20 bytes. BLE can't send more than 20 bytes.
+        // split into 20 bytes. BLE can't send more than 20 bytes by default MTU.
         byte[] buffer = new byte[20];
         buffer[0] = (byte) 0x80;
 
@@ -455,5 +459,9 @@ public final class MidiOutputDevice {
         // send the NULL function
         sendMidiControlChange(channel, 101, 0x7f);
         sendMidiControlChange(channel, 100, 0x7f);
+    }
+
+    public void open() {
+        midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
     }
 }

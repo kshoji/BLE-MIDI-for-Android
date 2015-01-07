@@ -43,7 +43,7 @@ public final class MidiInputDevice {
         try {
             return new MidiInputDevice(context, bluetoothGatt);
         } catch (IllegalArgumentException e) {
-            Log.i(Constants.TAG, e.getMessage(), e);
+            Log.i(Constants.TAG, e.getMessage());
             return null;
         }
     }
@@ -63,28 +63,13 @@ public final class MidiInputDevice {
             List<UUID> uuidList = new ArrayList<UUID>();
             for (BluetoothGattService service : bluetoothGatt.getServices()) {
                 uuidList.add(service.getUuid());
-                Log.i(Constants.TAG, "service UUID:" + service.getUuid());
-                for (BluetoothGattCharacteristic characteristic :service.getCharacteristics()) {
-                    Log.i(Constants.TAG, "characteristic UUID:" + characteristic.getUuid() + "\tproperties:" + characteristic.getProperties());
-                }
             }
-            throw new IllegalArgumentException("MIDI GattService not found. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
+            throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
         }
 
         midiInputCharacteristic = BleMidiDeviceUtils.getMidiInputCharacteristic(context, midiService);
         if (midiInputCharacteristic == null) {
-            throw new IllegalArgumentException("MIDI GattCharacteristic not found. Service UUID:" + midiService.getUuid());
-        }
-
-        bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
-
-        List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
-        for (BluetoothGattDescriptor descriptor : descriptors) {
-            if (BleUuidUtils.matches(BleUuidUtils.fromShortValue(0x2902), descriptor.getUuid())) {
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                boolean writeDescriptor = bluetoothGatt.writeDescriptor(descriptor);
-                Log.i(Constants.TAG, "wrote descriptor: " + writeDescriptor + " data: " + Arrays.toString(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE));
-            }
+            throw new IllegalArgumentException("MIDI Input GattCharacteristic not found. Service UUID:" + midiService.getUuid());
         }
     }
 
@@ -137,7 +122,6 @@ public final class MidiInputDevice {
         midiParser.setMidiInputEventListener(null);
 
         bluetoothGatt.disconnect();
-        bluetoothGatt.close();
     }
 
     @Override
@@ -186,7 +170,7 @@ public final class MidiInputDevice {
      * @param data
      */
     public void incomingData(byte[] data) {
-        Log.d(Constants.TAG, "inputDevice: " + this.hashCode() + ", data: " + Arrays.toString(data));
+        Log.d(Constants.TAG, "data: " + Arrays.toString(data));
 
         midiParser.parse(data);
     }
@@ -197,5 +181,24 @@ public final class MidiInputDevice {
      */
     public BluetoothGattCharacteristic getCharacteristic() {
         return midiInputCharacteristic;
+    }
+
+    public void open() {
+
+        bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
+
+        List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
+        for (BluetoothGattDescriptor descriptor : descriptors) {
+            if (BleUuidUtils.matches(BleUuidUtils.fromShortValue(0x2902), descriptor.getUuid())) {
+                boolean setValue = descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                Log.i(Constants.TAG, "bluetoothGatt.writeDescriptor: ENABLE_NOTIFICATION_VALUE: " + setValue);
+
+                // FIXME this method call is successful, but BleMidiCallback.onDescriptorWrite not called
+                bluetoothGatt.writeDescriptor(descriptor);
+            }
+        }
+
+        // TODO The accessory shall respond to the initial MIDI I/O characteristic read with a packet that has no payload.
+        bluetoothGatt.readCharacteristic(midiInputCharacteristic);
     }
 }
