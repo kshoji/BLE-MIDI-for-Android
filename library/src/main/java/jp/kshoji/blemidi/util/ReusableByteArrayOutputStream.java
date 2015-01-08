@@ -14,7 +14,7 @@ public final class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
 	/**
 	 * Construct instance
 	 * 
-	 * @param size
+	 * @param size the initial size of the stream
 	 */
 	public ReusableByteArrayOutputStream(int size) {
 		super(size);

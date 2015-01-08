@@ -13,14 +13,14 @@ public interface OnMidiDeviceAttachedListener {
     /**
      * MIDI input device has been attached
      *
-     * @param midiInputDevice
+     * @param midiInputDevice attached MIDI Input device
      */
     void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice);
 
     /**
      * MIDI output device has been attached
      *
-     * @param midiOutputDevice
+     * @param midiOutputDevice attached MIDI Output device
      */
     void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice);
 }

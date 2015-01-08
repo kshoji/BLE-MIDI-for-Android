@@ -50,7 +50,7 @@ public final class BleUuidUtils {
 
     /**
      * UUID to short style value
-     * @param uuid
+     * @param uuid the UUID
      * @return short style value, -1 if the specified UUID is not short style
      */
     public static int toShortValue(UUID uuid) {
@@ -60,10 +60,10 @@ public final class BleUuidUtils {
     /**
      * check if full style or short (16bits) style UUID matches
      *
-     * @param src
-     * @param dst
+     * @param src the UUID to be compared
+     * @param dst the UUID to be compared
      *
-     * @return true if UUID matches
+     * @return true if the both of UUIDs matches
      */
     public static boolean matches(final UUID src, final UUID dst) {
         if (src == null && dst == null) {
@@ -85,9 +85,9 @@ public final class BleUuidUtils {
     }
 
     /**
-     * Check if the specified UUID's style is short style.
+     * Check if the specified UUID style is short style.
      *
-     * @param src
+     * @param src the UUID
      * @return true if the UUID is short style
      */
     private static boolean isShortUuid(final UUID src) {

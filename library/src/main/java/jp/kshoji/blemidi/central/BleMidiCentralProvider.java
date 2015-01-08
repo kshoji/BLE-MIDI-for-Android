@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -13,7 +12,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
-import android.util.Log;
 
 import java.util.Set;
 
@@ -23,7 +21,6 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
-import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Client for BLE MIDI Peripheral device service
@@ -58,7 +55,7 @@ public final class BleMidiCentralProvider {
     /**
      * Check if Bluetooth LE device supported on the running environment.
      *
-     * @param context
+     * @param context the context
      * @return true if supported
      */
     public static boolean isBleSupported(Context context) {
@@ -81,7 +78,7 @@ public final class BleMidiCentralProvider {
     /**
      * Constructor
      *
-     * @param context
+     * @param context the context
      */
     @SuppressLint("NewApi")
     public BleMidiCentralProvider(final Context context) {
@@ -111,8 +108,7 @@ public final class BleMidiCentralProvider {
                             return;
                         }
 
-                        BluetoothGatt bluetoothGatt = bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
-                        Log.i(Constants.TAG, "connectGatt: " + bluetoothGatt.getDevice().getName());
+                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
                     }
                 }
             };
@@ -170,28 +166,44 @@ public final class BleMidiCentralProvider {
         }
     }
 
-    public boolean isScanning() {
-        return isScanning;
-    }
-
-    OnMidiScanStatusListener onMidiScanStatusListener;
-
-    public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
-        this.onMidiScanStatusListener = onMidiScanStatusListener;
-    }
-
+    /**
+     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiInputDevice} that is currently connected
+     * @return unmodifiable set
+     */
     public Set<MidiInputDevice> getMidiInputDevices() {
         return midiCallback.getMidiInputDevices();
     }
 
+    /**
+     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiOutputDevice} that is currently connected
+     * @return unmodifiable set
+     */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
         return midiCallback.getMidiOutputDevices();
     }
 
+    private OnMidiScanStatusListener onMidiScanStatusListener;
+
+    /**
+     * Set the listener of device scanning status
+     * @param onMidiScanStatusListener the listener
+     */
+    public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
+        this.onMidiScanStatusListener = onMidiScanStatusListener;
+    }
+
+    /**
+     * Set the listener for attaching devices
+     * @param midiDeviceAttachedListener the listener
+     */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
         this.midiCallback.setOnMidiDeviceAttachedListener(midiDeviceAttachedListener);
     }
 
+    /**
+     * Set the listener for attaching devices
+     * @param midiDeviceDetachedListener the listener
+     */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiCallback.setOnMidiDeviceDetachedListener(midiDeviceDetachedListener);
     }

@@ -46,13 +46,15 @@ public class CentralActivity extends Activity {
 
     MenuItem toggleScanMenu;
 
+    boolean isScanning = false;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         toggleScanMenu = menu.getItem(0);
 
-        if (bleMidiCentralProvider.isScanning()) {
+        if (isScanning) {
             toggleScanMenu.setTitle("STOP SCAN");
         } else {
             toggleScanMenu.setTitle("START SCAN");
@@ -69,7 +71,7 @@ public class CentralActivity extends Activity {
         int id = item.getItemId();
         switch (id) {
             case R.id.action_toggle_scan:
-                if (bleMidiCentralProvider.isScanning()) {
+                if (isScanning) {
                     bleMidiCentralProvider.stopScanDevice();
                 } else {
                     bleMidiCentralProvider.startScanDevice(0);
@@ -134,7 +136,7 @@ public class CentralActivity extends Activity {
     Timer timer;
     TimerTask timerTask;
     SoundMaker soundMaker;
-    final Set<Tone> tones = new HashSet<Tone>();
+    final Set<Tone> tones = new HashSet<>();
     int currentProgram = 0;
 
     /**
@@ -420,6 +422,7 @@ public class CentralActivity extends Activity {
         bleMidiCentralProvider.setOnMidiScanStatusListener(new OnMidiScanStatusListener() {
             @Override
             public void onMidiScanStatusChanged(boolean isScanning) {
+                CentralActivity.this.isScanning = isScanning;
                 if (toggleScanMenu != null) {
                     if (isScanning) {
                         toggleScanMenu.setTitle("STOP SCAN");
@@ -434,18 +437,18 @@ public class CentralActivity extends Activity {
         bleMidiCentralProvider.startScanDevice(30000);
 
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
-        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
-        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventListView.setAdapter(midiInputEventAdapter);
 
         ListView midiOutputEventListView = (ListView) findViewById(R.id.midiOutputEventListView);
-        midiOutputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiOutputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiOutputEventListView.setAdapter(midiOutputEventAdapter);
 
         thruToggleButton = (ToggleButton) findViewById(R.id.toggleButtonThru);
 
         deviceSpinner = (Spinner) findViewById(R.id.deviceNameSpinner);
-        connectedOutputDevicesAdapter = new ArrayAdapter<MidiOutputDevice>(getApplicationContext(), R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
+        connectedOutputDevicesAdapter = new ArrayAdapter<>(getApplicationContext(), R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
         deviceSpinner.setAdapter(connectedOutputDevicesAdapter);
 
         View.OnTouchListener onToneButtonTouchListener = new View.OnTouchListener() {
@@ -524,9 +527,7 @@ public class CentralActivity extends Activity {
                         if (audioTrack != null) {
                             audioTrack.write(wav, 0, wav.length);
                         }
-                    } catch (IllegalStateException e) {
-                        // do nothing
-                    } catch (NullPointerException e) {
+                    } catch (IllegalStateException | NullPointerException e) {
                         // do nothing
                     }
                 }

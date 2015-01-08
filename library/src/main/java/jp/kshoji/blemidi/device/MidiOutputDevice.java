@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
-import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -25,14 +24,12 @@ public final class MidiOutputDevice {
     private BluetoothGattCharacteristic midiOutputCharacteristic;
     private final BluetoothGatt bluetoothGatt;
 
-    private final Handler handler;
-
     /**
      * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
      * for Central
      *
-     * @param context
-     * @param bluetoothGatt
+     * @param context the context
+     * @param bluetoothGatt the gatt of device
      * @return null if the device doesn't contain BLE MIDI service
      */
     public static MidiOutputDevice getInstance(final Context context, final BluetoothGatt bluetoothGatt) {
@@ -48,8 +45,8 @@ public final class MidiOutputDevice {
     /**
      * Constructor for Central
      *
-     * @param context
-     * @param bluetoothGatt
+     * @param context the context
+     * @param bluetoothGatt the gatt of device
      * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
      */
     private MidiOutputDevice(final Context context, final BluetoothGatt bluetoothGatt) throws IllegalArgumentException {
@@ -57,7 +54,7 @@ public final class MidiOutputDevice {
 
         BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt);
         if (midiService == null) {
-            List<UUID> uuidList = new ArrayList<UUID>();
+            List<UUID> uuidList = new ArrayList<>();
             for (BluetoothGattService service : bluetoothGatt.getServices()) {
                 uuidList.add(service.getUuid());
             }
@@ -68,16 +65,14 @@ public final class MidiOutputDevice {
         if (midiOutputCharacteristic == null) {
             throw new IllegalArgumentException("MIDI Output GattCharacteristic not found. Service UUID:" + midiService.getUuid());
         }
-
-        this.handler = new Handler(context.getMainLooper());
     }
 
     /**
      * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
      * for Peripheral
      *
-     * @param context
-     * @param bluetoothGatt
+     * @param context the context
+     * @param bluetoothGatt the gatt of device
      * @return null if the device doesn't contain BLE MIDI service
      */
     public static MidiOutputDevice getInstance(final Context context, final BluetoothGatt bluetoothGatt, final BluetoothGattCharacteristic characteristic) {
@@ -88,16 +83,14 @@ public final class MidiOutputDevice {
     /**
      * Constructor for Peripheral
      *
-     * @param context
-     * @param bluetoothGatt
-     * @param characteristic
+     * @param context the context
+     * @param bluetoothGatt the gatt of device
+     * @param characteristic the characteristic of device
      */
     private MidiOutputDevice(final Context context, final BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic characteristic) {
         this.bluetoothGatt = bluetoothGatt;
         midiOutputCharacteristic = characteristic;
         midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-
-        this.handler = new Handler(context.getMainLooper());
     }
 
     /**
@@ -124,7 +117,7 @@ public final class MidiOutputDevice {
     /**
      * Sends MIDI message to output device.
      *
-     * @param byte1
+     * @param byte1 the first byte
      */
     private void sendMidiMessage(int byte1) {
         if (midiOutputCharacteristic == null) {
@@ -145,8 +138,8 @@ public final class MidiOutputDevice {
     /**
      * Sends MIDI message to output device.
      *
-     * @param byte1
-     * @param byte2
+     * @param byte1 the first byte
+     * @param byte2 the second byte
      */
     private void sendMidiMessage(int byte1, int byte2) {
         if (midiOutputCharacteristic == null) {
@@ -172,9 +165,9 @@ public final class MidiOutputDevice {
     /**
      * Sends MIDI message to output device.
      *
-     * @param byte1
-     * @param byte2
-     * @param byte3
+     * @param byte1 the first byte
+     * @param byte2 the second byte
+     * @param byte3 the third byte
      */
     private void sendMidiMessage(int byte1, int byte2, int byte3) {
         if (midiOutputCharacteristic == null) {
