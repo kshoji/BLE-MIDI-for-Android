@@ -541,7 +541,8 @@ public class CentralActivity extends Activity {
             public void onClick(View v) {
                 MidiOutputDevice bleMidiOutputDeviceFromSpinner = getBleMidiOutputDeviceFromSpinner();
                 if (bleMidiOutputDeviceFromSpinner != null) {
-                    bleMidiOutputDeviceFromSpinner.close();
+                    // FIXME call gatt.close()
+                    //bleMidiOutputDeviceFromSpinner.close();
                 }
             }
         });

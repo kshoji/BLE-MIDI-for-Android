@@ -86,7 +86,6 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
                 if (midiOutputDevices != null) {
                     for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                        midiOutputDevice.close();
                         if (midiDeviceDetachedListener != null) {
                             midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                         }
@@ -95,6 +94,8 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     midiOutputDevicesMap.remove(gattDeviceAddress);
                 }
             }
+
+            gatt.close();
         }
     }
 
@@ -120,7 +121,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
         }
 
-        MidiInputDevice midiInputDevice = MidiInputDevice.getInstance(context, gatt);
+        MidiInputDevice midiInputDevice = MidiInputDevice.getCentralInstance(context, gatt);
         if (midiInputDevice != null) {
             synchronized (midiInputDevicesMap) {
                 Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
@@ -140,15 +141,11 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         // find MIDI Output device
         if (midiOutputDevicesMap.containsKey(gattDeviceAddress)) {
             synchronized (midiOutputDevicesMap) {
-                Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
-                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                    midiOutputDevice.close();
-                }
                 midiOutputDevicesMap.remove(gattDeviceAddress);
             }
         }
 
-        MidiOutputDevice midiOutputDevice = MidiOutputDevice.getInstance(context, gatt);
+        MidiOutputDevice midiOutputDevice = MidiOutputDevice.getCentralInstance(context, gatt);
         if (midiOutputDevice != null) {
             synchronized (midiOutputDevicesMap) {
                 Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
@@ -176,10 +173,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 context.registerReceiver(new BondingBroadcastReceiver(midiInputDevice, midiOutputDevice), filter);
             } else {
                 if (midiInputDevice != null) {
-                    midiInputDevice.open();
+                    midiInputDevice.configureAsCentralDevice();
                 }
                 if (midiOutputDevice != null) {
-                    midiOutputDevice.open();
+                    midiOutputDevice.configureAsCentralDevice();
                 }
             }
 
@@ -200,10 +197,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
         for (MidiInputDevice midiInputDevice : midiInputDevices) {
-            if (midiInputDevice.getCharacteristic().equals(characteristic)) {
-                midiInputDevice.incomingData(characteristic.getValue());
-                break;
-            }
+            midiInputDevice.incomingData(characteristic.getValue());
         }
     }
 
@@ -243,8 +237,8 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     // successfully bonded
                     context.unregisterReceiver(this);
 
-                    midiInputDevice.open();
-                    midiOutputDevice.open();
+                    midiInputDevice.configureAsCentralDevice();
+                    midiOutputDevice.configureAsCentralDevice();
                 }
             }
         }

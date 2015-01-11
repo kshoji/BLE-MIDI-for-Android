@@ -3,6 +3,7 @@ package jp.kshoji.blemidi.device;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.util.Log;
@@ -25,8 +26,9 @@ import jp.kshoji.blemidi.util.MidiParser;
  */
 public final class MidiInputDevice {
 
-    private BluetoothGattCharacteristic midiInputCharacteristic;
-    private final BluetoothGatt bluetoothGatt;
+    protected BluetoothGattCharacteristic midiInputCharacteristic;
+    protected final BluetoothGatt bluetoothGatt;
+    protected final BluetoothGattServer bluetoothGattServer;
 
     private final MidiParser midiParser = new MidiParser(this);
 
@@ -34,11 +36,12 @@ public final class MidiInputDevice {
      * Obtains MidiInputDevice instance if available from specified BluetoothGatt
      * for Central
      *
-     * @param context
-     * @param bluetoothGatt
+     * @param context the context
+     * @param bluetoothGatt the gatt of device
      * @return null if the device doesn't contain BLE MIDI service
+     * TODO remove this method
      */
-    public static MidiInputDevice getInstance(Context context, final BluetoothGatt bluetoothGatt) {
+    public static MidiInputDevice getCentralInstance(Context context, final BluetoothGatt bluetoothGatt) {
         // create instance if available
         try {
             return new MidiInputDevice(context, bluetoothGatt);
@@ -57,6 +60,7 @@ public final class MidiInputDevice {
      */
     private MidiInputDevice(Context context, final BluetoothGatt bluetoothGatt) throws IllegalArgumentException {
         this.bluetoothGatt = bluetoothGatt;
+        this.bluetoothGattServer = null;
 
         BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt);
         if (midiService == null) {
@@ -77,34 +81,22 @@ public final class MidiInputDevice {
      * Obtains MidiInputDevice instance if available from specified BluetoothGatt
      * for Peripheral
      *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @param characteristic the characteristic of device
+     * @param bluetoothGattServer the gatt server
      * @return null if the device doesn't contain BLE MIDI service
+     * TODO remove this method
      */
-    public static MidiInputDevice getInstance(Context context, final BluetoothGatt bluetoothGatt, final BluetoothGattCharacteristic characteristic) {
-        // create instance if available
-        return new MidiInputDevice(context, bluetoothGatt, characteristic);
+    public static MidiInputDevice getPeripheralInstance(final BluetoothGattServer bluetoothGattServer) {
+        return new MidiInputDevice(bluetoothGattServer);
     }
 
     /**
      * Constructor for Peripheral
      *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @param characteristic the characteristic of device
+     * @param bluetoothGattServer the gatt server
      */
-    private MidiInputDevice(Context context, BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic characteristic) {
-        this.bluetoothGatt = bluetoothGatt;
-        midiInputCharacteristic = characteristic;
-
-//        List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
-//
-//        for (BluetoothGattDescriptor descriptor : descriptors) {
-//            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-//            bluetoothGatt.writeDescriptor(descriptor);
-//        }
-        bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
+    private MidiInputDevice(BluetoothGattServer bluetoothGattServer) {
+        this.bluetoothGatt = null;
+        this.bluetoothGattServer = bluetoothGattServer;
     }
 
     /**
@@ -120,8 +112,6 @@ public final class MidiInputDevice {
      */
     public void close() {
         midiParser.setMidiInputEventListener(null);
-
-        bluetoothGatt.disconnect();
     }
 
     @Override
@@ -157,7 +147,14 @@ public final class MidiInputDevice {
      * @return device name
      */
     public String getDeviceName() {
-        return bluetoothGatt.getDevice().getName();
+        if (bluetoothGatt != null) {
+            return bluetoothGatt.getDevice().getName();
+        }
+        if (bluetoothGattServer != null) {
+            return "BLE MIDI";
+        }
+
+        return "(null)";
     }
 
     @Override
@@ -174,23 +171,16 @@ public final class MidiInputDevice {
     }
 
     /**
-     * Obtain the {@link android.bluetooth.BluetoothGattCharacteristic} of this device
-     * @return the characteristic for MIDI Input
+     * Configure the device as BLE Central
+     * TODO remove this method
      */
-    public BluetoothGattCharacteristic getCharacteristic() {
-        return midiInputCharacteristic;
-    }
-
-    /**
-     * Configure the device
-     */
-    public void open() {
+    public void configureAsCentralDevice() {
         bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
 
         List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
         for (BluetoothGattDescriptor descriptor : descriptors) {
             if (BleUuidUtils.matches(BleUuidUtils.fromShortValue(0x2902), descriptor.getUuid())) {
-                boolean setValue = descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                 bluetoothGatt.writeDescriptor(descriptor);
             }
         }
