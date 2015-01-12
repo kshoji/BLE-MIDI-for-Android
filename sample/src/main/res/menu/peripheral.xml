@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity" >
+    <item android:id="@+id/action_start_advertise"
+        android:title="start advertise"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+    <item android:id="@+id/action_stop_advertise"
+        android:title="stop advertise"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+    <item android:id="@+id/action_close_peripheral"
+        android:title="close devices"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+</menu>

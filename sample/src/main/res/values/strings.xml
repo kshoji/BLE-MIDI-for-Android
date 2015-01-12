@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">BleMidiSample</string>
-    <string name="app_name_peripheral">BleMidiPeripheral</string>
+    <string name="app_name_central">BleMidiSample (Central)</string>
+    <string name="app_name_peripheral">BleMidiSample (Peripheral)</string>
     <string name="action_settings">Settings</string>
 
 </resources>

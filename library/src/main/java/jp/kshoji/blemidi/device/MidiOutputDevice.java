@@ -1,113 +1,21 @@
 package jp.kshoji.blemidi.device;
 
-import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
-import android.content.Context;
-import android.util.Log;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
-import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
-import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Represents BLE MIDI Output Device
  *
  * @author K.Shoji
  */
-public final class MidiOutputDevice {
-
-    private BluetoothGattCharacteristic midiOutputCharacteristic;
-    private final BluetoothGatt bluetoothGatt;
-
-    /**
-     * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
-     * for Central
-     *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @return null if the device doesn't contain BLE MIDI service
-     */
-    public static MidiOutputDevice getInstance(final Context context, final BluetoothGatt bluetoothGatt) {
-        // create instance if available
-        try {
-            return new MidiOutputDevice(context, bluetoothGatt);
-        } catch (IllegalArgumentException e) {
-            Log.i(Constants.TAG, e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Constructor for Central
-     *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
-     */
-    private MidiOutputDevice(final Context context, final BluetoothGatt bluetoothGatt) throws IllegalArgumentException {
-        this.bluetoothGatt = bluetoothGatt;
-
-        BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt);
-        if (midiService == null) {
-            List<UUID> uuidList = new ArrayList<>();
-            for (BluetoothGattService service : bluetoothGatt.getServices()) {
-                uuidList.add(service.getUuid());
-            }
-            throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
-        }
-
-        midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService);
-        if (midiOutputCharacteristic == null) {
-            throw new IllegalArgumentException("MIDI Output GattCharacteristic not found. Service UUID:" + midiService.getUuid());
-        }
-    }
-
-    /**
-     * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
-     * for Peripheral
-     *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @return null if the device doesn't contain BLE MIDI service
-     */
-    public static MidiOutputDevice getInstance(final Context context, final BluetoothGatt bluetoothGatt, final BluetoothGattCharacteristic characteristic) {
-        // create instance if available
-        return new MidiOutputDevice(context, bluetoothGatt, characteristic);
-    }
-
-    /**
-     * Constructor for Peripheral
-     *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @param characteristic the characteristic of device
-     */
-    private MidiOutputDevice(final Context context, final BluetoothGatt bluetoothGatt, BluetoothGattCharacteristic characteristic) {
-        this.bluetoothGatt = bluetoothGatt;
-        midiOutputCharacteristic = characteristic;
-        midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-    }
-
-    /**
-     * Close the device
-     */
-    public void close() {
-        bluetoothGatt.disconnect();
-    }
+public abstract class MidiOutputDevice {
+    protected BluetoothGattCharacteristic midiOutputCharacteristic;
 
     /**
      * Obtains the device name
      *
      * @return device name
      */
-    public String getDeviceName() {
-        return bluetoothGatt.getDevice().getName();
-    }
+    public abstract String getDeviceName();
 
     @Override
     public String toString() {
@@ -126,13 +34,7 @@ public final class MidiOutputDevice {
 
         byte[] writeBuffer = new byte[] { (byte) 0x80, (byte) 0x80, (byte) byte1 };
 
-        midiOutputCharacteristic.setValue(writeBuffer);
-        try {
-            bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-        } catch (Throwable t) {
-            // android.os.DeadObjectException will be thrown
-            // ignore it
-        }
+        transferData(writeBuffer);
     }
 
     /**
@@ -153,14 +55,15 @@ public final class MidiOutputDevice {
         writeBuffer[2] = (byte) byte1;
         writeBuffer[3] = (byte) byte2;
 
-        midiOutputCharacteristic.setValue(writeBuffer);
-        try {
-            bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-        } catch (Throwable t) {
-            // android.os.DeadObjectException will be thrown
-            // ignore it
-        }
+        transferData(writeBuffer);
     }
+
+    /**
+     * Transfer data with MidiOutputDevice configuration
+     *
+     * @param writeBuffer byte array to write
+     */
+    protected abstract void transferData(byte[] writeBuffer);
 
     /**
      * Sends MIDI message to output device.
@@ -170,10 +73,6 @@ public final class MidiOutputDevice {
      * @param byte3 the third byte
      */
     private void sendMidiMessage(int byte1, int byte2, int byte3) {
-        if (midiOutputCharacteristic == null) {
-            return;
-        }
-
         byte[] writeBuffer = new byte[5];
 
         writeBuffer[0] = (byte) 0x80;
@@ -182,13 +81,7 @@ public final class MidiOutputDevice {
         writeBuffer[3] = (byte) byte2;
         writeBuffer[4] = (byte) byte3;
 
-        midiOutputCharacteristic.setValue(writeBuffer);
-        try {
-            bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-        } catch (Throwable t) {
-            // android.os.DeadObjectException will be thrown
-            // ignore it
-        }
+        transferData(writeBuffer);
     }
 
     /**
@@ -207,27 +100,21 @@ public final class MidiOutputDevice {
         timestampAddedSystemExclusive[systemExclusive.length] = (byte) 0x80;
 
         // split into 20 bytes. BLE can't send more than 20 bytes by default MTU.
-        byte[] buffer = new byte[20];
-        buffer[0] = (byte) 0x80;
+        byte[] writeBuffer = new byte[20];
+        writeBuffer[0] = (byte) 0x80;
 
         for (int i = 0; i < timestampAddedSystemExclusive.length; i += 19) {
             if (i + 20 <= timestampAddedSystemExclusive.length) {
-                System.arraycopy(timestampAddedSystemExclusive, i, buffer, 1, 19);
+                System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, 19);
             } else {
                 // last message
-                buffer = new byte[timestampAddedSystemExclusive.length - i + 1];
-                buffer[0] = (byte) 0x80;
+                writeBuffer = new byte[timestampAddedSystemExclusive.length - i + 1];
+                writeBuffer[0] = (byte) 0x80;
 
-                System.arraycopy(timestampAddedSystemExclusive, i, buffer, 1, timestampAddedSystemExclusive.length - i);
+                System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, timestampAddedSystemExclusive.length - i);
             }
 
-            midiOutputCharacteristic.setValue(buffer);
-            try {
-                bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-            } catch (Throwable t) {
-                // android.os.DeadObjectException will be thrown
-                // ignore it
-            }
+            transferData(writeBuffer);
         }
     }
 
@@ -452,9 +339,5 @@ public final class MidiOutputDevice {
         // send the NULL function
         sendMidiControlChange(channel, 101, 0x7f);
         sendMidiControlChange(channel, 100, 0x7f);
-    }
-
-    public void open() {
-        midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
     }
 }

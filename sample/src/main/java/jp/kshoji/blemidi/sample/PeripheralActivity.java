@@ -11,12 +11,12 @@ import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.ToggleButton;
@@ -29,41 +29,29 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
-import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
+import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
 import jp.kshoji.blemidi.sample.util.SoundMaker;
 import jp.kshoji.blemidi.sample.util.Tone;
 import jp.kshoji.blemidi.util.BleUtils;
+import jp.kshoji.blemidi.util.Constants;
 
 /**
- * Activity for BLE MIDI Central Application
+ * Activity for Sample Application
  *
  * @author K.Shoji
  */
-public class CentralActivity extends Activity {
-    BleMidiCentralProvider bleMidiCentralProvider;
-
-    MenuItem toggleScanMenu;
-
-    boolean isScanning = false;
+public class PeripheralActivity extends Activity {
+    BleMidiPeripheralProvider bleMidiPeripheralProvider;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.central, menu);
-        toggleScanMenu = menu.getItem(0);
-
-        if (isScanning) {
-            toggleScanMenu.setTitle("stop scan");
-        } else {
-            toggleScanMenu.setTitle("start scan");
-        }
-
+        getMenuInflater().inflate(R.menu.peripheral, menu);
         return true;
     }
 
@@ -74,12 +62,14 @@ public class CentralActivity extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         switch (id) {
-            case R.id.action_toggle_scan:
-                if (isScanning) {
-                    bleMidiCentralProvider.stopScanDevice();
-                } else {
-                    bleMidiCentralProvider.startScanDevice(0);
-                }
+            case R.id.action_start_advertise:
+                bleMidiPeripheralProvider.startAdvertising();
+                return true;
+            case R.id.action_stop_advertise:
+                bleMidiPeripheralProvider.stopAdvertising();
+                return true;
+            case R.id.action_close_peripheral:
+                bleMidiPeripheralProvider.disconnectAllDevices();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -140,7 +130,7 @@ public class CentralActivity extends Activity {
     Timer timer;
     TimerTask timerTask;
     SoundMaker soundMaker;
-    final Set<Tone> tones = new HashSet<>();
+    final Set<Tone> tones = new HashSet<Tone>();
     int currentProgram = 0;
 
     /**
@@ -150,15 +140,7 @@ public class CentralActivity extends Activity {
      */
     MidiOutputDevice getBleMidiOutputDeviceFromSpinner() {
         if (deviceSpinner != null && deviceSpinner.getSelectedItemPosition() >= 0 && connectedOutputDevicesAdapter != null && !connectedOutputDevicesAdapter.isEmpty()) {
-            MidiOutputDevice device = connectedOutputDevicesAdapter.getItem(deviceSpinner.getSelectedItemPosition());
-            if (device != null) {
-                Set<MidiOutputDevice> midiOutputDevices = bleMidiCentralProvider.getMidiOutputDevices();
-
-                if (midiOutputDevices.size() > 0) {
-                    // returns the first one.
-                    return (MidiOutputDevice) midiOutputDevices.toArray()[0];
-                }
-            }
+            return connectedOutputDevicesAdapter.getItem(deviceSpinner.getSelectedItemPosition());
         }
         return null;
     }
@@ -196,7 +178,7 @@ public class CentralActivity extends Activity {
 
         @Override
         public void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity) {
-            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
+            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn  from: " + sender.getDeviceName() + "channel: " + channel + ", note: " + note + ", velocity: " + velocity));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
                 getBleMidiOutputDeviceFromSpinner().sendMidiNoteOn(channel, note, velocity);
@@ -386,28 +368,36 @@ public class CentralActivity extends Activity {
         }
     };
 
+    /*
+     * (non-Javadoc)
+     * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onCreate(android.os.Bundle)
+     */
     @Override
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
-        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
-        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventListView.setAdapter(midiInputEventAdapter);
 
         ListView midiOutputEventListView = (ListView) findViewById(R.id.midiOutputEventListView);
-        midiOutputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiOutputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiOutputEventListView.setAdapter(midiOutputEventAdapter);
 
         thruToggleButton = (ToggleButton) findViewById(R.id.toggleButtonThru);
 
         deviceSpinner = (Spinner) findViewById(R.id.deviceNameSpinner);
-        connectedOutputDevicesAdapter = new ArrayAdapter<>(getApplicationContext(), R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
+        connectedOutputDevicesAdapter = new ArrayAdapter<MidiOutputDevice>(getApplicationContext(), android.R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
         deviceSpinner.setAdapter(connectedOutputDevicesAdapter);
 
         View.OnTouchListener onToneButtonTouchListener = new View.OnTouchListener() {
 
+            /*
+             * (non-Javadoc)
+             * @see android.view.View.OnTouchListener#onTouch(android.view.View, android.view.MotionEvent)
+             */
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 MidiOutputDevice midiOutputDevice = getBleMidiOutputDeviceFromSpinner();
@@ -470,6 +460,10 @@ public class CentralActivity extends Activity {
         audioTrack = prepareAudioTrack(soundMaker.getSamplingRate());
         timer = new Timer();
         timerTask = new TimerTask() {
+            /*
+             * (non-Javadoc)
+             * @see java.util.TimerTask#run()
+             */
             @Override
             public void run() {
                 if (soundMaker != null) {
@@ -482,7 +476,9 @@ public class CentralActivity extends Activity {
                         if (audioTrack != null) {
                             audioTrack.write(wav, 0, wav.length);
                         }
-                    } catch (IllegalStateException | NullPointerException e) {
+                    } catch (IllegalStateException e) {
+                        // do nothing
+                    } catch (NullPointerException e) {
                         // do nothing
                     }
                 }
@@ -490,27 +486,17 @@ public class CentralActivity extends Activity {
         };
         timer.scheduleAtFixedRate(timerTask, 10, timerRate);
 
-        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
-        disconnectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MidiOutputDevice bleMidiOutputDeviceFromSpinner = getBleMidiOutputDeviceFromSpinner();
-                if (bleMidiOutputDeviceFromSpinner != null) {
-                    bleMidiCentralProvider.disconnectDevice(bleMidiOutputDeviceFromSpinner);
-                }
-            }
-        });
-
         if (!BleUtils.isBluetoothEnabled(this)) {
+            Log.i(Constants.TAG, "Bluetooth is disabled, now enabling..");
             BleUtils.enableBluetooth(this);
             return;
         }
 
-        if (!BleUtils.isBleSupported(this)) {
+        if (!BleUtils.isBleSupported(this) || !BleUtils.isBlePeripheralSupported(this)) {
             // display alert and exit
             AlertDialog alertDialog = new AlertDialog.Builder(this).create();
             alertDialog.setTitle("Not supported");
-            alertDialog.setMessage("Bluetooth LE is not supported on this device. The app will exit.");
+            alertDialog.setMessage("Bluetooth LE Peripheral is not supported on this device. The app will exit.");
             alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                     new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
@@ -525,17 +511,17 @@ public class CentralActivity extends Activity {
             });
             alertDialog.show();
         } else {
-            setupCentralProvider();
+            setupBlePeripheralProvider();
         }
     }
 
     /**
-     * Configure BleMidiCentralProvider instance
+     * Configure BleMidiPeripheralProvider instance
      */
-    private void setupCentralProvider() {
-        bleMidiCentralProvider = new BleMidiCentralProvider(this);
+    private void setupBlePeripheralProvider() {
+        bleMidiPeripheralProvider = new BleMidiPeripheralProvider(this);
 
-        bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
+        bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
                 midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
@@ -550,7 +536,7 @@ public class CentralActivity extends Activity {
             }
         });
 
-        bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
+        bleMidiPeripheralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
             @Override
             public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
                 // do nothing
@@ -564,23 +550,6 @@ public class CentralActivity extends Activity {
                 midiOutputConnectionChangedHandler.sendMessage(message);
             }
         });
-
-        bleMidiCentralProvider.setOnMidiScanStatusListener(new OnMidiScanStatusListener() {
-            @Override
-            public void onMidiScanStatusChanged(boolean isScanning) {
-                CentralActivity.this.isScanning = isScanning;
-                if (toggleScanMenu != null) {
-                    if (isScanning) {
-                        toggleScanMenu.setTitle("stop scan");
-                    } else {
-                        toggleScanMenu.setTitle("start scan");
-                    }
-                }
-            }
-        });
-
-        // scan devices for 30 seconds
-        bleMidiCentralProvider.startScanDevice(30000);
     }
 
     @Override
@@ -588,11 +557,11 @@ public class CentralActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == BleUtils.REQUEST_CODE_BLUETOOTH_ENABLE) {
-            if (!BleUtils.isBleSupported(this)) {
+            if (!BleUtils.isBleSupported(this) || !BleUtils.isBlePeripheralSupported(this)) {
                 // display alert and exit
                 AlertDialog alertDialog = new AlertDialog.Builder(this).create();
                 alertDialog.setTitle("Not supported");
-                alertDialog.setMessage("Bluetooth LE is not supported on this device. The app will exit.");
+                alertDialog.setMessage("Bluetooth LE Peripheral is not supported on this device. The app will exit.");
                 alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
@@ -607,14 +576,22 @@ public class CentralActivity extends Activity {
                 });
                 alertDialog.show();
             } else {
-                setupCentralProvider();
+                setupBlePeripheralProvider();
             }
         }
     }
 
+    /*
+         * (non-Javadoc)
+         * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onDestroy()
+         */
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        if (bleMidiPeripheralProvider != null) {
+            bleMidiPeripheralProvider.stopAdvertising();
+        }
 
         if (timer != null) {
             try {
