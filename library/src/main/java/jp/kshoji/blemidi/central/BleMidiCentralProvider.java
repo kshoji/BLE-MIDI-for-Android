@@ -15,7 +15,6 @@ import android.os.Handler;
 
 import java.util.Set;
 
-import jp.kshoji.blemidi.central.callback.BleMidiCallback;
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
@@ -51,29 +50,6 @@ public final class BleMidiCentralProvider {
      * Callback for BLE device scanning (for Lollipop or later)
      */
     private final ScanCallback scanCallback;
-
-    /**
-     * Check if Bluetooth LE device supported on the running environment.
-     *
-     * @param context the context
-     * @return true if supported
-     */
-    public static boolean isBleSupported(Context context) {
-        try {
-            if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
-                return false;
-            }
-
-            BluetoothAdapter bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
-            if (bluetoothAdapter != null) {
-                bluetoothAdapter.disable();
-                return true;
-            }
-        } catch (Throwable t) {
-            // ignore exception
-        }
-        return false;
-    }
 
     /**
      * Constructor
@@ -164,6 +140,22 @@ public final class BleMidiCentralProvider {
         if (onMidiScanStatusListener != null) {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
         }
+    }
+
+    /**
+     * Disconnects the specified device
+     * @param midiInputDevice the device
+     */
+    public void disconnectDevice(MidiInputDevice midiInputDevice) {
+        midiCallback.disconnectDevice(midiInputDevice);
+    }
+
+    /**
+     * Disconnects the specified device
+     * @param midiOutputDevice the device
+     */
+    public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
+        midiCallback.disconnectDevice(midiOutputDevice);
     }
 
     /**

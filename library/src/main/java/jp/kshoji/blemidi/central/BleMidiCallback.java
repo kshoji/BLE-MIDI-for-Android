@@ -1,4 +1,4 @@
-package jp.kshoji.blemidi.central.callback;
+package jp.kshoji.blemidi.central;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Handler;
+import android.util.Log;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,6 +27,7 @@ import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
+import jp.kshoji.blemidi.util.Constants;
 
 /**
  * BluetoothGattCallback implementation for BLE MIDI devices.
@@ -33,8 +35,9 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
  * @author K.Shoji
  */
 public final class BleMidiCallback extends BluetoothGattCallback {
-    final Map<String, Set<MidiInputDevice>> midiInputDevicesMap = new HashMap<String, Set<MidiInputDevice>>();
-    final Map<String, Set<MidiOutputDevice>> midiOutputDevicesMap = new HashMap<String, Set<MidiOutputDevice>>();
+    final Map<String, Set<MidiInputDevice>> midiInputDevicesMap = new HashMap<>();
+    final Map<String, Set<MidiOutputDevice>> midiOutputDevicesMap = new HashMap<>();
+    final Map<String, BluetoothGatt> deviceAddressGattMap = new HashMap<>();
     final Context context;
     final Handler handler;
 
@@ -67,6 +70,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
             String gattDeviceAddress = gatt.getDevice().getAddress();
 
+            Set<String> addressToRemove = new HashSet<>();
             // invoke event listeners
             synchronized (midiInputDevicesMap) {
                 Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
@@ -76,6 +80,8 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                         if (midiDeviceDetachedListener != null) {
                             midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
                         }
+
+                        addressToRemove.add(((jp.kshoji.blemidi.central.MidiInputDevice)midiInputDevice).getDeviceAddress());
                     }
                     midiInputDevices.clear();
                     midiInputDevicesMap.remove(gattDeviceAddress);
@@ -89,9 +95,17 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                         if (midiDeviceDetachedListener != null) {
                             midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                         }
+
+                        addressToRemove.add(((jp.kshoji.blemidi.central.MidiOutputDevice)midiOutputDevice).getDeviceAddress());
                     }
                     midiOutputDevices.clear();
                     midiOutputDevicesMap.remove(gattDeviceAddress);
+                }
+            }
+
+            synchronized (deviceAddressGattMap) {
+                for (String address : addressToRemove) {
+                    deviceAddressGattMap.remove(address);
                 }
             }
 
@@ -121,7 +135,12 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
         }
 
-        MidiInputDevice midiInputDevice = MidiInputDevice.getCentralInstance(context, gatt);
+        MidiInputDevice midiInputDevice = null;
+        try {
+            midiInputDevice = new jp.kshoji.blemidi.central.MidiInputDevice(context, gatt);
+        } catch (IllegalArgumentException iae) {
+            Log.i(Constants.TAG, iae.getMessage());
+        }
         if (midiInputDevice != null) {
             synchronized (midiInputDevicesMap) {
                 Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
@@ -145,7 +164,12 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
         }
 
-        MidiOutputDevice midiOutputDevice = MidiOutputDevice.getCentralInstance(context, gatt);
+        MidiOutputDevice midiOutputDevice = null;
+        try {
+            midiOutputDevice = new jp.kshoji.blemidi.central.MidiOutputDevice(context, gatt);
+        } catch (IllegalArgumentException iae) {
+            Log.i(Constants.TAG, iae.getMessage());
+        }
         if (midiOutputDevice != null) {
             synchronized (midiOutputDevicesMap) {
                 Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
@@ -163,6 +187,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         }
 
         if (midiInputDevice != null || midiOutputDevice != null) {
+            synchronized (deviceAddressGattMap) {
+                deviceAddressGattMap.put(gattDeviceAddress, gatt);
+            }
+
             // Create bond and configure Gatt, if this is BLE MIDI device
             BluetoothDevice bluetoothDevice = gatt.getDevice();
             if (bluetoothDevice.getBondState() == BluetoothDevice.BOND_NONE) {
@@ -173,10 +201,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 context.registerReceiver(new BondingBroadcastReceiver(midiInputDevice, midiOutputDevice), filter);
             } else {
                 if (midiInputDevice != null) {
-                    midiInputDevice.configureAsCentralDevice();
+                    ((jp.kshoji.blemidi.central.MidiInputDevice)midiInputDevice).configureAsCentralDevice();
                 }
                 if (midiOutputDevice != null) {
-                    midiOutputDevice.configureAsCentralDevice();
+                    ((jp.kshoji.blemidi.central.MidiOutputDevice)midiOutputDevice).configureAsCentralDevice();
                 }
             }
 
@@ -197,7 +225,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
         for (MidiInputDevice midiInputDevice : midiInputDevices) {
-            midiInputDevice.incomingData(characteristic.getValue());
+            ((jp.kshoji.blemidi.central.MidiInputDevice)midiInputDevice).incomingData(characteristic.getValue());
         }
     }
 
@@ -208,6 +236,36 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         if (descriptor != null) {
             if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, descriptor.getValue())) {
                 gatt.setCharacteristicNotification(descriptor.getCharacteristic(), true);
+            }
+        }
+    }
+
+    /**
+     * Disconnect the specified device
+     * @param midiInputDevice the device
+     */
+    void disconnectDevice(MidiInputDevice midiInputDevice) {
+        synchronized (deviceAddressGattMap) {
+            String deviceAddress = ((jp.kshoji.blemidi.central.MidiInputDevice) midiInputDevice).getDeviceAddress();
+            BluetoothGatt bluetoothGatt = deviceAddressGattMap.get(deviceAddress);
+            if (bluetoothGatt != null) {
+                bluetoothGatt.close();
+                deviceAddressGattMap.remove(deviceAddress);
+            }
+        }
+    }
+
+    /**
+     * Disconnect the specified device
+     * @param midiOutputDevice the device
+     */
+    void disconnectDevice(MidiOutputDevice midiOutputDevice) {
+        synchronized (deviceAddressGattMap) {
+            String deviceAddress = ((jp.kshoji.blemidi.central.MidiOutputDevice) midiOutputDevice).getDeviceAddress();
+            BluetoothGatt bluetoothGatt = deviceAddressGattMap.get(deviceAddress);
+            if (bluetoothGatt != null) {
+                bluetoothGatt.close();
+                deviceAddressGattMap.remove(deviceAddress);
             }
         }
     }
@@ -237,8 +295,8 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     // successfully bonded
                     context.unregisterReceiver(this);
 
-                    midiInputDevice.configureAsCentralDevice();
-                    midiOutputDevice.configureAsCentralDevice();
+                    ((jp.kshoji.blemidi.central.MidiInputDevice)midiInputDevice).configureAsCentralDevice();
+                    ((jp.kshoji.blemidi.central.MidiOutputDevice)midiOutputDevice).configureAsCentralDevice();
                 }
             }
         }

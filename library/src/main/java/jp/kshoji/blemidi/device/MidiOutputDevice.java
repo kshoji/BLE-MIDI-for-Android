@@ -1,130 +1,21 @@
 package jp.kshoji.blemidi.device;
 
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattServer;
-import android.bluetooth.BluetoothGattService;
-import android.content.Context;
-import android.util.Log;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
-import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
-import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Represents BLE MIDI Output Device
  *
  * @author K.Shoji
  */
-public final class MidiOutputDevice {
-    private static final int BLE_MODE_PERIPHERAL = 1;
-    private static final int BLE_MODE_CENTRAL = 2;
-    private final int deviceConfiguration;
-
-    private BluetoothGattCharacteristic midiOutputCharacteristic;
-    private final BluetoothGatt bluetoothGatt;
-    private final BluetoothGattServer bluetoothGattServer;
-    private final BluetoothDevice bluetoothDevice;
-
-    private static volatile int requestId = 0;
-
-    /**
-     * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
-     * for Central
-     *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @return null if the device doesn't contain BLE MIDI service
-     * TODO remove this method
-     */
-    public static MidiOutputDevice getCentralInstance(final Context context, final BluetoothGatt bluetoothGatt) {
-        // create instance if available
-        try {
-            return new MidiOutputDevice(context, bluetoothGatt);
-        } catch (IllegalArgumentException e) {
-            Log.i(Constants.TAG, e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Constructor for Central
-     *
-     * @param context the context
-     * @param bluetoothGatt the gatt of device
-     * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
-     */
-    private MidiOutputDevice(final Context context, final BluetoothGatt bluetoothGatt) throws IllegalArgumentException {
-        this.bluetoothGatt = bluetoothGatt;
-        this.bluetoothGattServer = null;
-        this.bluetoothDevice = null;
-
-        deviceConfiguration = BLE_MODE_CENTRAL;
-
-        BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt);
-        if (midiService == null) {
-            List<UUID> uuidList = new ArrayList<>();
-            for (BluetoothGattService service : bluetoothGatt.getServices()) {
-                uuidList.add(service.getUuid());
-            }
-            throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
-        }
-
-        midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService);
-        if (midiOutputCharacteristic == null) {
-            throw new IllegalArgumentException("MIDI Output GattCharacteristic not found. Service UUID:" + midiService.getUuid());
-        }
-    }
-
-    /**
-     * Obtains MidiOutputDevice instance if available from specified BluetoothGatt
-     * for Peripheral
-     *
-     * @param bluetoothDevice the device
-     * @param bluetoothGattServer the gatt server
-     * @param midiCharacteristic the characteristic of device
-     * @return null if the device doesn't contain BLE MIDI service
-     * TODO remove this method
-     */
-    public static MidiOutputDevice getPeripheralInstance(final BluetoothDevice bluetoothDevice, final BluetoothGattServer bluetoothGattServer, BluetoothGattCharacteristic midiCharacteristic) {
-        return new MidiOutputDevice(bluetoothDevice, bluetoothGattServer, midiCharacteristic);
-    }
-
-    /**
-     * Constructor for Peripheral
-     *  @param bluetoothDevice the device
-     * @param bluetoothGattServer the gatt server
-     * @param midiCharacteristic the characteristic of device
-     */
-    private MidiOutputDevice(final BluetoothDevice bluetoothDevice, final BluetoothGattServer bluetoothGattServer, BluetoothGattCharacteristic midiCharacteristic) {
-        this.bluetoothGatt = null;
-        this.bluetoothDevice = bluetoothDevice;
-        this.bluetoothGattServer = bluetoothGattServer;
-        this.midiOutputCharacteristic = midiCharacteristic;
-
-        deviceConfiguration = BLE_MODE_PERIPHERAL;
-    }
+public abstract class MidiOutputDevice {
+    protected BluetoothGattCharacteristic midiOutputCharacteristic;
 
     /**
      * Obtains the device name
      *
      * @return device name
      */
-    public String getDeviceName() {
-        switch (deviceConfiguration) {
-            case BLE_MODE_CENTRAL:
-                return bluetoothGatt.getDevice().getName();
-            case BLE_MODE_PERIPHERAL:
-                return "BLE MIDI:" + bluetoothDevice.getName();
-            default:
-                return "(null)";
-        }
-    }
+    public abstract String getDeviceName();
 
     @Override
     public String toString() {
@@ -143,7 +34,7 @@ public final class MidiOutputDevice {
 
         byte[] writeBuffer = new byte[] { (byte) 0x80, (byte) 0x80, (byte) byte1 };
 
-        transferData(deviceConfiguration, writeBuffer);
+        transferData(writeBuffer);
     }
 
     /**
@@ -164,38 +55,15 @@ public final class MidiOutputDevice {
         writeBuffer[2] = (byte) byte1;
         writeBuffer[3] = (byte) byte2;
 
-        transferData(deviceConfiguration, writeBuffer);
+        transferData(writeBuffer);
     }
 
     /**
      * Transfer data with MidiOutputDevice configuration
      *
-     * @param configuration BLE_MODE_CENTRAL or BLE_MODE_PERIPHERAL
      * @param writeBuffer byte array to write
      */
-    private void transferData(int configuration, byte[] writeBuffer) {
-        midiOutputCharacteristic.setValue(writeBuffer);
-
-        switch (configuration) {
-            case BLE_MODE_CENTRAL:
-                // Central
-                try {
-                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
-                } catch (Throwable ignored) {
-                    // android.os.DeadObjectException will be thrown
-                    // ignore it
-                }
-                break;
-            case BLE_MODE_PERIPHERAL:
-                // Peripheral
-                try {
-                    bluetoothGattServer.notifyCharacteristicChanged(bluetoothDevice, midiOutputCharacteristic, false);
-                } catch (Throwable ignored) {
-                    // ignore it
-                }
-                break;
-        }
-    }
+    protected abstract void transferData(byte[] writeBuffer);
 
     /**
      * Sends MIDI message to output device.
@@ -213,7 +81,7 @@ public final class MidiOutputDevice {
         writeBuffer[3] = (byte) byte2;
         writeBuffer[4] = (byte) byte3;
 
-        transferData(deviceConfiguration, writeBuffer);
+        transferData(writeBuffer);
     }
 
     /**
@@ -246,7 +114,7 @@ public final class MidiOutputDevice {
                 System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, timestampAddedSystemExclusive.length - i);
             }
 
-            transferData(deviceConfiguration, writeBuffer);
+            transferData(writeBuffer);
         }
     }
 
@@ -471,13 +339,5 @@ public final class MidiOutputDevice {
         // send the NULL function
         sendMidiControlChange(channel, 101, 0x7f);
         sendMidiControlChange(channel, 100, 0x7f);
-    }
-
-    /**
-     * Configure the device as BLE Central
-     * TODO remove this method
-     */
-    public void configureAsCentralDevice() {
-        midiOutputCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
     }
 }

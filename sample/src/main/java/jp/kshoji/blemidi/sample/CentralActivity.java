@@ -1,6 +1,9 @@
 package jp.kshoji.blemidi.sample;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -35,6 +38,7 @@ import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
 import jp.kshoji.blemidi.sample.util.SoundMaker;
 import jp.kshoji.blemidi.sample.util.Tone;
+import jp.kshoji.blemidi.util.BleUtils;
 
 /**
  * Activity for BLE MIDI Central Application
@@ -51,13 +55,13 @@ public class CentralActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.central, menu);
         toggleScanMenu = menu.getItem(0);
 
         if (isScanning) {
-            toggleScanMenu.setTitle("STOP SCAN");
+            toggleScanMenu.setTitle("stop scan");
         } else {
-            toggleScanMenu.setTitle("START SCAN");
+            toggleScanMenu.setTitle("start scan");
         }
 
         return true;
@@ -387,55 +391,6 @@ public class CentralActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bleMidiCentralProvider = new BleMidiCentralProvider(this);
-
-        bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
-            @Override
-            public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
-                midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
-            }
-
-            @Override
-            public void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice) {
-                Message message = new Message();
-                message.arg1 = 0;
-                message.obj = midiOutputDevice;
-                midiOutputConnectionChangedHandler.sendMessage(message);
-            }
-        });
-
-        bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
-            @Override
-            public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
-                // do nothing
-            }
-
-            @Override
-            public void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice) {
-                Message message = new Message();
-                message.arg1 = 1;
-                message.obj = midiOutputDevice;
-                midiOutputConnectionChangedHandler.sendMessage(message);
-            }
-        });
-
-        bleMidiCentralProvider.setOnMidiScanStatusListener(new OnMidiScanStatusListener() {
-            @Override
-            public void onMidiScanStatusChanged(boolean isScanning) {
-                CentralActivity.this.isScanning = isScanning;
-                if (toggleScanMenu != null) {
-                    if (isScanning) {
-                        toggleScanMenu.setTitle("STOP SCAN");
-                    } else {
-                        toggleScanMenu.setTitle("START SCAN");
-                    }
-                }
-            }
-        });
-
-        // scan devices for 30 seconds
-        bleMidiCentralProvider.startScanDevice(30000);
-
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
         midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
@@ -541,11 +496,120 @@ public class CentralActivity extends Activity {
             public void onClick(View v) {
                 MidiOutputDevice bleMidiOutputDeviceFromSpinner = getBleMidiOutputDeviceFromSpinner();
                 if (bleMidiOutputDeviceFromSpinner != null) {
-                    // FIXME call gatt.close()
-                    //bleMidiOutputDeviceFromSpinner.close();
+                    bleMidiCentralProvider.disconnectDevice(bleMidiOutputDeviceFromSpinner);
                 }
             }
         });
+
+        if (!BleUtils.isBluetoothEnabled(this)) {
+            BleUtils.enableBluetooth(this);
+            return;
+        }
+
+        if (!BleUtils.isBleSupported(this)) {
+            // display alert and exit
+            AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+            alertDialog.setTitle("Not supported");
+            alertDialog.setMessage("Bluetooth LE is not supported on this device. The app will exit.");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+            alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    finish();
+                }
+            });
+            alertDialog.show();
+        } else {
+            setupCentralProvider();
+        }
+    }
+
+    /**
+     * Configure BleMidiCentralProvider instance
+     */
+    private void setupCentralProvider() {
+        bleMidiCentralProvider = new BleMidiCentralProvider(this);
+
+        bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
+            @Override
+            public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
+                midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
+            }
+
+            @Override
+            public void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice) {
+                Message message = new Message();
+                message.arg1 = 0;
+                message.obj = midiOutputDevice;
+                midiOutputConnectionChangedHandler.sendMessage(message);
+            }
+        });
+
+        bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
+            @Override
+            public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
+                // do nothing
+            }
+
+            @Override
+            public void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice) {
+                Message message = new Message();
+                message.arg1 = 1;
+                message.obj = midiOutputDevice;
+                midiOutputConnectionChangedHandler.sendMessage(message);
+            }
+        });
+
+        bleMidiCentralProvider.setOnMidiScanStatusListener(new OnMidiScanStatusListener() {
+            @Override
+            public void onMidiScanStatusChanged(boolean isScanning) {
+                CentralActivity.this.isScanning = isScanning;
+                if (toggleScanMenu != null) {
+                    if (isScanning) {
+                        toggleScanMenu.setTitle("stop scan");
+                    } else {
+                        toggleScanMenu.setTitle("start scan");
+                    }
+                }
+            }
+        });
+
+        // scan devices for 30 seconds
+        bleMidiCentralProvider.startScanDevice(30000);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == BleUtils.REQUEST_CODE_BLUETOOTH_ENABLE) {
+            if (!BleUtils.isBleSupported(this)) {
+                // display alert and exit
+                AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+                alertDialog.setTitle("Not supported");
+                alertDialog.setMessage("Bluetooth LE is not supported on this device. The app will exit.");
+                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        finish();
+                    }
+                });
+                alertDialog.show();
+            } else {
+                setupCentralProvider();
+            }
+        }
     }
 
     @Override
