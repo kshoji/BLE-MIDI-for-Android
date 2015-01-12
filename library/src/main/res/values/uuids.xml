@@ -2,23 +2,31 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="TypographyDashes">
     <!-- Advertise and Services UUID for MIDI -->
     <string-array name="uuidListForService">
-        <item>0000</item><!-- short style -->
-        <item>0001</item><!-- short style -->
-        <item>713d0000-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit -->
-        <item>6e400001-b5a3-f393-e0a9-e50e24dcca9e</item><!-- Nordic Semiconductor nRF-UART-App -->
+        <!--<item>0000</item>&lt;!&ndash; short style &ndash;&gt;-->
+        <!--<item>0001</item>&lt;!&ndash; short style &ndash;&gt;-->
+        <!--<item>713d0000-503e-4c75-ba94-3148f18d941e</item>&lt;!&ndash; RedBearLab Biscuit &ndash;&gt;-->
+        <!--<item>6e400001-b5a3-f393-e0a9-e50e24dcca9e</item>&lt;!&ndash; Nordic Semiconductor nRF-UART-App &ndash;&gt;-->
+        <!--<item>15c3d473-ab76-483f-a874-d08849b8f5c7</item>&lt;!&ndash; QUICCO mi.1 &ndash;&gt;-->
+        <item>03b80e5a-ede8-4b33-a751-6ce34ec4c700</item><!-- Apple BLE MIDI -->
     </string-array>
 
     <!-- Characteristics UUID for MIDI Input -->
     <!-- Notify -->
     <string-array name="uuidListForInputCharacteristic">
-        <item>0002</item><!-- short style: same as BLE Serial rx -->
-        <item>713d0002-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit RX -->
+        <!--<item>0002</item>&lt;!&ndash; short style: same as BLE Serial rx &ndash;&gt;-->
+        <!--<item>713d0002-503e-4c75-ba94-3148f18d941e</item>&lt;!&ndash; RedBearLab Biscuit RX &ndash;&gt;-->
+        <!--<item>6E400003-B5A3-F393-E0A9-E50E24DCCA9E</item>&lt;!&ndash; Nordic Semiconductor RX &ndash;&gt;-->
+        <!--<item>c26b5a53-04e0-4706-9928-25b035924bc2</item>&lt;!&ndash; QUICCO mi.1 &ndash;&gt;-->
+        <item>7772e5db-3868-4112-a1a9-f2669d106bf3</item><!-- Apple BLE MIDI -->
     </string-array>
 
     <!-- Characteristics UUID for MIDI Output -->
     <!-- Write without Response -->
     <string-array name="uuidListForOutputCharacteristic">
-        <item>0003</item><!-- short style: same as BLE Serial tx -->
-        <item>713d0003-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit TX -->
+        <!--<item>0003</item>&lt;!&ndash; short style: same as BLE Serial tx &ndash;&gt;-->
+        <!--<item>713d0003-503e-4c75-ba94-3148f18d941e</item>&lt;!&ndash; RedBearLab Biscuit TX &ndash;&gt;-->
+        <!--<item>6E400002-B5A3-F393-E0A9-E50E24DCCA9E</item>&lt;!&ndash; Nordic Semiconductor TX &ndash;&gt;-->
+        <!--<item>c26b5a53-04e0-4706-9928-25b035924bc2</item>&lt;!&ndash; QUICCO mi.1 &ndash;&gt;-->
+        <item>7772e5db-3868-4112-a1a9-f2669d106bf3</item><!-- Apple BLE MIDI -->
     </string-array>
 </resources>

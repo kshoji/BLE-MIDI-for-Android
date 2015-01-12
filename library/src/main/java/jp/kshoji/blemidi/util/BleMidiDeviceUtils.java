@@ -15,13 +15,13 @@ import jp.kshoji.blemidi.R;
  *
  * @author K.Shoji
  */
-public class BleMidiDeviceUtils {
+public final class BleMidiDeviceUtils {
 
     /**
      * Obtains BluetoothGattService for MIDI
      *
-     * @param context
-     * @param bluetoothGatt
+     * @param context the context
+     * @param bluetoothGatt the gatt of device
      * @return null if no service found
      */
     public static BluetoothGattService getMidiService(final Context context, final BluetoothGatt bluetoothGatt) {
@@ -43,8 +43,8 @@ public class BleMidiDeviceUtils {
     /**
      * Obtains BluetoothGattCharacteristic for MIDI Input
      *
-     * @param context
-     * @param bluetoothGattService
+     * @param context the context
+     * @param bluetoothGattService the gatt service of device
      * @return null if no characteristic found
      */
     public static BluetoothGattCharacteristic getMidiInputCharacteristic(final Context context, final BluetoothGattService bluetoothGattService) {
@@ -66,8 +66,8 @@ public class BleMidiDeviceUtils {
     /**
      * Obtains BluetoothGattCharacteristic for MIDI Output
      *
-     * @param context
-     * @param bluetoothGattService
+     * @param context the context
+     * @param bluetoothGattService the gatt service of device
      * @return null if no characteristic found
      */
     public static BluetoothGattCharacteristic getMidiOutputCharacteristic(final Context context, final BluetoothGattService bluetoothGattService) {

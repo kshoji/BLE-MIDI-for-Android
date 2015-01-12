@@ -1,35 +1,44 @@
 package jp.kshoji.blemidi.central;
 
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 
 import java.util.Set;
 
-import jp.kshoji.blemidi.central.callback.BleMidiCallback;
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
+import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
 
 /**
  * Client for BLE MIDI Peripheral device service
  *
  * @author K.Shoji
  */
-public class BleMidiCentralProvider {
+public final class BleMidiCentralProvider {
     final BluetoothAdapter bluetoothAdapter;
     final Context context;
     final Handler handler;
     final BleMidiCallback midiCallback;
 
+    /**
+     * Callback for BLE device scanning
+     */
     private final BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) {
-            if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE) {
+            if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
                 return;
             }
 
@@ -38,34 +47,17 @@ public class BleMidiCentralProvider {
     };
 
     /**
-     * Check if Bluetooth LE device supported on the running environment.
-     *
-     * @param context
-     * @return true if supported
+     * Callback for BLE device scanning (for Lollipop or later)
      */
-    public static boolean isBleSupported(Context context) {
-        try {
-            if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
-                return false;
-            }
-
-            BluetoothAdapter bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
-            if (bluetoothAdapter != null) {
-                bluetoothAdapter.disable();
-                return true;
-            }
-        } catch (Throwable t) {
-            // ignore exception
-        }
-        return false;
-    }
+    private final ScanCallback scanCallback;
 
     /**
      * Constructor
      *
-     * @param context
+     * @param context the context
      */
-    public BleMidiCentralProvider(Context context) {
+    @SuppressLint("NewApi")
+    public BleMidiCentralProvider(final Context context) {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
@@ -76,22 +68,59 @@ public class BleMidiCentralProvider {
 
         this.context = context;
         this.midiCallback = new BleMidiCallback(context);
-        this.handler = new Handler();
+        this.handler = new Handler(context.getMainLooper());
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            scanCallback = new ScanCallback() {
+                @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    super.onScanResult(callbackType, result);
+
+                    if (callbackType == ScanSettings.CALLBACK_TYPE_ALL_MATCHES) {
+                        final BluetoothDevice bluetoothDevice = result.getDevice();
+
+                        if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
+                            return;
+                        }
+
+                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                    }
+                }
+            };
+        } else {
+            scanCallback = null;
+        }
     }
+
+    private volatile boolean isScanning = false;
 
     /**
      * Starts to scan devices
      *
      * @param timeoutInMilliSeconds 0 or negative value : no timeout
      */
+    @SuppressLint({ "Deprecation", "NewApi" })
     public void startScanDevice(int timeoutInMilliSeconds) {
-        bluetoothAdapter.startLeScan(leScanCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            bluetoothAdapter.getBluetoothLeScanner().startScan(scanCallback);
+        } else {
+            bluetoothAdapter.startLeScan(leScanCallback);
+        }
+        isScanning = true;
+        if (onMidiScanStatusListener != null) {
+            onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+        }
 
         if (timeoutInMilliSeconds > 0) {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    bluetoothAdapter.stopLeScan(leScanCallback);
+                    stopScanDevice();
+                    isScanning = false;
+                    if (onMidiScanStatusListener != null) {
+                        onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+                    }
                 }
             }, timeoutInMilliSeconds);
         }
@@ -100,22 +129,73 @@ public class BleMidiCentralProvider {
     /**
      * Stops to scan devices
      */
+    @SuppressLint({ "Deprecation", "NewApi" })
     public void stopScanDevice() {
-        bluetoothAdapter.stopLeScan(leScanCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
+        } else {
+            bluetoothAdapter.stopLeScan(leScanCallback);
+        }
+        isScanning = false;
+        if (onMidiScanStatusListener != null) {
+            onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+        }
     }
 
+    /**
+     * Disconnects the specified device
+     * @param midiInputDevice the device
+     */
+    public void disconnectDevice(MidiInputDevice midiInputDevice) {
+        midiCallback.disconnectDevice(midiInputDevice);
+    }
+
+    /**
+     * Disconnects the specified device
+     * @param midiOutputDevice the device
+     */
+    public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
+        midiCallback.disconnectDevice(midiOutputDevice);
+    }
+
+    /**
+     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiInputDevice} that is currently connected
+     * @return unmodifiable set
+     */
     public Set<MidiInputDevice> getMidiInputDevices() {
         return midiCallback.getMidiInputDevices();
     }
 
+    /**
+     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiOutputDevice} that is currently connected
+     * @return unmodifiable set
+     */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
         return midiCallback.getMidiOutputDevices();
     }
 
+    private OnMidiScanStatusListener onMidiScanStatusListener;
+
+    /**
+     * Set the listener of device scanning status
+     * @param onMidiScanStatusListener the listener
+     */
+    public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
+        this.onMidiScanStatusListener = onMidiScanStatusListener;
+    }
+
+    /**
+     * Set the listener for attaching devices
+     * @param midiDeviceAttachedListener the listener
+     */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
         this.midiCallback.setOnMidiDeviceAttachedListener(midiDeviceAttachedListener);
     }
 
+    /**
+     * Set the listener for attaching devices
+     * @param midiDeviceDetachedListener the listener
+     */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiCallback.setOnMidiDeviceDetachedListener(midiDeviceDetachedListener);
     }

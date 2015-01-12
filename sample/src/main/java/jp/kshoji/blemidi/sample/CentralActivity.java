@@ -1,6 +1,9 @@
 package jp.kshoji.blemidi.sample;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -13,13 +16,18 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 import jp.kshoji.blemidi.device.MidiInputDevice;
@@ -27,19 +35,35 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
+import jp.kshoji.blemidi.sample.util.SoundMaker;
+import jp.kshoji.blemidi.sample.util.Tone;
+import jp.kshoji.blemidi.util.BleUtils;
 
 /**
- * Activity for Sample Application
+ * Activity for BLE MIDI Central Application
  *
  * @author K.Shoji
  */
 public class CentralActivity extends Activity {
-    BleMidiCentralProvider bluetoothMidiManager;
+    BleMidiCentralProvider bleMidiCentralProvider;
+
+    MenuItem toggleScanMenu;
+
+    boolean isScanning = false;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.central, menu);
+        toggleScanMenu = menu.getItem(0);
+
+        if (isScanning) {
+            toggleScanMenu.setTitle("stop scan");
+        } else {
+            toggleScanMenu.setTitle("start scan");
+        }
+
         return true;
     }
 
@@ -50,11 +74,12 @@ public class CentralActivity extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         switch (id) {
-            case R.id.action_start_scan:
-                bluetoothMidiManager.startScanDevice(0);
-                return true;
-            case R.id.action_stop_scan:
-                bluetoothMidiManager.stopScanDevice();
+            case R.id.action_toggle_scan:
+                if (isScanning) {
+                    bleMidiCentralProvider.stopScanDevice();
+                } else {
+                    bleMidiCentralProvider.startScanDevice(0);
+                }
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -111,12 +136,12 @@ public class CentralActivity extends Activity {
     ArrayAdapter<MidiOutputDevice> connectedOutputDevicesAdapter;
 
     // Play sounds
-//    AudioTrack audioTrack;
-//    Timer timer;
-//    TimerTask timerTask;
-//    SoundMaker soundMaker;
-//    final Set<Tone> tones = new HashSet<Tone>();
-//    int currentProgram = 0;
+    AudioTrack audioTrack;
+    Timer timer;
+    TimerTask timerTask;
+    SoundMaker soundMaker;
+    final Set<Tone> tones = new HashSet<>();
+    int currentProgram = 0;
 
     /**
      * Choose device from spinner
@@ -127,7 +152,7 @@ public class CentralActivity extends Activity {
         if (deviceSpinner != null && deviceSpinner.getSelectedItemPosition() >= 0 && connectedOutputDevicesAdapter != null && !connectedOutputDevicesAdapter.isEmpty()) {
             MidiOutputDevice device = connectedOutputDevicesAdapter.getItem(deviceSpinner.getSelectedItemPosition());
             if (device != null) {
-                Set<MidiOutputDevice> midiOutputDevices = bluetoothMidiManager.getMidiOutputDevices();
+                Set<MidiOutputDevice> midiOutputDevices = bleMidiCentralProvider.getMidiOutputDevices();
 
                 if (midiOutputDevices.size() > 0) {
                     // returns the first one.
@@ -158,39 +183,39 @@ public class CentralActivity extends Activity {
                 midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "NoteOff from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
             }
 
-//            synchronized (tones) {
-//                Iterator<Tone> it = tones.iterator();
-//                while (it.hasNext()) {
-//                    Tone tone = it.next();
-//                    if (tone.getNote() == note) {
-//                        it.remove();
-//                    }
-//                }
-//            }
+            synchronized (tones) {
+                Iterator<Tone> it = tones.iterator();
+                while (it.hasNext()) {
+                    Tone tone = it.next();
+                    if (tone.getNote() == note) {
+                        it.remove();
+                    }
+                }
+            }
         }
 
         @Override
         public void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity) {
-            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn  from: " + sender.getDeviceName() + "channel: " + channel + ", note: " + note + ", velocity: " + velocity));
+            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
                 getBleMidiOutputDeviceFromSpinner().sendMidiNoteOn(channel, note, velocity);
                 midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "NoteOn from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
             }
 
-//            synchronized (tones) {
-//                if (velocity == 0) {
-//                    Iterator<Tone> it = tones.iterator();
-//                    while (it.hasNext()) {
-//                        Tone tone = it.next();
-//                        if (tone.getNote() == note) {
-//                            it.remove();
-//                        }
-//                    }
-//                } else {
-//                    tones.add(new Tone(note, velocity / 127.0, currentProgram));
-//                }
-//            }
+            synchronized (tones) {
+                if (velocity == 0) {
+                    Iterator<Tone> it = tones.iterator();
+                    while (it.hasNext()) {
+                        Tone tone = it.next();
+                        if (tone.getNote() == note) {
+                            it.remove();
+                        }
+                    }
+                } else {
+                    tones.add(new Tone(note, velocity / 127.0, currentProgram));
+                }
+            }
         }
 
         @Override
@@ -222,12 +247,12 @@ public class CentralActivity extends Activity {
                 midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "ProgramChange from: " + sender.getDeviceName() + ", channel: " + channel + ", program: " + program));
             }
 
-//            currentProgram = program % Tone.FORM_MAX;
-//            synchronized (tones) {
-//                for (Tone tone : tones) {
-//                    tone.setForm(currentProgram);
-//                }
-//            }
+            currentProgram = program % Tone.FORM_MAX;
+            synchronized (tones) {
+                for (Tone tone : tones) {
+                    tone.setForm(currentProgram);
+                }
+            }
         }
 
         @Override
@@ -361,71 +386,28 @@ public class CentralActivity extends Activity {
         }
     };
 
-    /*
-     * (non-Javadoc)
-     * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onCreate(android.os.Bundle)
-     */
     @Override
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bluetoothMidiManager = new BleMidiCentralProvider(this);
-
-        bluetoothMidiManager.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
-            @Override
-            public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
-                midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
-            }
-
-            @Override
-            public void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice) {
-                Message message = new Message();
-                message.arg1 = 0;
-                message.obj = midiOutputDevice;
-                midiOutputConnectionChangedHandler.sendMessage(message);
-            }
-        });
-
-        bluetoothMidiManager.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
-            @Override
-            public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
-                // do nothing
-            }
-
-            @Override
-            public void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice) {
-                Message message = new Message();
-                message.arg1 = 1;
-                message.obj = midiOutputDevice;
-                midiOutputConnectionChangedHandler.sendMessage(message);
-            }
-        });
-
-        // scan devices for 30 seconds
-        bluetoothMidiManager.startScanDevice(30000);
-
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
-        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
-        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventListView.setAdapter(midiInputEventAdapter);
 
         ListView midiOutputEventListView = (ListView) findViewById(R.id.midiOutputEventListView);
-        midiOutputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiOutputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiOutputEventListView.setAdapter(midiOutputEventAdapter);
 
         thruToggleButton = (ToggleButton) findViewById(R.id.toggleButtonThru);
 
         deviceSpinner = (Spinner) findViewById(R.id.deviceNameSpinner);
-        connectedOutputDevicesAdapter = new ArrayAdapter<MidiOutputDevice>(getApplicationContext(), android.R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
+        connectedOutputDevicesAdapter = new ArrayAdapter<>(getApplicationContext(), R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
         deviceSpinner.setAdapter(connectedOutputDevicesAdapter);
 
         View.OnTouchListener onToneButtonTouchListener = new View.OnTouchListener() {
 
-            /*
-             * (non-Javadoc)
-             * @see android.view.View.OnTouchListener#onTouch(android.view.View, android.view.MotionEvent)
-             */
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 MidiOutputDevice midiOutputDevice = getBleMidiOutputDeviceFromSpinner();
@@ -480,70 +462,181 @@ public class CentralActivity extends Activity {
         findViewById(R.id.buttonB).getBackground().setColorFilter(whiteKeyColor, PorterDuff.Mode.MULTIPLY);
         findViewById(R.id.buttonC2).getBackground().setColorFilter(whiteKeyColor, PorterDuff.Mode.MULTIPLY);
 
-//        soundMaker = SoundMaker.getInstance();
-//        final int bufferSize = AudioTrack.getMinBufferSize(soundMaker.getSamplingRate(), AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-//        int timerRate = bufferSize * 1000 / soundMaker.getSamplingRate() / 2;
-//        final short[] wav = new short[bufferSize / 2];
-//
-//        audioTrack = prepareAudioTrack(soundMaker.getSamplingRate());
-//        timer = new Timer();
-//        timerTask = new TimerTask() {
-//            /*
-//             * (non-Javadoc)
-//             * @see java.util.TimerTask#run()
-//             */
-//            @Override
-//            public void run() {
-//                if (soundMaker != null) {
-//                    synchronized (tones) {
-//                        for (int i = 0; i < wav.length; i++) {
-//                            wav[i] = (short) (soundMaker.makeWaveStream(tones) * 1024);
-//                        }
-//                    }
-//                    try {
-//                        if (audioTrack != null) {
-//                            audioTrack.write(wav, 0, wav.length);
-//                        }
-//                    } catch (IllegalStateException e) {
-//                        // do nothing
-//                    } catch (NullPointerException e) {
-//                        // do nothing
-//                    }
-//                }
-//            }
-//        };
-//        timer.scheduleAtFixedRate(timerTask, 10, timerRate);
+        soundMaker = SoundMaker.getInstance();
+        final int bufferSize = AudioTrack.getMinBufferSize(soundMaker.getSamplingRate(), AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int timerRate = bufferSize * 1000 / soundMaker.getSamplingRate() / 2;
+        final short[] wav = new short[bufferSize / 2];
+
+        audioTrack = prepareAudioTrack(soundMaker.getSamplingRate());
+        timer = new Timer();
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (soundMaker != null) {
+                    synchronized (tones) {
+                        for (int i = 0; i < wav.length; i++) {
+                            wav[i] = (short) (soundMaker.makeWaveStream(tones) * 1024);
+                        }
+                    }
+                    try {
+                        if (audioTrack != null) {
+                            audioTrack.write(wav, 0, wav.length);
+                        }
+                    } catch (IllegalStateException | NullPointerException e) {
+                        // do nothing
+                    }
+                }
+            }
+        };
+        timer.scheduleAtFixedRate(timerTask, 10, timerRate);
+
+        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MidiOutputDevice bleMidiOutputDeviceFromSpinner = getBleMidiOutputDeviceFromSpinner();
+                if (bleMidiOutputDeviceFromSpinner != null) {
+                    bleMidiCentralProvider.disconnectDevice(bleMidiOutputDeviceFromSpinner);
+                }
+            }
+        });
+
+        if (!BleUtils.isBluetoothEnabled(this)) {
+            BleUtils.enableBluetooth(this);
+            return;
+        }
+
+        if (!BleUtils.isBleSupported(this)) {
+            // display alert and exit
+            AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+            alertDialog.setTitle("Not supported");
+            alertDialog.setMessage("Bluetooth LE is not supported on this device. The app will exit.");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+            alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    finish();
+                }
+            });
+            alertDialog.show();
+        } else {
+            setupCentralProvider();
+        }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onDestroy()
+    /**
+     * Configure BleMidiCentralProvider instance
      */
+    private void setupCentralProvider() {
+        bleMidiCentralProvider = new BleMidiCentralProvider(this);
+
+        bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
+            @Override
+            public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
+                midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
+            }
+
+            @Override
+            public void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice) {
+                Message message = new Message();
+                message.arg1 = 0;
+                message.obj = midiOutputDevice;
+                midiOutputConnectionChangedHandler.sendMessage(message);
+            }
+        });
+
+        bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
+            @Override
+            public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
+                // do nothing
+            }
+
+            @Override
+            public void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice) {
+                Message message = new Message();
+                message.arg1 = 1;
+                message.obj = midiOutputDevice;
+                midiOutputConnectionChangedHandler.sendMessage(message);
+            }
+        });
+
+        bleMidiCentralProvider.setOnMidiScanStatusListener(new OnMidiScanStatusListener() {
+            @Override
+            public void onMidiScanStatusChanged(boolean isScanning) {
+                CentralActivity.this.isScanning = isScanning;
+                if (toggleScanMenu != null) {
+                    if (isScanning) {
+                        toggleScanMenu.setTitle("stop scan");
+                    } else {
+                        toggleScanMenu.setTitle("start scan");
+                    }
+                }
+            }
+        });
+
+        // scan devices for 30 seconds
+        bleMidiCentralProvider.startScanDevice(30000);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == BleUtils.REQUEST_CODE_BLUETOOTH_ENABLE) {
+            if (!BleUtils.isBleSupported(this)) {
+                // display alert and exit
+                AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+                alertDialog.setTitle("Not supported");
+                alertDialog.setMessage("Bluetooth LE is not supported on this device. The app will exit.");
+                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        finish();
+                    }
+                });
+                alertDialog.show();
+            } else {
+                setupCentralProvider();
+            }
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-//        if (timer != null) {
-//            try {
-//                timer.cancel();
-//                timer.purge();
-//            } catch (Throwable t) {
-//                // do nothing
-//            } finally {
-//                timer = null;
-//            }
-//        }
-//        if (audioTrack != null) {
-//            try {
-//                audioTrack.stop();
-//                audioTrack.flush();
-//                audioTrack.release();
-//            } catch (Throwable t) {
-//                // do nothing
-//            } finally {
-//                audioTrack = null;
-//            }
-//        }
+        if (timer != null) {
+            try {
+                timer.cancel();
+                timer.purge();
+            } catch (Throwable t) {
+                // do nothing
+            } finally {
+                timer = null;
+            }
+        }
+        if (audioTrack != null) {
+            try {
+                audioTrack.stop();
+                audioTrack.flush();
+                audioTrack.release();
+            } catch (Throwable t) {
+                // do nothing
+            } finally {
+                audioTrack = null;
+            }
+        }
     }
 
     /**
