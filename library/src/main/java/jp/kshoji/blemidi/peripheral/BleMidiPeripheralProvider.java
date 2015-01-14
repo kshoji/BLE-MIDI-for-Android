@@ -202,8 +202,6 @@ public final class BleMidiPeripheralProvider {
             if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
 
-                Log.i(Constants.TAG, "BondingBroadcastReceiver.onReceive state(12:bonded):" + state);
-
                 if (state == BluetoothDevice.BOND_BONDED) {
                     // successfully bonded
                     context.unregisterReceiver(this);
@@ -215,16 +213,27 @@ public final class BleMidiPeripheralProvider {
                     String deviceAddress = device.getAddress();
 
                     synchronized (midiInputDevicesMap) {
+                        boolean isNewDevice = midiInputDevicesMap.get(deviceAddress) == null;
                         midiInputDevicesMap.put(deviceAddress, midiInputDevice);
+
+                        // don't notify if the same device already connected
+                        if (isNewDevice) {
+                            if (midiDeviceAttachedListener != null) {
+                                midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
+                            }
+                        }
                     }
 
                     synchronized (midiOutputDevicesMap) {
+                        boolean isNewDevice = midiOutputDevicesMap.get(deviceAddress) == null;
                         midiOutputDevicesMap.put(deviceAddress, midiOutputDevice);
-                    }
 
-                    if (midiDeviceAttachedListener != null) {
-                        midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
-                        midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
+                        // don't notify if the same device already connected
+                        if (isNewDevice) {
+                            if (midiDeviceAttachedListener != null) {
+                                midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
+                            }
+                        }
                     }
                 }
             }
