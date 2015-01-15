@@ -20,8 +20,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.ParcelUuid;
+import android.text.TextUtils;
 import android.util.Log;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,8 +35,10 @@ import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
+import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.util.BleUuidUtils;
 import jp.kshoji.blemidi.util.Constants;
+import jp.kshoji.blemidi.util.BleMidiParser;
 
 /**
  * Represents BLE MIDI Peripheral functions<br />
@@ -52,22 +56,22 @@ public final class BleMidiPeripheralProvider {
 
     private static final int DEVICE_NAME_MAX_LENGTH = 100;
 
-    final Context context;
-    final BluetoothManager bluetoothManager;
-    final BluetoothLeAdvertiser bluetoothLeAdvertiser;
-    final BluetoothGattService informationGattService;
-    final BluetoothGattService midiGattService;
-    final BluetoothGattCharacteristic midiCharacteristic;
-    BluetoothGattServer gattServer;
+    private final Context context;
+    private final BluetoothManager bluetoothManager;
+    private final BluetoothLeAdvertiser bluetoothLeAdvertiser;
+    private final BluetoothGattService informationGattService;
+    private final BluetoothGattService midiGattService;
+    private final BluetoothGattCharacteristic midiCharacteristic;
+    private BluetoothGattServer gattServer;
 
-    final Map<String, MidiInputDevice> midiInputDevicesMap = new HashMap<>();
-    final Map<String, MidiOutputDevice> midiOutputDevicesMap = new HashMap<>();
+    private final Map<String, MidiInputDevice> midiInputDevicesMap = new HashMap<>();
+    private final Map<String, MidiOutputDevice> midiOutputDevicesMap = new HashMap<>();
 
-    OnMidiDeviceAttachedListener midiDeviceAttachedListener;
-    OnMidiDeviceDetachedListener midiDeviceDetachedListener;
+    private OnMidiDeviceAttachedListener midiDeviceAttachedListener;
+    private OnMidiDeviceDetachedListener midiDeviceDetachedListener;
 
-    String manufacturer = "kshoji.jp";
-    String deviceName = "BLE MIDI";
+    private String manufacturer = "kshoji.jp";
+    private String deviceName = "BLE MIDI";
 
     /**
      * Constructor
@@ -154,7 +158,7 @@ public final class BleMidiPeripheralProvider {
      * Callback for BLE connection<br />
      * nothing to do.
      */
-    final AdvertiseCallback advertiseCallback = new AdvertiseCallback() {};
+    private final AdvertiseCallback advertiseCallback = new AdvertiseCallback() {};
 
     /**
      * Disconnect all devices attached
@@ -162,6 +166,7 @@ public final class BleMidiPeripheralProvider {
     public void disconnectAllDevices() {
         synchronized (midiInputDevicesMap) {
             for (MidiInputDevice midiInputDevice : midiInputDevicesMap.values()) {
+                midiInputDevice.setOnMidiInputEventListener(null);
                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
             }
 
@@ -188,7 +193,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @author K.Shoji
      */
-    public class BondingBroadcastReceiver extends BroadcastReceiver {
+    private class BondingBroadcastReceiver extends BroadcastReceiver {
         final BluetoothDevice device;
 
         BondingBroadcastReceiver(BluetoothDevice device) {
@@ -207,8 +212,8 @@ public final class BleMidiPeripheralProvider {
                     context.unregisterReceiver(this);
 
                     gattServer.connect(device, true);
-                    MidiInputDevice midiInputDevice = new jp.kshoji.blemidi.peripheral.MidiInputDevice(device);
-                    MidiOutputDevice midiOutputDevice = new jp.kshoji.blemidi.peripheral.MidiOutputDevice(device, gattServer, midiCharacteristic);
+                    MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
+                    MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
 
                     String deviceAddress = device.getAddress();
 
@@ -266,8 +271,8 @@ public final class BleMidiPeripheralProvider {
                     {
                         // connecting to the device
                         gattServer.connect(device, true);
-                        MidiInputDevice midiInputDevice = new jp.kshoji.blemidi.peripheral.MidiInputDevice(device);
-                        MidiOutputDevice midiOutputDevice = new jp.kshoji.blemidi.peripheral.MidiOutputDevice(device, gattServer, midiCharacteristic);
+                        MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
+                        MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
 
                         synchronized (midiInputDevicesMap) {
                             midiInputDevicesMap.put(deviceAddress, midiInputDevice);
@@ -291,6 +296,7 @@ public final class BleMidiPeripheralProvider {
                         synchronized (midiInputDevicesMap) {
                             MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
                             if (midiInputDevice != null) {
+                                midiInputDevice.setOnMidiInputEventListener(null);
                                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
                                 midiInputDevicesMap.remove(deviceAddress);
                             }
@@ -319,11 +325,15 @@ public final class BleMidiPeripheralProvider {
                 switch (BleUuidUtils.toShortValue(characteristic.getUuid())) {
                     case 0x2A24:
                         // Model number
-                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, deviceName.getBytes());
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, deviceName.getBytes(StandardCharsets.UTF_8));
                         break;
                     case 0x2A29:
                         // Manufacturer
-                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, manufacturer.getBytes());
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, manufacturer.getBytes(StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        // send empty
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
                         break;
                 }
             }
@@ -337,7 +347,7 @@ public final class BleMidiPeripheralProvider {
                 MidiInputDevice midiInputDevice = midiInputDevicesMap.get(device.getAddress());
 
                 if (midiInputDevice != null) {
-                    ((jp.kshoji.blemidi.peripheral.MidiInputDevice)midiInputDevice).incomingData(value);
+                    ((InternalMidiInputDevice)midiInputDevice).incomingData(value);
                 }
 
                 if (responseNeeded) {
@@ -389,11 +399,12 @@ public final class BleMidiPeripheralProvider {
      */
     public void setManufacturer(String manufacturer) {
         // length check
-        if (manufacturer.getBytes().length > DEVICE_NAME_MAX_LENGTH) {
+        byte[] manufacturerBytes = manufacturer.getBytes(StandardCharsets.UTF_8);
+        if (manufacturerBytes.length > DEVICE_NAME_MAX_LENGTH) {
             // shorten
             byte[] bytes = new byte[DEVICE_NAME_MAX_LENGTH];
-            System.arraycopy(manufacturer.getBytes(), 0, bytes, 0, DEVICE_NAME_MAX_LENGTH);
-            this.manufacturer = new String(bytes);
+            System.arraycopy(manufacturerBytes, 0, bytes, 0, DEVICE_NAME_MAX_LENGTH);
+            this.manufacturer = new String(bytes, StandardCharsets.UTF_8);
         } else {
             this.manufacturer = manufacturer;
         }
@@ -405,13 +416,98 @@ public final class BleMidiPeripheralProvider {
      */
     public void setDeviceName(String deviceName) {
         // length check
-        if (deviceName.getBytes().length > DEVICE_NAME_MAX_LENGTH) {
+        byte[] deviceNameBytes = deviceName.getBytes(StandardCharsets.UTF_8);
+        if (deviceNameBytes.length > DEVICE_NAME_MAX_LENGTH) {
             // shorten
             byte[] bytes = new byte[DEVICE_NAME_MAX_LENGTH];
-            System.arraycopy(deviceName.getBytes(), 0, bytes, 0, DEVICE_NAME_MAX_LENGTH);
-            this.deviceName = new String(bytes);
+            System.arraycopy(deviceNameBytes, 0, bytes, 0, DEVICE_NAME_MAX_LENGTH);
+            this.deviceName = new String(bytes, StandardCharsets.UTF_8);
         } else {
             this.deviceName = deviceName;
+        }
+    }
+
+    /**
+     * MidiInputDevice for Peripheral
+     * @author K.Shoji
+     */
+    private final class InternalMidiInputDevice extends MidiInputDevice {
+        private final BluetoothDevice bluetoothDevice;
+
+        private final BleMidiParser midiParser = new BleMidiParser(this);
+
+        /**
+         * Constructor for Peripheral
+         * @param bluetoothDevice the device
+         *
+         */
+        public InternalMidiInputDevice(BluetoothDevice bluetoothDevice) {
+            super();
+            this.bluetoothDevice = bluetoothDevice;
+        }
+
+        @Override
+        public void setOnMidiInputEventListener(OnMidiInputEventListener midiInputEventListener) {
+            midiParser.setMidiInputEventListener(midiInputEventListener);
+        }
+
+        @Override
+        public String getDeviceName() {
+            if (TextUtils.isEmpty(bluetoothDevice.getName())) {
+                return bluetoothDevice.getAddress();
+            }
+            return bluetoothDevice.getName();
+        }
+
+        void incomingData(byte[] data) {
+            midiParser.parse(data);
+        }
+    }
+
+    /**
+     * MidiOutputDevice for Peripheral
+     * @author K.Shoji
+     */
+    private final class InternalMidiOutputDevice extends MidiOutputDevice {
+        private final BluetoothGattServer bluetoothGattServer;
+        private final BluetoothDevice bluetoothDevice;
+        private final BluetoothGattCharacteristic midiOutputCharacteristic;
+
+        /**
+         * Constructor for Peripheral
+         * @param bluetoothDevice the device
+         * @param bluetoothGattServer the gatt server
+         * @param midiCharacteristic the characteristic of device
+         */
+        public InternalMidiOutputDevice(final BluetoothDevice bluetoothDevice, final BluetoothGattServer bluetoothGattServer, final BluetoothGattCharacteristic midiCharacteristic) {
+            super();
+            this.bluetoothDevice = bluetoothDevice;
+            this.bluetoothGattServer = bluetoothGattServer;
+
+            this.midiOutputCharacteristic = midiCharacteristic;
+        }
+
+        @Override
+        public String getDeviceName() {
+            if (TextUtils.isEmpty(bluetoothDevice.getName())) {
+                return bluetoothDevice.getAddress();
+            }
+            return bluetoothDevice.getName();
+        }
+
+        @Override
+        public void transferData(byte[] writeBuffer) {
+            if (midiOutputCharacteristic == null) {
+                return;
+            }
+
+            midiOutputCharacteristic.setValue(writeBuffer);
+
+            try {
+                bluetoothGattServer.notifyCharacteristicChanged(bluetoothDevice, midiOutputCharacteristic, false);
+            } catch (Throwable ignored) {
+                // ignore it
+            }
         }
     }
 }

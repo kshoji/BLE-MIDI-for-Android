@@ -27,10 +27,10 @@ import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
  * @author K.Shoji
  */
 public final class BleMidiCentralProvider {
-    final BluetoothAdapter bluetoothAdapter;
-    final Context context;
-    final Handler handler;
-    final BleMidiCallback midiCallback;
+    private final BluetoothAdapter bluetoothAdapter;
+    private final Context context;
+    private final Handler handler;
+    private final BleMidiCallback midiCallback;
 
     /**
      * Callback for BLE device scanning

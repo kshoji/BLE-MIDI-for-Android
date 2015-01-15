@@ -5,14 +5,15 @@ import java.util.TimerTask;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.util.ReusableByteArrayOutputStream;
 
 /**
  * MIDI Parser<br />
- * includes all of MIDI 1.0 specification
+ * The protocol compatible with Apple's `MIDI over Bluetooth LE` specification.
  *
  * @author K.Shoji
  */
-public final class MidiParser {
+public final class BleMidiParser {
     private int midiState = MIDI_STATE_TIMESTAMP;
     private int midiEventKind = 0;
     private int midiEventNote = 0;
@@ -42,7 +43,7 @@ public final class MidiParser {
 
     final Timer timer;
 
-    public MidiParser(MidiInputDevice sender) {
+    public BleMidiParser(MidiInputDevice sender) {
         this.sender = sender;
         timer = new Timer();
 
@@ -484,6 +485,9 @@ public final class MidiParser {
                                     }
                                 }
                             }
+                            break;
+                        default:
+                            // do nothing
                             break;
                     }
 
