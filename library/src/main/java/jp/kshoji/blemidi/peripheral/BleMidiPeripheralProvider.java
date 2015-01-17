@@ -36,9 +36,9 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.util.BleMidiParser;
 import jp.kshoji.blemidi.util.BleUuidUtils;
 import jp.kshoji.blemidi.util.Constants;
-import jp.kshoji.blemidi.util.BleMidiParser;
 
 /**
  * Represents BLE MIDI Peripheral functions<br />
@@ -66,6 +66,7 @@ public final class BleMidiPeripheralProvider {
 
     private final Map<String, MidiInputDevice> midiInputDevicesMap = new HashMap<>();
     private final Map<String, MidiOutputDevice> midiOutputDevicesMap = new HashMap<>();
+    private final Map<String, BluetoothDevice> bluetoothDevicesMap = new HashMap<>();
 
     private OnMidiDeviceAttachedListener midiDeviceAttachedListener;
     private OnMidiDeviceDetachedListener midiDeviceDetachedListener;
@@ -130,11 +131,11 @@ public final class BleMidiPeripheralProvider {
 
         AdvertiseData advertiseData = new AdvertiseData.Builder()
                 .setIncludeTxPowerLevel(false)
-                .addServiceUuid(ParcelUuid.fromString("03b80e5a-ede8-4b33-a751-6ce34ec4c700")) // Service for BLE MIDI
+                .addServiceUuid(ParcelUuid.fromString("03b80e5a-ede8-4b33-a751-6ce34ec4c700")) // BLE MIDI Service
                 .setIncludeDeviceName(true)
                 .build();
 
-        bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseData, advertiseCallback);
+        bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback);
     }
 
     /**
@@ -149,8 +150,6 @@ public final class BleMidiPeripheralProvider {
 
         if (gattServer != null) {
             gattServer.clearServices();
-            gattServer.close();
-            gattServer = null;
         }
     }
 
@@ -161,30 +160,90 @@ public final class BleMidiPeripheralProvider {
     private final AdvertiseCallback advertiseCallback = new AdvertiseCallback() {};
 
     /**
-     * Disconnect all devices attached
+     * Disconnects the specified device
+     * @param midiInputDevice the device
      */
-    public void disconnectAllDevices() {
+    public void disconnectDevice(MidiInputDevice midiInputDevice) {
+        if (!(midiInputDevice instanceof InternalMidiInputDevice)) {
+            return;
+        }
+
+        disconnectByDeviceAddress(((InternalMidiInputDevice) midiInputDevice).getDeviceAddress());
+    }
+
+    /**
+     * Disconnects the specified device.
+     * @param midiOutputDevice the device
+     */
+    public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
+        if (!(midiOutputDevice instanceof InternalMidiOutputDevice)) {
+            return;
+        }
+
+        disconnectByDeviceAddress(((InternalMidiOutputDevice)midiOutputDevice).getDeviceAddress());
+    }
+
+    /**
+     * Disconnects the device by its address
+     * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
+     */
+    private void disconnectByDeviceAddress(String deviceAddress) {
+        synchronized (bluetoothDevicesMap) {
+            BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
+            // FIXME null pointer exception
+            gattServer.cancelConnection(bluetoothDevice);
+
+            bluetoothDevicesMap.remove(deviceAddress);
+        }
+
+        synchronized (midiInputDevicesMap) {
+            MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
+            if (midiInputDevice != null) {
+                midiInputDevice.setOnMidiInputEventListener(null);
+
+                if (midiDeviceDetachedListener != null) {
+                    midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
+                }
+            }
+            midiInputDevicesMap.remove(deviceAddress);
+        }
+
+        synchronized (midiOutputDevicesMap) {
+            MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(deviceAddress);
+            if (midiOutputDevice != null) {
+                if (midiDeviceDetachedListener != null) {
+                    midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
+                }
+            }
+            midiOutputDevicesMap.remove(deviceAddress);
+        }
+    }
+
+    /**
+     * Terminates instance
+     */
+    public void terminate() {
+        stopAdvertising();
+
+        gattServer.close();
+        gattServer = null;
+
+        synchronized (bluetoothDevicesMap) {
+            for (BluetoothDevice bluetoothDevice : bluetoothDevicesMap.values()) {
+                gattServer.cancelConnection(bluetoothDevice);
+            }
+            bluetoothDevicesMap.clear();
+        }
+
         synchronized (midiInputDevicesMap) {
             for (MidiInputDevice midiInputDevice : midiInputDevicesMap.values()) {
                 midiInputDevice.setOnMidiInputEventListener(null);
-                midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
             }
-
             midiInputDevicesMap.clear();
         }
 
         synchronized (midiOutputDevicesMap) {
-            for (MidiOutputDevice midiOutputDevice : midiOutputDevicesMap.values()) {
-                midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
-            }
-
             midiOutputDevicesMap.clear();
-        }
-
-        if (gattServer != null) {
-            gattServer.clearServices();
-            gattServer.close();
-            gattServer = null;
         }
     }
 
@@ -240,6 +299,10 @@ public final class BleMidiPeripheralProvider {
                             }
                         }
                     }
+
+                    synchronized (bluetoothDevicesMap) {
+                        bluetoothDevicesMap.put(deviceAddress, device);
+                    }
                 }
             }
         }
@@ -271,6 +334,7 @@ public final class BleMidiPeripheralProvider {
                     {
                         // connecting to the device
                         gattServer.connect(device, true);
+
                         MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
                         MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
 
@@ -282,6 +346,10 @@ public final class BleMidiPeripheralProvider {
                             midiOutputDevicesMap.put(deviceAddress, midiOutputDevice);
                         }
 
+                        synchronized (bluetoothDevicesMap) {
+                            bluetoothDevicesMap.put(deviceAddress, device);
+                        }
+
                         if (midiDeviceAttachedListener != null) {
                             midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
                             midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
@@ -291,7 +359,6 @@ public final class BleMidiPeripheralProvider {
 
                 case BluetoothProfile.STATE_DISCONNECTED:
                     if (midiDeviceAttachedListener != null) {
-
 
                         synchronized (midiInputDevicesMap) {
                             MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
@@ -309,6 +376,10 @@ public final class BleMidiPeripheralProvider {
                                 midiOutputDevicesMap.remove(deviceAddress);
                             }
                         }
+
+                        synchronized (bluetoothDevicesMap) {
+                            bluetoothDevicesMap.remove(deviceAddress);
+                        }
                     }
                     break;
             }
@@ -318,11 +389,13 @@ public final class BleMidiPeripheralProvider {
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
 
-            if (BleUuidUtils.matches(CHARACTERISTIC_BLE_MIDI, characteristic.getUuid())) {
+            UUID characteristicUuid = characteristic.getUuid();
+
+            if (BleUuidUtils.matches(CHARACTERISTIC_BLE_MIDI, characteristicUuid)) {
                 // send empty
                 gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
             } else {
-                switch (BleUuidUtils.toShortValue(characteristic.getUuid())) {
+                switch (BleUuidUtils.toShortValue(characteristicUuid)) {
                     case 0x2A24:
                         // Model number
                         gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, deviceName.getBytes(StandardCharsets.UTF_8));
@@ -462,6 +535,14 @@ public final class BleMidiPeripheralProvider {
         void incomingData(byte[] data) {
             midiParser.parse(data);
         }
+
+        /**
+         * Obtains device address
+         * @return device address
+         */
+        public final String getDeviceAddress() {
+            return bluetoothDevice.getAddress();
+        }
     }
 
     /**
@@ -508,6 +589,14 @@ public final class BleMidiPeripheralProvider {
             } catch (Throwable ignored) {
                 // ignore it
             }
+        }
+
+        /**
+         * Obtains device address
+         * @return device address
+         */
+        public final String getDeviceAddress() {
+            return bluetoothDevice.getAddress();
         }
     }
 }

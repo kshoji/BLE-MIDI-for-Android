@@ -5,7 +5,6 @@ import java.util.TimerTask;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
-import jp.kshoji.blemidi.util.ReusableByteArrayOutputStream;
 
 /**
  * MIDI Parser<br />
@@ -37,6 +36,9 @@ public final class BleMidiParser {
     private static final int MIDI_STATE_SIGNAL_SYSEX = 41;
 
     private int timestamp = 0;
+
+    // FIXME apply timestamp
+    private final boolean useTimestamp = false;
 
     OnMidiInputEventListener midiInputEventListener;
     final MidiInputDevice sender;
@@ -91,7 +93,7 @@ public final class BleMidiParser {
                         case 0xf6:
                             // 0xf6 Tune Request : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -107,7 +109,7 @@ public final class BleMidiParser {
                         case 0xf8:
                             // 0xf8 Timing Clock : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -123,7 +125,7 @@ public final class BleMidiParser {
                         case 0xfa:
                             // 0xfa Start : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -139,7 +141,7 @@ public final class BleMidiParser {
                         case 0xfb:
                             // 0xfb Continue : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -155,7 +157,7 @@ public final class BleMidiParser {
                         case 0xfc:
                             // 0xfc Stop : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -171,7 +173,7 @@ public final class BleMidiParser {
                         case 0xfe:
                             // 0xfe Active Sensing : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -187,7 +189,7 @@ public final class BleMidiParser {
                         case 0xff:
                             // 0xff Reset : 1byte
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -236,7 +238,7 @@ public final class BleMidiParser {
                 case 0xc0: // program change
                     midiEventNote = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -252,7 +254,7 @@ public final class BleMidiParser {
                 case 0xd0: // channel after-touch
                     midiEventNote = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -271,7 +273,7 @@ public final class BleMidiParser {
                             // 0xf1 MIDI Time Code Quarter Frame. : 2bytes
                             midiEventNote = midiEvent;
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -288,7 +290,7 @@ public final class BleMidiParser {
                             // 0xf3 Song Select. : 2bytes
                             midiEventNote = midiEvent;
                             if (midiInputEventListener != null) {
-                                if (timestamp > 0) {
+                                if (useTimestamp && timestamp > 0) {
                                     timer.schedule(new TimerTask() {
                                         @Override
                                         public void run() {
@@ -336,7 +338,7 @@ public final class BleMidiParser {
                 case 0x80: // note off
                     midiEventVelocity = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -352,7 +354,7 @@ public final class BleMidiParser {
                 case 0x90: // note on
                     midiEventVelocity = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -376,7 +378,7 @@ public final class BleMidiParser {
                 case 0xa0: // control polyphonic key pressure
                     midiEventVelocity = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -424,7 +426,7 @@ public final class BleMidiParser {
                             if (parameterNumber != 0x3fff) {
                                 if (parameterMode == PARAMETER_MODE_RPN) {
                                     if (midiInputEventListener != null) {
-                                        if (timestamp > 0) {
+                                        if (useTimestamp && timestamp > 0) {
                                             timer.schedule(new TimerTask() {
                                                 @Override
                                                 public void run() {
@@ -437,7 +439,7 @@ public final class BleMidiParser {
                                     }
                                 } else if (parameterMode == PARAMETER_MODE_NRPN) {
                                     if (midiInputEventListener != null) {
-                                        if (timestamp > 0) {
+                                        if (useTimestamp && timestamp > 0) {
                                             timer.schedule(new TimerTask() {
                                                 @Override
                                                 public void run() {
@@ -459,7 +461,7 @@ public final class BleMidiParser {
                             if (parameterNumber != 0x3fff) {
                                 if (parameterMode == PARAMETER_MODE_RPN) {
                                     if (midiInputEventListener != null) {
-                                        if (timestamp > 0) {
+                                        if (useTimestamp && timestamp > 0) {
                                             timer.schedule(new TimerTask() {
                                                 @Override
                                                 public void run() {
@@ -472,7 +474,7 @@ public final class BleMidiParser {
                                     }
                                 } else if (parameterMode == PARAMETER_MODE_NRPN) {
                                     if (midiInputEventListener != null) {
-                                        if (timestamp > 0) {
+                                        if (useTimestamp && timestamp > 0) {
                                             timer.schedule(new TimerTask() {
                                                 @Override
                                                 public void run() {
@@ -492,7 +494,7 @@ public final class BleMidiParser {
                     }
 
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -508,7 +510,7 @@ public final class BleMidiParser {
                 case 0xe0: // pitch bend
                     midiEventVelocity = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -524,7 +526,7 @@ public final class BleMidiParser {
                 case 0xf0: // Song Position Pointer.
                     midiEventVelocity = midiEvent;
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {
@@ -548,7 +550,7 @@ public final class BleMidiParser {
                 synchronized (systemExclusiveStream) {
                     systemExclusiveStream.write(midiEvent);
                     if (midiInputEventListener != null) {
-                        if (timestamp > 0) {
+                        if (useTimestamp && timestamp > 0) {
                             timer.schedule(new TimerTask() {
                                 @Override
                                 public void run() {

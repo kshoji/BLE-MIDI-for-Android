@@ -96,6 +96,14 @@ public final class BleMidiCentralProvider {
     private volatile boolean isScanning = false;
 
     /**
+     * Set if the Bluetooth LE device need `Pairing`
+     * @param needsPairing if true, request paring with the connecting device
+     */
+    public void setRequestPairing(boolean needsPairing) {
+        midiCallback.setNeedsBonding(needsPairing);
+    }
+
+    /**
      * Starts to scan devices
      *
      * @param timeoutInMilliSeconds 0 or negative value : no timeout
@@ -198,5 +206,13 @@ public final class BleMidiCentralProvider {
      */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiCallback.setOnMidiDeviceDetachedListener(midiDeviceDetachedListener);
+    }
+
+    /**
+     * Terminates instance
+     */
+    public void terminate() {
+        stopScanDevice();
+        midiCallback.terminate();
     }
 }
