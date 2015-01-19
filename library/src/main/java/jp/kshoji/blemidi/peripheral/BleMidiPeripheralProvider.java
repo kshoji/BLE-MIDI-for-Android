@@ -190,7 +190,6 @@ public final class BleMidiPeripheralProvider {
     private void disconnectByDeviceAddress(String deviceAddress) {
         synchronized (bluetoothDevicesMap) {
             BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
-            // FIXME null pointer exception
             gattServer.cancelConnection(bluetoothDevice);
 
             bluetoothDevicesMap.remove(deviceAddress);
