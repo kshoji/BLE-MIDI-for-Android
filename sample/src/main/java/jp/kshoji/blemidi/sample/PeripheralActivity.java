@@ -17,6 +17,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.ToggleButton;
@@ -41,35 +42,44 @@ import jp.kshoji.blemidi.util.BleUtils;
 import jp.kshoji.blemidi.util.Constants;
 
 /**
- * Activity for Sample Application
+ * Activity for BLE MIDI Peripheral Application
  *
  * @author K.Shoji
  */
 public class PeripheralActivity extends Activity {
     BleMidiPeripheralProvider bleMidiPeripheralProvider;
 
+    MenuItem toggleAdvertiseMenu;
+
+    boolean isAdvertising = false;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.peripheral, menu);
+        toggleAdvertiseMenu = menu.getItem(0);
+
+        if (isAdvertising) {
+            toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
+        } else {
+            toggleAdvertiseMenu.setTitle(R.string.start_advertise);
+        }
+
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        switch (id) {
-            case R.id.action_start_advertise:
-                bleMidiPeripheralProvider.startAdvertising();
-                return true;
-            case R.id.action_stop_advertise:
-                bleMidiPeripheralProvider.stopAdvertising();
-                return true;
-            case R.id.action_close_peripheral:
-                bleMidiPeripheralProvider.disconnectAllDevices();
+        switch (item.getItemId()) {
+            case R.id.action_toggle_advertise:
+                if (isAdvertising) {
+                    bleMidiPeripheralProvider.stopAdvertising();
+                    isAdvertising = false;
+                    toggleAdvertiseMenu.setTitle(R.string.start_advertise);
+                } else {
+                    bleMidiPeripheralProvider.startAdvertising();
+                    isAdvertising = true;
+                    toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
+                }
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -130,7 +140,7 @@ public class PeripheralActivity extends Activity {
     Timer timer;
     TimerTask timerTask;
     SoundMaker soundMaker;
-    final Set<Tone> tones = new HashSet<Tone>();
+    final Set<Tone> tones = new HashSet<>();
     int currentProgram = 0;
 
     /**
@@ -178,7 +188,7 @@ public class PeripheralActivity extends Activity {
 
         @Override
         public void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity) {
-            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn  from: " + sender.getDeviceName() + "channel: " + channel + ", note: " + note + ", velocity: " + velocity));
+            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn  from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
                 getBleMidiOutputDeviceFromSpinner().sendMidiNoteOn(channel, note, velocity);
@@ -202,7 +212,7 @@ public class PeripheralActivity extends Activity {
 
         @Override
         public void onMidiPolyphonicAftertouch(MidiInputDevice sender, int channel, int note, int pressure) {
-            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "PolyphonicAftertouch  from: " + sender.getDeviceName() + "channel: " + channel + ", note: " + note + ", pressure: " + pressure));
+            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "PolyphonicAftertouch  from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", pressure: " + pressure));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
                 getBleMidiOutputDeviceFromSpinner().sendMidiPolyphonicAftertouch(channel, note, pressure);
@@ -368,36 +378,28 @@ public class PeripheralActivity extends Activity {
         }
     };
 
-    /*
-     * (non-Javadoc)
-     * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onCreate(android.os.Bundle)
-     */
     @Override
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
-        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
-        midiInputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventListView.setAdapter(midiInputEventAdapter);
 
         ListView midiOutputEventListView = (ListView) findViewById(R.id.midiOutputEventListView);
-        midiOutputEventAdapter = new ArrayAdapter<String>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
+        midiOutputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiOutputEventListView.setAdapter(midiOutputEventAdapter);
 
         thruToggleButton = (ToggleButton) findViewById(R.id.toggleButtonThru);
 
         deviceSpinner = (Spinner) findViewById(R.id.deviceNameSpinner);
-        connectedOutputDevicesAdapter = new ArrayAdapter<MidiOutputDevice>(getApplicationContext(), android.R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
+        connectedOutputDevicesAdapter = new ArrayAdapter<>(getApplicationContext(), R.layout.simple_spinner_dropdown_item, android.R.id.text1, new ArrayList<MidiOutputDevice>());
         deviceSpinner.setAdapter(connectedOutputDevicesAdapter);
 
         View.OnTouchListener onToneButtonTouchListener = new View.OnTouchListener() {
 
-            /*
-             * (non-Javadoc)
-             * @see android.view.View.OnTouchListener#onTouch(android.view.View, android.view.MotionEvent)
-             */
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 MidiOutputDevice midiOutputDevice = getBleMidiOutputDeviceFromSpinner();
@@ -460,10 +462,6 @@ public class PeripheralActivity extends Activity {
         audioTrack = prepareAudioTrack(soundMaker.getSamplingRate());
         timer = new Timer();
         timerTask = new TimerTask() {
-            /*
-             * (non-Javadoc)
-             * @see java.util.TimerTask#run()
-             */
             @Override
             public void run() {
                 if (soundMaker != null) {
@@ -476,15 +474,24 @@ public class PeripheralActivity extends Activity {
                         if (audioTrack != null) {
                             audioTrack.write(wav, 0, wav.length);
                         }
-                    } catch (IllegalStateException e) {
-                        // do nothing
-                    } catch (NullPointerException e) {
+                    } catch (IllegalStateException | NullPointerException e) {
                         // do nothing
                     }
                 }
             }
         };
         timer.scheduleAtFixedRate(timerTask, 10, timerRate);
+
+        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MidiOutputDevice bleMidiOutputDeviceFromSpinner = getBleMidiOutputDeviceFromSpinner();
+                if (bleMidiOutputDeviceFromSpinner != null) {
+                    bleMidiPeripheralProvider.disconnectDevice(bleMidiOutputDeviceFromSpinner);
+                }
+            }
+        });
 
         if (!BleUtils.isBluetoothEnabled(this)) {
             Log.i(Constants.TAG, "Bluetooth is disabled, now enabling..");
@@ -581,16 +588,12 @@ public class PeripheralActivity extends Activity {
         }
     }
 
-    /*
-         * (non-Javadoc)
-         * @see jp.kshoji.driver.midi.activity.AbstractMultipleMidiActivity#onDestroy()
-         */
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
         if (bleMidiPeripheralProvider != null) {
-            bleMidiPeripheralProvider.stopAdvertising();
+            bleMidiPeripheralProvider.terminate();
         }
 
         if (timer != null) {

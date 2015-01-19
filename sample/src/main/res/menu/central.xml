@@ -2,7 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity" >
     <item android:id="@+id/action_toggle_scan"
-        android:title="start scan"
+        android:title="@string/start_scan"
         android:orderInCategory="100"
         android:showAsAction="ifRoom" />
 </menu>

@@ -27,10 +27,10 @@ import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
  * @author K.Shoji
  */
 public final class BleMidiCentralProvider {
-    final BluetoothAdapter bluetoothAdapter;
-    final Context context;
-    final Handler handler;
-    final BleMidiCallback midiCallback;
+    private final BluetoothAdapter bluetoothAdapter;
+    private final Context context;
+    private final Handler handler;
+    private final BleMidiCallback midiCallback;
 
     /**
      * Callback for BLE device scanning
@@ -94,6 +94,14 @@ public final class BleMidiCentralProvider {
     }
 
     private volatile boolean isScanning = false;
+
+    /**
+     * Set if the Bluetooth LE device need `Pairing`
+     * @param needsPairing if true, request paring with the connecting device
+     */
+    public void setRequestPairing(boolean needsPairing) {
+        midiCallback.setNeedsBonding(needsPairing);
+    }
 
     /**
      * Starts to scan devices
@@ -198,5 +206,13 @@ public final class BleMidiCentralProvider {
      */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiCallback.setOnMidiDeviceDetachedListener(midiDeviceDetachedListener);
+    }
+
+    /**
+     * Terminates instance
+     */
+    public void terminate() {
+        stopScanDevice();
+        midiCallback.terminate();
     }
 }

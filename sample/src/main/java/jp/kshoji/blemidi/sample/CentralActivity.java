@@ -54,14 +54,13 @@ public class CentralActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.central, menu);
         toggleScanMenu = menu.getItem(0);
 
         if (isScanning) {
-            toggleScanMenu.setTitle("stop scan");
+            toggleScanMenu.setTitle(R.string.stop_scan);
         } else {
-            toggleScanMenu.setTitle("start scan");
+            toggleScanMenu.setTitle(R.string.start_scan);
         }
 
         return true;
@@ -69,11 +68,7 @@ public class CentralActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        switch (id) {
+        switch (item.getItemId()) {
             case R.id.action_toggle_scan:
                 if (isScanning) {
                     bleMidiCentralProvider.stopScanDevice();
@@ -220,7 +215,7 @@ public class CentralActivity extends Activity {
 
         @Override
         public void onMidiPolyphonicAftertouch(MidiInputDevice sender, int channel, int note, int pressure) {
-            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "PolyphonicAftertouch  from: " + sender.getDeviceName() + "channel: " + channel + ", note: " + note + ", pressure: " + pressure));
+            midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "PolyphonicAftertouch  from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", pressure: " + pressure));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
                 getBleMidiOutputDeviceFromSpinner().sendMidiPolyphonicAftertouch(channel, note, pressure);
@@ -571,9 +566,9 @@ public class CentralActivity extends Activity {
                 CentralActivity.this.isScanning = isScanning;
                 if (toggleScanMenu != null) {
                     if (isScanning) {
-                        toggleScanMenu.setTitle("stop scan");
+                        toggleScanMenu.setTitle(R.string.stop_scan);
                     } else {
-                        toggleScanMenu.setTitle("start scan");
+                        toggleScanMenu.setTitle(R.string.start_scan);
                     }
                 }
             }
@@ -615,6 +610,10 @@ public class CentralActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        if (bleMidiCentralProvider != null) {
+            bleMidiCentralProvider.terminate();
+        }
 
         if (timer != null) {
             try {

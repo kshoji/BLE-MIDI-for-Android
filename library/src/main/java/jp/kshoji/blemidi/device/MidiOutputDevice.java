@@ -1,14 +1,18 @@
 package jp.kshoji.blemidi.device;
 
-import android.bluetooth.BluetoothGattCharacteristic;
-
 /**
  * Represents BLE MIDI Output Device
  *
  * @author K.Shoji
  */
 public abstract class MidiOutputDevice {
-    protected BluetoothGattCharacteristic midiOutputCharacteristic;
+
+    /**
+     * Transfer data
+     *
+     * @param writeBuffer byte array to write
+     */
+    protected abstract void transferData(byte[] writeBuffer);
 
     /**
      * Obtains the device name
@@ -18,7 +22,7 @@ public abstract class MidiOutputDevice {
     public abstract String getDeviceName();
 
     @Override
-    public String toString() {
+    public final String toString() {
         return getDeviceName();
     }
 
@@ -28,10 +32,6 @@ public abstract class MidiOutputDevice {
      * @param byte1 the first byte
      */
     private void sendMidiMessage(int byte1) {
-        if (midiOutputCharacteristic == null) {
-            return;
-        }
-
         byte[] writeBuffer = new byte[] { (byte) 0x80, (byte) 0x80, (byte) byte1 };
 
         transferData(writeBuffer);
@@ -44,10 +44,6 @@ public abstract class MidiOutputDevice {
      * @param byte2 the second byte
      */
     private void sendMidiMessage(int byte1, int byte2) {
-        if (midiOutputCharacteristic == null) {
-            return;
-        }
-
         byte[] writeBuffer = new byte[4];
 
         writeBuffer[0] = (byte) 0x80;
@@ -57,13 +53,6 @@ public abstract class MidiOutputDevice {
 
         transferData(writeBuffer);
     }
-
-    /**
-     * Transfer data with MidiOutputDevice configuration
-     *
-     * @param writeBuffer byte array to write
-     */
-    protected abstract void transferData(byte[] writeBuffer);
 
     /**
      * Sends MIDI message to output device.
@@ -89,11 +78,7 @@ public abstract class MidiOutputDevice {
      *
      * @param systemExclusive : start with 'F0', and end with 'F7'
      */
-    public void sendMidiSystemExclusive(byte[] systemExclusive) {
-        if (midiOutputCharacteristic == null) {
-            return;
-        }
-
+    public final void sendMidiSystemExclusive(byte[] systemExclusive) {
         byte[] timestampAddedSystemExclusive = new byte[systemExclusive.length + 2];
         System.arraycopy(systemExclusive, 0, timestampAddedSystemExclusive, 1, systemExclusive.length);
         timestampAddedSystemExclusive[0] = (byte) 0x80;
@@ -125,7 +110,7 @@ public abstract class MidiOutputDevice {
      * @param note 0-127
      * @param velocity 0-127
      */
-    public void sendMidiNoteOff(int channel, int note, int velocity) {
+    public final void sendMidiNoteOff(int channel, int note, int velocity) {
         sendMidiMessage(0x80 | (channel & 0xf), note, velocity);
     }
 
@@ -136,7 +121,7 @@ public abstract class MidiOutputDevice {
      * @param note 0-127
      * @param velocity 0-127
      */
-    public void sendMidiNoteOn(int channel, int note, int velocity) {
+    public final void sendMidiNoteOn(int channel, int note, int velocity) {
         sendMidiMessage(0x90 | (channel & 0xf), note, velocity);
     }
 
@@ -147,7 +132,7 @@ public abstract class MidiOutputDevice {
      * @param note 0-127
      * @param pressure 0-127
      */
-    public void sendMidiPolyphonicAftertouch(int channel, int note, int pressure) {
+    public final void sendMidiPolyphonicAftertouch(int channel, int note, int pressure) {
         sendMidiMessage(0xa0 | (channel & 0xf), note, pressure);
     }
 
@@ -158,7 +143,7 @@ public abstract class MidiOutputDevice {
      * @param function 0-127
      * @param value 0-127
      */
-    public void sendMidiControlChange(int channel, int function, int value) {
+    public final void sendMidiControlChange(int channel, int function, int value) {
         sendMidiMessage(0xb0 | (channel & 0xf), function, value);
     }
 
@@ -168,7 +153,7 @@ public abstract class MidiOutputDevice {
      * @param channel 0-15
      * @param program 0-127
      */
-    public void sendMidiProgramChange(int channel, int program) {
+    public final void sendMidiProgramChange(int channel, int program) {
         sendMidiMessage(0xc0 | (channel & 0xf), program);
     }
 
@@ -178,7 +163,7 @@ public abstract class MidiOutputDevice {
      * @param channel 0-15
      * @param pressure 0-127
      */
-    public void sendMidiChannelAftertouch(int channel, int pressure) {
+    public final void sendMidiChannelAftertouch(int channel, int pressure) {
         sendMidiMessage(0xd0 | (channel & 0xf), pressure);
     }
 
@@ -188,7 +173,7 @@ public abstract class MidiOutputDevice {
      * @param channel 0-15
      * @param amount 0(low)-8192(center)-16383(high)
      */
-    public void sendMidiPitchWheel(int channel, int amount) {
+    public final void sendMidiPitchWheel(int channel, int amount) {
         sendMidiMessage(0xe0 | (channel & 0xf), amount & 0x7f, (amount >> 7) & 0x7f);
     }
 
@@ -196,7 +181,7 @@ public abstract class MidiOutputDevice {
      * MIDI Time Code(MTC) Quarter Frame
      * @param timing 0-127
      */
-    public void sendMidiTimeCodeQuarterFrame(int timing) {
+    public final void sendMidiTimeCodeQuarterFrame(int timing) {
         sendMidiMessage(0xf1, timing & 0x7f);
     }
 
@@ -205,7 +190,7 @@ public abstract class MidiOutputDevice {
      *
      * @param song 0-127
      */
-    public void sendMidiSongSelect(int song) {
+    public final void sendMidiSongSelect(int song) {
         sendMidiMessage(0xf3, song & 0x7f);
     }
 
@@ -214,56 +199,56 @@ public abstract class MidiOutputDevice {
      *
      * @param position 0-16383
      */
-    public void sendMidiSongPositionPointer(int position) {
+    public final void sendMidiSongPositionPointer(int position) {
         sendMidiMessage(0xf2, position & 0x7f, (position >> 7) & 0x7f);
     }
 
     /**
      * Tune Request
      */
-    public void sendMidiTuneRequest() {
+    public final void sendMidiTuneRequest() {
         sendMidiMessage(0xf6);
     }
 
     /**
      * Timing Clock
      */
-    public void sendMidiTimingClock() {
+    public final void sendMidiTimingClock() {
         sendMidiMessage(0xf8);
     }
 
     /**
      * Start Playing
      */
-    public void sendMidiStart() {
+    public final void sendMidiStart() {
         sendMidiMessage(0xfa);
     }
 
     /**
      * Continue Playing
      */
-    public void sendMidiContinue() {
+    public final void sendMidiContinue() {
         sendMidiMessage(0xfb);
     }
 
     /**
      * Stop Playing
      */
-    public void sendMidiStop() {
+    public final void sendMidiStop() {
         sendMidiMessage(0xfc);
     }
 
     /**
      * Active Sensing
      */
-    public void sendMidiActiveSensing() {
+    public final void sendMidiActiveSensing() {
         sendMidiMessage(0xfe);
     }
 
     /**
      * Reset Device
      */
-    public void sendMidiReset() {
+    public final void sendMidiReset() {
         sendMidiMessage(0xff);
     }
 
@@ -274,7 +259,7 @@ public abstract class MidiOutputDevice {
      * @param function 14bits
      * @param value 7bits or 14bits
      */
-    public void sendRPNMessage(int channel, int function, int value) {
+    public final void sendRPNMessage(int channel, int function, int value) {
         sendRPNMessage(channel, (function >> 7) & 0x7f, function & 0x7f, value);
     }
 
@@ -286,7 +271,7 @@ public abstract class MidiOutputDevice {
      * @param functionLSB lower 7bits
      * @param value 7bits or 14bits
      */
-    public void sendRPNMessage(int channel, int functionMSB, int functionLSB, int value) {
+    public final void sendRPNMessage(int channel, int functionMSB, int functionLSB, int value) {
         // send the function
         sendMidiControlChange(channel, 101, functionMSB & 0x7f);
         sendMidiControlChange(channel, 100, functionLSB & 0x7f);
@@ -311,7 +296,7 @@ public abstract class MidiOutputDevice {
      * @param function 14bits
      * @param value 7bits or 14bits
      */
-    public void sendNRPNMessage(int channel, int function, int value) {
+    public final void sendNRPNMessage(int channel, int function, int value) {
         sendNRPNMessage(channel, (function >> 7) & 0x7f, function & 0x7f, value);
     }
 
@@ -323,7 +308,7 @@ public abstract class MidiOutputDevice {
      * @param functionLSB lower 7bits
      * @param value 7bits or 14bits
      */
-    public void sendNRPNMessage(int channel, int functionMSB, int functionLSB, int value) {
+    public final void sendNRPNMessage(int channel, int functionMSB, int functionLSB, int value) {
         // send the function
         sendMidiControlChange(channel, 99, functionMSB & 0x7f);
         sendMidiControlChange(channel, 98, functionLSB & 0x7f);
