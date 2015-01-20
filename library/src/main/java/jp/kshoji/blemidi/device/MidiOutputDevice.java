@@ -7,6 +7,8 @@ package jp.kshoji.blemidi.device;
  */
 public abstract class MidiOutputDevice {
 
+    public static final int MAX_TIMESTAMP = 8192;
+
     /**
      * Transfer data
      *
@@ -32,7 +34,8 @@ public abstract class MidiOutputDevice {
      * @param byte1 the first byte
      */
     private void sendMidiMessage(int byte1) {
-        byte[] writeBuffer = new byte[] { (byte) 0x80, (byte) 0x80, (byte) byte1 };
+        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
+        byte[] writeBuffer = new byte[] { (byte) (0x80 | ((timestamp >> 7) & 0x3f)), (byte) (0x80 | (timestamp & 0x7f)), (byte) byte1 };
 
         transferData(writeBuffer);
     }
@@ -45,9 +48,10 @@ public abstract class MidiOutputDevice {
      */
     private void sendMidiMessage(int byte1, int byte2) {
         byte[] writeBuffer = new byte[4];
+        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
 
-        writeBuffer[0] = (byte) 0x80;
-        writeBuffer[1] = (byte) 0x80;
+        writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
+        writeBuffer[1] = (byte) (0x80 | (timestamp & 0x7f));
         writeBuffer[2] = (byte) byte1;
         writeBuffer[3] = (byte) byte2;
 
@@ -63,9 +67,10 @@ public abstract class MidiOutputDevice {
      */
     private void sendMidiMessage(int byte1, int byte2, int byte3) {
         byte[] writeBuffer = new byte[5];
+        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
 
-        writeBuffer[0] = (byte) 0x80;
-        writeBuffer[1] = (byte) 0x80;
+        writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
+        writeBuffer[1] = (byte) (0x80 | (timestamp & 0x7f));
         writeBuffer[2] = (byte) byte1;
         writeBuffer[3] = (byte) byte2;
         writeBuffer[4] = (byte) byte3;
@@ -81,25 +86,29 @@ public abstract class MidiOutputDevice {
     public final void sendMidiSystemExclusive(byte[] systemExclusive) {
         byte[] timestampAddedSystemExclusive = new byte[systemExclusive.length + 2];
         System.arraycopy(systemExclusive, 0, timestampAddedSystemExclusive, 1, systemExclusive.length);
-        timestampAddedSystemExclusive[0] = (byte) 0x80;
-        timestampAddedSystemExclusive[systemExclusive.length] = (byte) 0x80;
 
         // split into 20 bytes. BLE can't send more than 20 bytes by default MTU.
         byte[] writeBuffer = new byte[20];
-        writeBuffer[0] = (byte) 0x80;
+
+        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
+        timestampAddedSystemExclusive[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
 
         for (int i = 0; i < timestampAddedSystemExclusive.length; i += 19) {
+            writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
+            timestampAddedSystemExclusive[systemExclusive.length] = (byte) (0x80 | (timestamp & 0x7f));
+
             if (i + 20 <= timestampAddedSystemExclusive.length) {
                 System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, 19);
             } else {
                 // last message
                 writeBuffer = new byte[timestampAddedSystemExclusive.length - i + 1];
-                writeBuffer[0] = (byte) 0x80;
 
                 System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, timestampAddedSystemExclusive.length - i);
             }
 
             transferData(writeBuffer);
+
+            timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
         }
     }
 
