@@ -225,8 +225,10 @@ public final class BleMidiPeripheralProvider {
     public void terminate() {
         stopAdvertising();
 
-        gattServer.close();
-        gattServer = null;
+        if (gattServer != null) {
+            gattServer.close();
+            gattServer = null;
+        }
 
         synchronized (bluetoothDevicesMap) {
             for (BluetoothDevice bluetoothDevice : bluetoothDevicesMap.values()) {
