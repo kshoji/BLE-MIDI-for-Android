@@ -11,7 +11,6 @@ import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -39,7 +38,6 @@ import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
 import jp.kshoji.blemidi.sample.util.SoundMaker;
 import jp.kshoji.blemidi.sample.util.Tone;
 import jp.kshoji.blemidi.util.BleUtils;
-import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Activity for BLE MIDI Peripheral Application
@@ -494,7 +492,6 @@ public class PeripheralActivity extends Activity {
         });
 
         if (!BleUtils.isBluetoothEnabled(this)) {
-            Log.i(Constants.TAG, "Bluetooth is disabled, now enabling..");
             BleUtils.enableBluetooth(this);
             return;
         }

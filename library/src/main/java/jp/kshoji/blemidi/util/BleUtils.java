@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.util.Log;
 
 /**
  * Utilities for Bluetooth LE
@@ -76,7 +75,6 @@ public class BleUtils {
         BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 
         if (bluetoothManager == null) {
-            Log.i(Constants.TAG, "bluetoothManager == null");
             return false;
         }
 
@@ -88,7 +86,6 @@ public class BleUtils {
         }
 
         if (bluetoothAdapter == null) {
-            Log.i(Constants.TAG, "bluetoothAdapter == null");
             return false;
         }
 
@@ -106,7 +103,6 @@ public class BleUtils {
      * @param activity the activity
      */
     public static void enableBluetooth(Activity activity) {
-        Log.i(Constants.TAG, "enabling bluetooth..");
         activity.startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), REQUEST_CODE_BLUETOOTH_ENABLE);
     }
 }
