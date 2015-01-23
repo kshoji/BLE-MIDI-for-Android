@@ -103,6 +103,8 @@ public final class BleMidiCentralProvider {
         midiCallback.setNeedsBonding(needsPairing);
     }
 
+    private Runnable stopScanRunnable = null;
+
     /**
      * Starts to scan devices
      *
@@ -120,8 +122,12 @@ public final class BleMidiCentralProvider {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
         }
 
+        if (stopScanRunnable != null) {
+            handler.removeCallbacks(stopScanRunnable);
+        }
+
         if (timeoutInMilliSeconds > 0) {
-            handler.postDelayed(new Runnable() {
+            stopScanRunnable = new Runnable() {
                 @Override
                 public void run() {
                     stopScanDevice();
@@ -130,7 +136,8 @@ public final class BleMidiCentralProvider {
                         onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
                     }
                 }
-            }, timeoutInMilliSeconds);
+            };
+            handler.postDelayed(stopScanRunnable, timeoutInMilliSeconds);
         }
     }
 
@@ -144,6 +151,12 @@ public final class BleMidiCentralProvider {
         } else {
             bluetoothAdapter.stopLeScan(leScanCallback);
         }
+
+        if (stopScanRunnable != null) {
+            handler.removeCallbacks(stopScanRunnable);
+            stopScanRunnable = null;
+        }
+
         isScanning = false;
         if (onMidiScanStatusListener != null) {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
