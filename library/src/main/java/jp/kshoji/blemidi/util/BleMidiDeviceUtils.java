@@ -1,10 +1,15 @@
 package jp.kshoji.blemidi.util;
 
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
+import android.bluetooth.le.ScanFilter;
 import android.content.Context;
+import android.os.Build;
+import android.os.ParcelUuid;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,4 +91,21 @@ public final class BleMidiDeviceUtils {
         return null;
     }
 
+    /**
+     * Obtains list of ScanFilter for BLE MIDI
+     *
+     * @param context the context
+     * @return list of {@link android.bluetooth.le.ScanFilter} for BLE MIDI devices.
+     */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public static List<ScanFilter> getBleMidiScanFilters(Context context) {
+        List<ScanFilter> scanFilters = new ArrayList<>();
+
+        String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForService);
+        for (String uuidString : uuidStringArray) {
+            scanFilters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(uuidString)).build());
+        }
+
+        return scanFilters;
+    }
 }
