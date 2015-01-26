@@ -18,6 +18,7 @@ import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.ParcelUuid;
 import android.text.TextUtils;
@@ -85,14 +86,21 @@ public final class BleMidiPeripheralProvider {
         bluetoothManager = (BluetoothManager) this.context.getSystemService(Context.BLUETOOTH_SERVICE);
 
         final BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        if (bluetoothAdapter == null) {
+            throw new UnsupportedOperationException("Bluetooth is not available.");
+        }
 
-        Log.i(Constants.TAG, "isMultipleAdvertisementSupported:" + bluetoothAdapter.isMultipleAdvertisementSupported());
+        if (bluetoothAdapter.isEnabled() == false) {
+            throw new UnsupportedOperationException("Bluetooth is disabled.");
+        }
+
+        Log.d(Constants.TAG, "isMultipleAdvertisementSupported:" + bluetoothAdapter.isMultipleAdvertisementSupported());
         if (bluetoothAdapter.isMultipleAdvertisementSupported() == false) {
             throw new UnsupportedOperationException("Bluetooth LE Advertising not supported on this device.");
         }
 
         bluetoothLeAdvertiser = bluetoothAdapter.getBluetoothLeAdvertiser();
-        Log.i(Constants.TAG, "bluetoothLeAdvertiser: " + bluetoothLeAdvertiser);
+        Log.d(Constants.TAG, "bluetoothLeAdvertiser: " + bluetoothLeAdvertiser);
         if (bluetoothLeAdvertiser == null) {
             throw new UnsupportedOperationException("Bluetooth LE Advertising not supported on this device.");
         }
@@ -103,8 +111,13 @@ public final class BleMidiPeripheralProvider {
         informationGattService.addCharacteristic(new BluetoothGattCharacteristic(CHARACTERISTIC_MODEL_NUMBER, BluetoothGattCharacteristic.PROPERTY_READ, BluetoothGattCharacteristic.PERMISSION_READ));
 
         // MIDI service
-        midiGattService = new BluetoothGattService(SERVICE_BLE_MIDI, BluetoothGattService.SERVICE_TYPE_PRIMARY);
         midiCharacteristic = new BluetoothGattCharacteristic(CHARACTERISTIC_BLE_MIDI, BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE, BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
+        BluetoothGattDescriptor descriptor = new BluetoothGattDescriptor(BleUuidUtils.fromShortValue(0x2902), BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        midiCharacteristic.addDescriptor(descriptor);
+        midiCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+
+        midiGattService = new BluetoothGattService(SERVICE_BLE_MIDI, BluetoothGattService.SERVICE_TYPE_PRIMARY);
         midiGattService.addCharacteristic(midiCharacteristic);
     }
 
@@ -113,29 +126,41 @@ public final class BleMidiPeripheralProvider {
      */
     public void startAdvertising() {
         // register Gatt service to Gatt server
-        gattServer = bluetoothManager.openGattServer(context, gattServerCallback);
         if (gattServer == null) {
-            Log.i(Constants.TAG, "gattServer is null, check Bluetooth is ON.");
+            gattServer = bluetoothManager.openGattServer(context, gattServerCallback);
+        }
+
+        if (gattServer == null) {
+            Log.d(Constants.TAG, "gattServer is null, check Bluetooth is ON.");
             return;
         }
 
+        // these service will be listened.
+        // FIXME these didn't used for service discovery
         gattServer.addService(informationGattService);
         gattServer.addService(midiGattService);
 
         // set up advertising setting
         AdvertiseSettings advertiseSettings = new AdvertiseSettings.Builder()
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .setConnectable(true)
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
+                .setTimeout(0)
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
                 .build();
 
+        // set up advertising data
         AdvertiseData advertiseData = new AdvertiseData.Builder()
-                .setIncludeTxPowerLevel(false)
-                .addServiceUuid(ParcelUuid.fromString("03b80e5a-ede8-4b33-a751-6ce34ec4c700")) // BLE MIDI Service
+                .setIncludeTxPowerLevel(true)
                 .setIncludeDeviceName(true)
                 .build();
 
-        bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback);
+        // set up scan result
+        AdvertiseData scanResult = new AdvertiseData.Builder()
+                .addServiceUuid(ParcelUuid.fromString(SERVICE_DEVICE_INFORMATION.toString()))
+                .addServiceUuid(ParcelUuid.fromString(SERVICE_BLE_MIDI.toString()))
+                .build();
+
+        bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, scanResult, advertiseCallback);
     }
 
     /**
@@ -149,8 +174,23 @@ public final class BleMidiPeripheralProvider {
         }
 
         if (gattServer != null) {
-            gattServer.clearServices();
+            try {
+                gattServer.clearServices();
+            } catch (Throwable ignored) {
+                // android.os.DeadObjectException
+                gattServer = null;
+            }
         }
+    }
+
+    private boolean requireBonding = false;
+
+    /**
+     * Set if the Bluetooth LE device need `Pairing`
+     * @param needsPairing if true, request paring with the connecting device
+     */
+    public void setRequestPairing(boolean needsPairing) {
+        this.requireBonding = needsPairing;
     }
 
     /**
@@ -190,7 +230,9 @@ public final class BleMidiPeripheralProvider {
     private void disconnectByDeviceAddress(String deviceAddress) {
         synchronized (bluetoothDevicesMap) {
             BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
-            gattServer.cancelConnection(bluetoothDevice);
+            if (bluetoothDevice != null) {
+                gattServer.cancelConnection(bluetoothDevice);
+            }
 
             bluetoothDevicesMap.remove(deviceAddress);
         }
@@ -224,14 +266,18 @@ public final class BleMidiPeripheralProvider {
     public void terminate() {
         stopAdvertising();
 
-        gattServer.close();
-        gattServer = null;
-
         synchronized (bluetoothDevicesMap) {
             for (BluetoothDevice bluetoothDevice : bluetoothDevicesMap.values()) {
-                gattServer.cancelConnection(bluetoothDevice);
+                if (gattServer != null) {
+                    gattServer.cancelConnection(bluetoothDevice);
+                }
             }
             bluetoothDevicesMap.clear();
+        }
+
+        if (gattServer != null) {
+            gattServer.close();
+            gattServer = null;
         }
 
         synchronized (midiInputDevicesMap) {
@@ -247,67 +293,6 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
-     * BroadcastReceiver for BLE Bonding
-     *
-     * @author K.Shoji
-     */
-    private class BondingBroadcastReceiver extends BroadcastReceiver {
-        final BluetoothDevice device;
-
-        BondingBroadcastReceiver(BluetoothDevice device) {
-            this.device = device;
-        }
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-
-            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-
-                if (state == BluetoothDevice.BOND_BONDED) {
-                    // successfully bonded
-                    context.unregisterReceiver(this);
-
-                    gattServer.connect(device, true);
-                    MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
-                    MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
-
-                    String deviceAddress = device.getAddress();
-
-                    synchronized (midiInputDevicesMap) {
-                        boolean isNewDevice = midiInputDevicesMap.get(deviceAddress) == null;
-                        midiInputDevicesMap.put(deviceAddress, midiInputDevice);
-
-                        // don't notify if the same device already connected
-                        if (isNewDevice) {
-                            if (midiDeviceAttachedListener != null) {
-                                midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
-                            }
-                        }
-                    }
-
-                    synchronized (midiOutputDevicesMap) {
-                        boolean isNewDevice = midiOutputDevicesMap.get(deviceAddress) == null;
-                        midiOutputDevicesMap.put(deviceAddress, midiOutputDevice);
-
-                        // don't notify if the same device already connected
-                        if (isNewDevice) {
-                            if (midiDeviceAttachedListener != null) {
-                                midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
-                            }
-                        }
-                    }
-
-                    synchronized (bluetoothDevicesMap) {
-                        bluetoothDevicesMap.put(deviceAddress, device);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
      * Callback for BLE data transfer
      */
     final BluetoothGattServerCallback gattServerCallback = new BluetoothGattServerCallback() {
@@ -316,48 +301,45 @@ public final class BleMidiPeripheralProvider {
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             super.onConnectionStateChange(device, status, newState);
 
-            String deviceAddress = device.getAddress();
-
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
-                    // TODO check bond status
-                    // TODO create bond
-//                    if (device.getBondState() == BluetoothDevice.BOND_NONE) {
-//                        Log.i(Constants.TAG, "creating Bond with: " + device.getName());
-//                        device.createBond();
-//                        device.setPairingConfirmation(true);
-//
-//                        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-//                        context.registerReceiver(new BondingBroadcastReceiver(device), filter);
-//                    } else
-                    {
+                    // check bond status
+                    if (requireBonding && device.getBondState() == BluetoothDevice.BOND_NONE) {
+                        // create bond
+                        device.createBond();
+                        device.setPairingConfirmation(true);
+
+                        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                        context.registerReceiver(new BroadcastReceiver() {
+                            @Override
+                            public void onReceive(Context context, Intent intent) {
+                                final String action = intent.getAction();
+
+                                if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                                    final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+
+                                    if (state == BluetoothDevice.BOND_BONDED) {
+                                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+                                        // successfully bonded
+                                        context.unregisterReceiver(this);
+
+                                        // connecting to the device
+                                        connectMidiDevice(device);
+                                    }
+                                }
+                            }
+                        }, filter);
+                    } else {
                         // connecting to the device
-                        gattServer.connect(device, true);
-
-                        MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
-                        MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
-
-                        synchronized (midiInputDevicesMap) {
-                            midiInputDevicesMap.put(deviceAddress, midiInputDevice);
-                        }
-
-                        synchronized (midiOutputDevicesMap) {
-                            midiOutputDevicesMap.put(deviceAddress, midiOutputDevice);
-                        }
-
-                        synchronized (bluetoothDevicesMap) {
-                            bluetoothDevicesMap.put(deviceAddress, device);
-                        }
-
-                        if (midiDeviceAttachedListener != null) {
-                            midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
-                            midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
-                        }
+                        connectMidiDevice(device);
                     }
                     break;
 
                 case BluetoothProfile.STATE_DISCONNECTED:
                     if (midiDeviceAttachedListener != null) {
+
+                        String deviceAddress = device.getAddress();
 
                         synchronized (midiInputDevicesMap) {
                             MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
@@ -436,6 +418,34 @@ public final class BleMidiPeripheralProvider {
             gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, new byte[] {});
         }
     };
+
+    /**
+     * Connect as BLE MIDI device with specified {@link android.bluetooth.BluetoothDevice}
+     * @param device the device
+     */
+    private void connectMidiDevice(BluetoothDevice device) {
+        MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
+        MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
+
+        String deviceAddress = device.getAddress();
+
+        synchronized (midiInputDevicesMap) {
+            midiInputDevicesMap.put(deviceAddress, midiInputDevice);
+        }
+
+        synchronized (midiOutputDevicesMap) {
+            midiOutputDevicesMap.put(deviceAddress, midiOutputDevice);
+        }
+
+        synchronized (bluetoothDevicesMap) {
+            bluetoothDevicesMap.put(deviceAddress, device);
+        }
+
+        if (midiDeviceAttachedListener != null) {
+            midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
+            midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
+        }
+    }
 
     /**
      * Obtains connected {@link jp.kshoji.blemidi.device.MidiInputDevice}
@@ -563,7 +573,6 @@ public final class BleMidiPeripheralProvider {
             super();
             this.bluetoothDevice = bluetoothDevice;
             this.bluetoothGattServer = bluetoothGattServer;
-
             this.midiOutputCharacteristic = midiCharacteristic;
         }
 

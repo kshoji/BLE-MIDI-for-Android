@@ -5,7 +5,9 @@ import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
@@ -13,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 
+import java.util.List;
 import java.util.Set;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
@@ -20,6 +23,7 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
+import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
 
 /**
  * Client for BLE MIDI Peripheral device service
@@ -66,6 +70,10 @@ public final class BleMidiCentralProvider {
             throw new UnsupportedOperationException("Bluetooth is not available.");
         }
 
+        if (bluetoothAdapter.isEnabled() == false) {
+            throw new UnsupportedOperationException("Bluetooth is disabled.");
+        }
+
         this.context = context;
         this.midiCallback = new BleMidiCallback(context);
         this.handler = new Handler(context.getMainLooper());
@@ -103,6 +111,8 @@ public final class BleMidiCentralProvider {
         midiCallback.setNeedsBonding(needsPairing);
     }
 
+    private Runnable stopScanRunnable = null;
+
     /**
      * Starts to scan devices
      *
@@ -111,7 +121,10 @@ public final class BleMidiCentralProvider {
     @SuppressLint({ "Deprecation", "NewApi" })
     public void startScanDevice(int timeoutInMilliSeconds) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            bluetoothAdapter.getBluetoothLeScanner().startScan(scanCallback);
+            BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+            List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
+            ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
+            bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
         } else {
             bluetoothAdapter.startLeScan(leScanCallback);
         }
@@ -120,8 +133,12 @@ public final class BleMidiCentralProvider {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
         }
 
+        if (stopScanRunnable != null) {
+            handler.removeCallbacks(stopScanRunnable);
+        }
+
         if (timeoutInMilliSeconds > 0) {
-            handler.postDelayed(new Runnable() {
+            stopScanRunnable = new Runnable() {
                 @Override
                 public void run() {
                     stopScanDevice();
@@ -130,7 +147,8 @@ public final class BleMidiCentralProvider {
                         onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
                     }
                 }
-            }, timeoutInMilliSeconds);
+            };
+            handler.postDelayed(stopScanRunnable, timeoutInMilliSeconds);
         }
     }
 
@@ -144,6 +162,12 @@ public final class BleMidiCentralProvider {
         } else {
             bluetoothAdapter.stopLeScan(leScanCallback);
         }
+
+        if (stopScanRunnable != null) {
+            handler.removeCallbacks(stopScanRunnable);
+            stopScanRunnable = null;
+        }
+
         isScanning = false;
         if (onMidiScanStatusListener != null) {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);

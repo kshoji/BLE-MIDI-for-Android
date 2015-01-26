@@ -108,7 +108,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         try {
             midiInputDevice = new InternalMidiInputDevice(context, gatt);
         } catch (IllegalArgumentException iae) {
-            Log.i(Constants.TAG, iae.getMessage());
+            Log.d(Constants.TAG, iae.getMessage());
         }
         if (midiInputDevice != null) {
             synchronized (midiInputDevicesMap) {
@@ -140,7 +140,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         try {
             midiOutputDevice = new InternalMidiOutputDevice(context, gatt);
         } catch (IllegalArgumentException iae) {
-            Log.i(Constants.TAG, iae.getMessage());
+            Log.d(Constants.TAG, iae.getMessage());
         }
         if (midiOutputDevice != null) {
             synchronized (midiOutputDevicesMap) {
@@ -268,7 +268,6 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     midiInputDevice.setOnMidiInputEventListener(null);
 
                     if (midiDeviceDetachedListener != null) {
-                        Log.i(Constants.TAG, "midiDeviceDetachedListener.onMidiInputDeviceDetached : " + midiInputDevice);
                         midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
                     }
 
@@ -283,7 +282,6 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             if (midiOutputDevices != null) {
                 for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
                     if (midiDeviceDetachedListener != null) {
-                        Log.i(Constants.TAG, "midiDeviceDetachedListener.onMidiOutputDeviceDetached : " + midiOutputDevice);
                         midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                     }
                 }
