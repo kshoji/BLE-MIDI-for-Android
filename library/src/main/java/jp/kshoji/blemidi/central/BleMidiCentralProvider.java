@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
+import android.util.Log;
 
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,7 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
+import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Client for BLE MIDI Peripheral device service
@@ -104,10 +106,17 @@ public final class BleMidiCentralProvider {
     private volatile boolean isScanning = false;
 
     /**
-     * Set if the Bluetooth LE device need `Pairing`
+     * Set if the Bluetooth LE device need `Pairing` <br />
+     * Pairing feature can be used on Android KitKat (API Level 19) or later.
+     *
      * @param needsPairing if true, request paring with the connecting device
      */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public void setRequestPairing(boolean needsPairing) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            Log.d(Constants.TAG, "Pairing feature is not supported on API Level " + Build.VERSION.SDK_INT);
+            return;
+        }
         midiCallback.setNeedsBonding(needsPairing);
     }
 

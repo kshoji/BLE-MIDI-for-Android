@@ -1,6 +1,7 @@
 package jp.kshoji.blemidi.central;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -166,7 +167,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 deviceAddressGattMap.put(gattDeviceAddress, gatt);
             }
 
-            if (needsBonding) {
+            if (needsBonding && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 // Create bond and configure Gatt, if this is BLE MIDI device
                 BluetoothDevice bluetoothDevice = gatt.getDevice();
                 if (bluetoothDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
@@ -328,8 +329,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Set if the Bluetooth LE device need `Pairing`
+     *
      * @param needsBonding if true, request paring with the connecting device
      */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public void setNeedsBonding(boolean needsBonding) {
         this.needsBonding = needsBonding;
     }
