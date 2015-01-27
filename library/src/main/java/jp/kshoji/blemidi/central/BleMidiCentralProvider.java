@@ -94,7 +94,9 @@ public final class BleMidiCentralProvider {
                             return;
                         }
 
-                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                        if (!midiCallback.isConnected(bluetoothDevice)) {
+                            bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                        }
                     }
                 }
             };
@@ -137,6 +139,7 @@ public final class BleMidiCentralProvider {
         } else {
             bluetoothAdapter.startLeScan(leScanCallback);
         }
+
         isScanning = true;
         if (onMidiScanStatusListener != null) {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
@@ -151,6 +154,7 @@ public final class BleMidiCentralProvider {
                 @Override
                 public void run() {
                     stopScanDevice();
+
                     isScanning = false;
                     if (onMidiScanStatusListener != null) {
                         onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
@@ -166,10 +170,14 @@ public final class BleMidiCentralProvider {
      */
     @SuppressLint({ "Deprecation", "NewApi" })
     public void stopScanDevice() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
-        } else {
-            bluetoothAdapter.stopLeScan(leScanCallback);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
+            } else {
+                bluetoothAdapter.stopLeScan(leScanCallback);
+            }
+        } catch (Throwable ignored) {
+            // NullPointerException on Bluetooth is OFF
         }
 
         if (stopScanRunnable != null) {

@@ -63,6 +63,18 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         this.context = context;
     }
 
+    /**
+     * Checks if the specified device is already connected
+     *
+     * @param device the device
+     * @return true if already connected
+     */
+    boolean isConnected(BluetoothDevice device) {
+        synchronized (deviceAddressGattMap) {
+            return deviceAddressGattMap.containsKey(device.getAddress());
+        }
+    }
+
     @Override
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
         super.onConnectionStateChange(gatt, status, newState);
