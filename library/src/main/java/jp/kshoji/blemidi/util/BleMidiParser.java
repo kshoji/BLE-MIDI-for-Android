@@ -53,6 +53,7 @@ public final class BleMidiParser {
 
     /**
      * Constructor
+     *
      * @param sender the sender
      */
     public BleMidiParser(MidiInputDevice sender) {
@@ -67,6 +68,7 @@ public final class BleMidiParser {
 
     /**
      * Sets {@link jp.kshoji.blemidi.listener.OnMidiInputEventListener}
+     *
      * @param midiInputEventListener the listener for MIDI events
      */
     public void setMidiInputEventListener(OnMidiInputEventListener midiInputEventListener) {
@@ -153,6 +155,7 @@ public final class BleMidiParser {
 
         /**
          * Constructor with 2 arguments
+         *
          * @param arg1 argument 1
          * @param arg2 argument 2
          */
@@ -162,6 +165,7 @@ public final class BleMidiParser {
 
         /**
          * Constructor with 3 arguments
+         *
          * @param arg1 argument 1
          * @param arg2 argument 2
          * @param arg3 argument 3
@@ -172,6 +176,7 @@ public final class BleMidiParser {
 
         /**
          * Constructor with array
+         *
          * @param array data
          */
         MidiTimerTask(byte[] array) {
@@ -197,7 +202,7 @@ public final class BleMidiParser {
         }
 
         if (midiState == MIDI_STATE_TIMESTAMP) {
-            timestamp = ((header & 0x3f) << 7) | (event & 0x7f);
+            timestamp = ((header & 0x3f) << 7) | (midiEvent & 0x7f);
             midiState = MIDI_STATE_WAIT;
         } else if (midiState == MIDI_STATE_WAIT) {
             switch (midiEvent & 0xf0) {
@@ -774,6 +779,7 @@ public final class BleMidiParser {
 
     /**
      * Updates incoming data
+     *
      * @param data incoming data
      */
     public void parse(byte[] data) {

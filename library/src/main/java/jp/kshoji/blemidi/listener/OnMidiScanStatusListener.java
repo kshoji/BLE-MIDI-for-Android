@@ -9,6 +9,7 @@ public interface OnMidiScanStatusListener {
 
     /**
      * The scanning status changed
+     *
      * @param isScanning scanning status
      */
     void onMidiScanStatusChanged(boolean isScanning);

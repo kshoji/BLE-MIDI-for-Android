@@ -11,6 +11,7 @@ public abstract class MidiInputDevice {
 
     /**
      * Attaches {@link jp.kshoji.blemidi.listener.OnMidiInputEventListener}
+     *
      * @param midiInputEventListener the listener
      */
     public abstract void setOnMidiInputEventListener(OnMidiInputEventListener midiInputEventListener);

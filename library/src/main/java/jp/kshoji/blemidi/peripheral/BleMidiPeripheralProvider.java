@@ -49,11 +49,26 @@ import jp.kshoji.blemidi.util.Constants;
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public final class BleMidiPeripheralProvider {
-    public static final UUID SERVICE_DEVICE_INFORMATION = BleUuidUtils.fromShortValue(0x180A);
-    public static final UUID CHARACTERISTIC_MANUFACTURER_NAME = BleUuidUtils.fromShortValue(0x2A29);
-    public static final UUID CHARACTERISTIC_MODEL_NUMBER = BleUuidUtils.fromShortValue(0x2A24);
-    public static final UUID SERVICE_BLE_MIDI = UUID.fromString("03b80e5a-ede8-4b33-a751-6ce34ec4c700");
-    public static final UUID CHARACTERISTIC_BLE_MIDI = UUID.fromString("7772e5db-3868-4112-a1a9-f2669d106bf3");
+
+    /**
+     * Gatt Services
+     */
+    private static final UUID SERVICE_DEVICE_INFORMATION = BleUuidUtils.fromShortValue(0x180A);
+    private static final UUID SERVICE_BLE_MIDI = UUID.fromString("03b80e5a-ede8-4b33-a751-6ce34ec4c700");
+
+    /**
+     * Gatt Characteristics
+     */
+    private static final short MANUFACTURER_NAME = 0x2A29;
+    private static final short MODEL_NUMBER = 0x2A24;
+    private static final UUID CHARACTERISTIC_MANUFACTURER_NAME = BleUuidUtils.fromShortValue(MANUFACTURER_NAME);
+    private static final UUID CHARACTERISTIC_MODEL_NUMBER = BleUuidUtils.fromShortValue(MODEL_NUMBER);
+    private static final UUID CHARACTERISTIC_BLE_MIDI = UUID.fromString("7772e5db-3868-4112-a1a9-f2669d106bf3");
+
+    /**
+     * Gatt Characteristic Descriptor
+     */
+    private static final UUID DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIGURATION = BleUuidUtils.fromShortValue(0x2902);
 
     private static final int DEVICE_NAME_MAX_LENGTH = 100;
 
@@ -112,7 +127,7 @@ public final class BleMidiPeripheralProvider {
 
         // MIDI service
         midiCharacteristic = new BluetoothGattCharacteristic(CHARACTERISTIC_BLE_MIDI, BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE, BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
-        BluetoothGattDescriptor descriptor = new BluetoothGattDescriptor(BleUuidUtils.fromShortValue(0x2902), BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
+        BluetoothGattDescriptor descriptor = new BluetoothGattDescriptor(DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIGURATION, BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         midiCharacteristic.addDescriptor(descriptor);
         midiCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
@@ -187,6 +202,7 @@ public final class BleMidiPeripheralProvider {
 
     /**
      * Set if the Bluetooth LE device need `Pairing`
+     *
      * @param needsPairing if true, request paring with the connecting device
      */
     public void setRequestPairing(boolean needsPairing) {
@@ -201,6 +217,7 @@ public final class BleMidiPeripheralProvider {
 
     /**
      * Disconnects the specified device
+     *
      * @param midiInputDevice the device
      */
     public void disconnectDevice(MidiInputDevice midiInputDevice) {
@@ -212,7 +229,8 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
-     * Disconnects the specified device.
+     * Disconnects the specified device
+     *
      * @param midiOutputDevice the device
      */
     public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
@@ -225,6 +243,7 @@ public final class BleMidiPeripheralProvider {
 
     /**
      * Disconnects the device by its address
+     *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
      */
     private void disconnectByDeviceAddress(String deviceAddress) {
@@ -261,7 +280,7 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
-     * Terminates instance
+     * Terminates provider
      */
     public void terminate() {
         stopAdvertising();
@@ -377,12 +396,10 @@ public final class BleMidiPeripheralProvider {
                 gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
             } else {
                 switch (BleUuidUtils.toShortValue(characteristicUuid)) {
-                    case 0x2A24:
-                        // Model number
+                    case MODEL_NUMBER:
                         gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, deviceName.getBytes(StandardCharsets.UTF_8));
                         break;
-                    case 0x2A29:
-                        // Manufacturer
+                    case MANUFACTURER_NAME:
                         gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, manufacturer.getBytes(StandardCharsets.UTF_8));
                         break;
                     default:
@@ -405,8 +422,8 @@ public final class BleMidiPeripheralProvider {
                 }
 
                 if (responseNeeded) {
-                    // return empty data
-                    gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, value);
+                    // send empty
+                    gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
                 }
             }
         }
@@ -415,12 +432,13 @@ public final class BleMidiPeripheralProvider {
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
 
-            gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, new byte[] {});
+            gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
         }
     };
 
     /**
      * Connect as BLE MIDI device with specified {@link android.bluetooth.BluetoothDevice}
+     *
      * @param device the device
      */
     private void connectMidiDevice(BluetoothDevice device) {
@@ -448,7 +466,8 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
-     * Obtains connected {@link jp.kshoji.blemidi.device.MidiInputDevice}
+     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiInputDevice} that is currently connected
+     *
      * @return the set contains all connected devices
      */
     public Set<MidiInputDevice> getMidiInputDevices() {
@@ -458,7 +477,8 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
-     * Obtains connected {@link jp.kshoji.blemidi.device.MidiOutputDevice}
+     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiOutputDevice} that is currently connected
+     *
      * @return the set contains all connected devices
      */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
@@ -467,16 +487,27 @@ public final class BleMidiPeripheralProvider {
         return Collections.unmodifiableSet(result);
     }
 
+    /**
+     * Set the listener for attaching devices
+     *
+     * @param midiDeviceAttachedListener the listener
+     */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
         this.midiDeviceAttachedListener = midiDeviceAttachedListener;
     }
 
+    /**
+     * Set the listener for detaching devices
+     *
+     * @param midiDeviceDetachedListener the listener
+     */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiDeviceDetachedListener = midiDeviceDetachedListener;
     }
 
     /**
      * Set the manufacturer name
+     *
      * @param manufacturer the name
      */
     public void setManufacturer(String manufacturer) {
@@ -494,6 +525,7 @@ public final class BleMidiPeripheralProvider {
 
     /**
      * Set the device name
+     *
      * @param deviceName the name
      */
     public void setDeviceName(String deviceName) {
@@ -510,16 +542,18 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
-     * MidiInputDevice for Peripheral
+     * {@link jp.kshoji.blemidi.device.MidiInputDevice} for Peripheral
+     *
      * @author K.Shoji
      */
-    private final class InternalMidiInputDevice extends MidiInputDevice {
+    private static final class InternalMidiInputDevice extends MidiInputDevice {
         private final BluetoothDevice bluetoothDevice;
 
         private final BleMidiParser midiParser = new BleMidiParser(this);
 
         /**
          * Constructor for Peripheral
+         *
          * @param bluetoothDevice the device
          *
          */
@@ -541,30 +575,33 @@ public final class BleMidiPeripheralProvider {
             return bluetoothDevice.getName();
         }
 
-        void incomingData(byte[] data) {
+        private void incomingData(byte[] data) {
             midiParser.parse(data);
         }
 
         /**
          * Obtains device address
+         *
          * @return device address
          */
-        public final String getDeviceAddress() {
+        private String getDeviceAddress() {
             return bluetoothDevice.getAddress();
         }
     }
 
     /**
-     * MidiOutputDevice for Peripheral
+     * {@link jp.kshoji.blemidi.device.MidiOutputDevice} for Peripheral
+     *
      * @author K.Shoji
      */
-    private final class InternalMidiOutputDevice extends MidiOutputDevice {
+    private static final class InternalMidiOutputDevice extends MidiOutputDevice {
         private final BluetoothGattServer bluetoothGattServer;
         private final BluetoothDevice bluetoothDevice;
         private final BluetoothGattCharacteristic midiOutputCharacteristic;
 
         /**
          * Constructor for Peripheral
+         *
          * @param bluetoothDevice the device
          * @param bluetoothGattServer the gatt server
          * @param midiCharacteristic the characteristic of device
@@ -601,9 +638,10 @@ public final class BleMidiPeripheralProvider {
 
         /**
          * Obtains device address
+         *
          * @return device address
          */
-        public final String getDeviceAddress() {
+        private String getDeviceAddress() {
             return bluetoothDevice.getAddress();
         }
     }

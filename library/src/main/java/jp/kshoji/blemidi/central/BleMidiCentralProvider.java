@@ -193,6 +193,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Disconnects the specified device
+     *
      * @param midiInputDevice the device
      */
     public void disconnectDevice(MidiInputDevice midiInputDevice) {
@@ -201,6 +202,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Disconnects the specified device
+     *
      * @param midiOutputDevice the device
      */
     public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
@@ -209,6 +211,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Obtains the set of {@link jp.kshoji.blemidi.device.MidiInputDevice} that is currently connected
+     *
      * @return unmodifiable set
      */
     public Set<MidiInputDevice> getMidiInputDevices() {
@@ -217,6 +220,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Obtains the set of {@link jp.kshoji.blemidi.device.MidiOutputDevice} that is currently connected
+     *
      * @return unmodifiable set
      */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
@@ -227,6 +231,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Set the listener of device scanning status
+     *
      * @param onMidiScanStatusListener the listener
      */
     public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
@@ -235,6 +240,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Set the listener for attaching devices
+     *
      * @param midiDeviceAttachedListener the listener
      */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
@@ -242,7 +248,8 @@ public final class BleMidiCentralProvider {
     }
 
     /**
-     * Set the listener for attaching devices
+     * Set the listener for detaching devices
+     *
      * @param midiDeviceDetachedListener the listener
      */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
@@ -250,7 +257,7 @@ public final class BleMidiCentralProvider {
     }
 
     /**
-     * Terminates instance
+     * Terminates provider
      */
     public void terminate() {
         stopScanDevice();

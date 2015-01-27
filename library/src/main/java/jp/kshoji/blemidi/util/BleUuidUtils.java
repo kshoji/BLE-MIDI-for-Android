@@ -50,6 +50,7 @@ public final class BleUuidUtils {
 
     /**
      * UUID to short style value
+     *
      * @param uuid the UUID
      * @return short style value, -1 if the specified UUID is not short style
      */
@@ -62,7 +63,6 @@ public final class BleUuidUtils {
      *
      * @param src the UUID to be compared
      * @param dst the UUID to be compared
-     *
      * @return true if the both of UUIDs matches
      */
     public static boolean matches(final UUID src, final UUID dst) {

@@ -188,6 +188,7 @@ public abstract class MidiOutputDevice {
 
     /**
      * MIDI Time Code(MTC) Quarter Frame
+     *
      * @param timing 0-127
      */
     public final void sendMidiTimeCodeQuarterFrame(int timing) {
