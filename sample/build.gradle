@@ -25,6 +25,13 @@ android {
     }
 }
 
+repositories {
+    maven {
+        url 'https://github.com/kshoji/javax.sound.midi-for-Android/raw/develop/javax.sound.midi/repository'
+    }
+    mavenCentral()
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(":library")

@@ -510,7 +510,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          *
          * @return device address
          */
-        private String getDeviceAddress() {
+        public String getDeviceAddress() {
             return bluetoothGatt.getDevice().getAddress();
         }
 
@@ -588,7 +588,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          *
          * @return device address
          */
-        private String getDeviceAddress() {
+        public String getDeviceAddress() {
             return bluetoothGatt.getDevice().getAddress();
         }
     }

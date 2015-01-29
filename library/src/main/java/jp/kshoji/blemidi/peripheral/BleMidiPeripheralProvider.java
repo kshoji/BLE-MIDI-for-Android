@@ -584,7 +584,7 @@ public final class BleMidiPeripheralProvider {
          *
          * @return device address
          */
-        private String getDeviceAddress() {
+        public String getDeviceAddress() {
             return bluetoothDevice.getAddress();
         }
     }
@@ -641,7 +641,7 @@ public final class BleMidiPeripheralProvider {
          *
          * @return device address
          */
-        private String getDeviceAddress() {
+        public String getDeviceAddress() {
             return bluetoothDevice.getAddress();
         }
     }

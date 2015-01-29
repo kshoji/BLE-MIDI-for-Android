@@ -23,6 +23,13 @@ public abstract class MidiInputDevice {
      */
     public abstract String getDeviceName();
 
+    /**
+     * Obtains the device address
+     *
+     * @return device address
+     */
+    public abstract String getDeviceAddress();
+
     @Override
     public final String toString() {
         return getDeviceName();
