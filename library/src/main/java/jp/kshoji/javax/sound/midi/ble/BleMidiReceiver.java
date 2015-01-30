@@ -16,6 +16,11 @@ import jp.kshoji.javax.sound.midi.SysexMessage;
 public final class BleMidiReceiver implements MidiDeviceReceiver {
     private final BleMidiDevice bleMidiDevice;
 
+    /**
+     * Constructor
+     *
+     * @param bleMidiDevice the device
+     */
     public BleMidiReceiver(BleMidiDevice bleMidiDevice) {
         this.bleMidiDevice = bleMidiDevice;
     }

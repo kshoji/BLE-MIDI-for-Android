@@ -24,13 +24,21 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     private static BleMidiCentralProvider centralProvider;
 
     private static final Map<String, BleMidiDevice> midiDeviceMap = new HashMap<>();
+    private final Context context;
 
     /**
-     * Initializes {@link jp.kshoji.javax.sound.midi.MidiSystem}
+     * Constructor
      *
      * @param context the context
      */
-    public void initialize(Context context) {
+    public BleMidiSystem(Context context) {
+        this.context = context.getApplicationContext();
+    }
+
+    /**
+     * Initializes {@link jp.kshoji.javax.sound.midi.MidiSystem}
+     */
+    public void initialize() {
         if (BleUtils.isBleSupported(context)) {
             if (BleUtils.isBlePeripheralSupported(context)) {
                 peripheralProvider = new BleMidiPeripheralProvider(context);
@@ -140,8 +148,13 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
         synchronized (midiDeviceMap) {
             BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
             if (existingDevice != null) {
-                midiDeviceMap.remove(midiInputDevice.getDeviceAddress());
-                MidiSystem.removeMidiDevice(existingDevice);
+                existingDevice.setMidiInputDevice(null);
+
+                if (existingDevice.getMidiOutputDevice() == null) {
+                    // both of devices are disconnected
+                    midiDeviceMap.remove(midiInputDevice.getDeviceAddress());
+                    MidiSystem.removeMidiDevice(existingDevice);
+                }
             }
         }
     }
@@ -151,8 +164,13 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
         synchronized (midiDeviceMap) {
             BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
             if (existingDevice != null) {
-                midiDeviceMap.remove(midiOutputDevice.getDeviceAddress());
-                MidiSystem.removeMidiDevice(existingDevice);
+                existingDevice.setMidiOutputDevice(null);
+
+                if (existingDevice.getMidiInputDevice() == null) {
+                    // both of devices are disconnected
+                    midiDeviceMap.remove(midiOutputDevice.getDeviceAddress());
+                    MidiSystem.removeMidiDevice(existingDevice);
+                }
             }
         }
     }

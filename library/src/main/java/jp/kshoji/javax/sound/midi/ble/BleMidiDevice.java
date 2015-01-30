@@ -17,8 +17,8 @@ import jp.kshoji.javax.sound.midi.Transmitter;
  * @author K.Shoji
  */
 public final class BleMidiDevice implements MidiDevice {
-    private final List<Receiver> receivers = new ArrayList<Receiver>();
-    private final List<Transmitter> transmitters = new ArrayList<Transmitter>();
+    private BleMidiReceiver receiver;
+    private BleMidiTransmitter transmitter;
 
     private boolean isOpened;
 
@@ -40,11 +40,11 @@ public final class BleMidiDevice implements MidiDevice {
         }
 
         if (midiOutputDevice != null) {
-            receivers.add(new BleMidiReceiver(this));
+            receiver = new BleMidiReceiver(this);
         }
 
         if (midiInputDevice != null) {
-            transmitters.add(new BleMidiTransmitter(this));
+            transmitter = new BleMidiTransmitter(this);
         }
     }
 
@@ -69,18 +69,14 @@ public final class BleMidiDevice implements MidiDevice {
             return;
         }
 
-        for (final Receiver receiver : receivers) {
-            if (receiver instanceof BleMidiReceiver) {
-                final BleMidiReceiver bleMidiReceiver = (BleMidiReceiver) receiver;
-                bleMidiReceiver.open();
-            }
+        if (receiver != null) {
+            receiver.open();
         }
-        for (final Transmitter transmitter : transmitters) {
-            if (transmitter instanceof BleMidiTransmitter) {
-                final BleMidiTransmitter bleMidiTransmitter = (BleMidiTransmitter) transmitter;
-                bleMidiTransmitter.open();
-            }
+
+        if (transmitter != null) {
+            transmitter.open();
         }
+
         isOpened = true;
     }
 
@@ -90,15 +86,15 @@ public final class BleMidiDevice implements MidiDevice {
             return;
         }
 
-        for (final Transmitter transmitter : transmitters) {
+        if (transmitter != null) {
             transmitter.close();
+            transmitter = null;
         }
-        transmitters.clear();
 
-        for (final Receiver receiver : receivers) {
+        if (receiver != null) {
             receiver.close();
+            receiver = null;
         }
-        receivers.clear();
 
         isOpened = false;
     }
@@ -116,44 +112,45 @@ public final class BleMidiDevice implements MidiDevice {
 
     @Override
     public int getMaxReceivers() {
-        return receivers.size();
+        return receiver == null ? 0 : 1;
     }
 
     @Override
     public int getMaxTransmitters() {
-        return transmitters.size();
+        return transmitter == null ? 0 : 1;
     }
 
     @Override
     public Receiver getReceiver() throws MidiUnavailableException {
-        if (receivers.size() < 1) {
-            return null;
-        }
-
-        return receivers.get(0);
+        return receiver;
     }
 
     @Override
     public List<Receiver> getReceivers() {
+        ArrayList<Receiver> receivers = new ArrayList<>();
+        if (receiver != null) {
+            receivers.add(receiver);
+        }
         return Collections.unmodifiableList(receivers);
     }
 
     @Override
     public Transmitter getTransmitter() throws MidiUnavailableException {
-        if (transmitters.size() < 1) {
-            return null;
-        }
-
-        return transmitters.get(0);
+        return transmitter;
     }
 
     @Override
     public List<Transmitter> getTransmitters() {
+        ArrayList<Transmitter> transmitters = new ArrayList<>();
+        if (transmitter != null) {
+            transmitters.add(transmitter);
+        }
         return Collections.unmodifiableList(transmitters);
     }
 
     public void setMidiInputDevice(MidiInputDevice midiInputDevice) {
         this.midiInputDevice = midiInputDevice;
+        transmitter = new BleMidiTransmitter(this);
     }
 
     public MidiInputDevice getMidiInputDevice() {
@@ -162,6 +159,7 @@ public final class BleMidiDevice implements MidiDevice {
 
     public void setMidiOutputDevice(MidiOutputDevice midiOutputDevice) {
         this.midiOutputDevice = midiOutputDevice;
+        receiver = new BleMidiReceiver(this);
     }
 
     public MidiOutputDevice getMidiOutputDevice() {

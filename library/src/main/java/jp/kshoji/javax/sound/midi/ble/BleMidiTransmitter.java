@@ -21,6 +21,11 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     private final BleMidiDevice bleMidiDevice;
     private Receiver receiver;
 
+    /**
+     * Constructor
+     *
+     * @param bleMidiDevice the device
+     */
     public BleMidiTransmitter(BleMidiDevice bleMidiDevice) {
         this.bleMidiDevice = bleMidiDevice;
         open();
