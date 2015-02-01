@@ -91,11 +91,12 @@ public final class BleMidiPeripheralProvider {
     private String deviceName = "BLE MIDI";
 
     /**
-     * Constructor
+     * Constructor<br />
+     * Before constructing the instance, check the Bluetooth availability.
      *
      * @param context the context
      */
-    public BleMidiPeripheralProvider(final Context context) {
+    public BleMidiPeripheralProvider(final Context context) throws UnsupportedOperationException {
         this.context = context.getApplicationContext();
 
         bluetoothManager = (BluetoothManager) this.context.getSystemService(Context.BLUETOOTH_SERVICE);

@@ -58,12 +58,13 @@ public final class BleMidiCentralProvider {
     private final ScanCallback scanCallback;
 
     /**
-     * Constructor
+     * Constructor<br />
+     * Before constructing the instance, check the Bluetooth availability.
      *
      * @param context the context
      */
     @SuppressLint("NewApi")
-    public BleMidiCentralProvider(final Context context) {
+    public BleMidiCentralProvider(final Context context) throws UnsupportedOperationException {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
