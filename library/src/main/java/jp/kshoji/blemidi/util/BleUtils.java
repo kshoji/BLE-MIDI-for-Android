@@ -11,6 +11,7 @@ import android.os.Build;
 
 /**
  * Utilities for Bluetooth LE
+ *
  * @author K.Shoji
  */
 public class BleUtils {
@@ -68,6 +69,7 @@ public class BleUtils {
 
     /**
      * Check if bluetooth function enabled
+     *
      * @param context the context
      * @return true if bluetooth enabled
      */
@@ -100,6 +102,7 @@ public class BleUtils {
     /**
      * Enables bluetooth function.<br />
      * the Activity may implement the `onActivityResult` method with the request code `REQUEST_CODE_BLUETOOTH_ENABLE`.
+     *
      * @param activity the activity
      */
     public static void enableBluetooth(Activity activity) {

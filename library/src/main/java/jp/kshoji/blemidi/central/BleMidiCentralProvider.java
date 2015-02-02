@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
+import android.util.Log;
 
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,7 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
+import jp.kshoji.blemidi.util.Constants;
 
 /**
  * Client for BLE MIDI Peripheral device service
@@ -56,12 +58,13 @@ public final class BleMidiCentralProvider {
     private final ScanCallback scanCallback;
 
     /**
-     * Constructor
+     * Constructor<br />
+     * Before constructing the instance, check the Bluetooth availability.
      *
      * @param context the context
      */
     @SuppressLint("NewApi")
-    public BleMidiCentralProvider(final Context context) {
+    public BleMidiCentralProvider(final Context context) throws UnsupportedOperationException {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
@@ -92,7 +95,9 @@ public final class BleMidiCentralProvider {
                             return;
                         }
 
-                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                        if (!midiCallback.isConnected(bluetoothDevice)) {
+                            bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                        }
                     }
                 }
             };
@@ -104,10 +109,17 @@ public final class BleMidiCentralProvider {
     private volatile boolean isScanning = false;
 
     /**
-     * Set if the Bluetooth LE device need `Pairing`
+     * Set if the Bluetooth LE device need `Pairing` <br />
+     * Pairing feature can be used on Android KitKat (API Level 19) or later.
+     *
      * @param needsPairing if true, request paring with the connecting device
      */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public void setRequestPairing(boolean needsPairing) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            Log.d(Constants.TAG, "Pairing feature is not supported on API Level " + Build.VERSION.SDK_INT);
+            return;
+        }
         midiCallback.setNeedsBonding(needsPairing);
     }
 
@@ -128,6 +140,7 @@ public final class BleMidiCentralProvider {
         } else {
             bluetoothAdapter.startLeScan(leScanCallback);
         }
+
         isScanning = true;
         if (onMidiScanStatusListener != null) {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
@@ -142,6 +155,7 @@ public final class BleMidiCentralProvider {
                 @Override
                 public void run() {
                     stopScanDevice();
+
                     isScanning = false;
                     if (onMidiScanStatusListener != null) {
                         onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
@@ -157,10 +171,14 @@ public final class BleMidiCentralProvider {
      */
     @SuppressLint({ "Deprecation", "NewApi" })
     public void stopScanDevice() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
-        } else {
-            bluetoothAdapter.stopLeScan(leScanCallback);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
+            } else {
+                bluetoothAdapter.stopLeScan(leScanCallback);
+            }
+        } catch (Throwable ignored) {
+            // NullPointerException on Bluetooth is OFF
         }
 
         if (stopScanRunnable != null) {
@@ -176,6 +194,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Disconnects the specified device
+     *
      * @param midiInputDevice the device
      */
     public void disconnectDevice(MidiInputDevice midiInputDevice) {
@@ -184,6 +203,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Disconnects the specified device
+     *
      * @param midiOutputDevice the device
      */
     public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
@@ -192,6 +212,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Obtains the set of {@link jp.kshoji.blemidi.device.MidiInputDevice} that is currently connected
+     *
      * @return unmodifiable set
      */
     public Set<MidiInputDevice> getMidiInputDevices() {
@@ -200,6 +221,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Obtains the set of {@link jp.kshoji.blemidi.device.MidiOutputDevice} that is currently connected
+     *
      * @return unmodifiable set
      */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
@@ -210,6 +232,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Set the listener of device scanning status
+     *
      * @param onMidiScanStatusListener the listener
      */
     public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
@@ -218,6 +241,7 @@ public final class BleMidiCentralProvider {
 
     /**
      * Set the listener for attaching devices
+     *
      * @param midiDeviceAttachedListener the listener
      */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
@@ -225,7 +249,8 @@ public final class BleMidiCentralProvider {
     }
 
     /**
-     * Set the listener for attaching devices
+     * Set the listener for detaching devices
+     *
      * @param midiDeviceDetachedListener the listener
      */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
@@ -233,7 +258,7 @@ public final class BleMidiCentralProvider {
     }
 
     /**
-     * Terminates instance
+     * Terminates provider
      */
     public void terminate() {
         stopScanDevice();

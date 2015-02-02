@@ -1,6 +1,7 @@
 package jp.kshoji.blemidi.central;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -60,6 +61,18 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     public BleMidiCallback(final Context context) {
         super();
         this.context = context;
+    }
+
+    /**
+     * Checks if the specified device is already connected
+     *
+     * @param device the device
+     * @return true if already connected
+     */
+    boolean isConnected(BluetoothDevice device) {
+        synchronized (deviceAddressGattMap) {
+            return deviceAddressGattMap.containsKey(device.getAddress());
+        }
     }
 
     @Override
@@ -166,7 +179,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 deviceAddressGattMap.put(gattDeviceAddress, gatt);
             }
 
-            if (needsBonding) {
+            if (needsBonding && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 // Create bond and configure Gatt, if this is BLE MIDI device
                 BluetoothDevice bluetoothDevice = gatt.getDevice();
                 if (bluetoothDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
@@ -223,6 +236,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Disconnect the specified device
+     *
      * @param midiInputDevice the device
      */
     void disconnectDevice(MidiInputDevice midiInputDevice) {
@@ -235,6 +249,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Disconnect the specified device
+     *
      * @param midiOutputDevice the device
      */
     void disconnectDevice(MidiOutputDevice midiOutputDevice) {
@@ -247,6 +262,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Disconnects the device by its address
+     *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
      */
     private void disconnectByDeviceAddress(String deviceAddress) {
@@ -292,7 +308,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     }
 
     /**
-     * Terminates instance
+     * Terminates callback
      */
     public void terminate() {
         synchronized (deviceAddressGattMap) {
@@ -328,14 +344,16 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Set if the Bluetooth LE device need `Pairing`
+     *
      * @param needsBonding if true, request paring with the connecting device
      */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public void setNeedsBonding(boolean needsBonding) {
         this.needsBonding = needsBonding;
     }
 
     /**
-     * BroadcastReceiver for BLE Bonding
+     * {@link android.content.BroadcastReceiver} for BLE Bonding
      *
      * @author K.Shoji
      */
@@ -345,6 +363,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         /**
          * Constructor
+         *
          * @param midiInputDevice input device
          * @param midiOutputDevice output device
          */
@@ -374,6 +393,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Obtains connected input devices
+     *
      * @return Set of {@link jp.kshoji.blemidi.device.MidiInputDevice}
      */
     public Set<MidiInputDevice> getMidiInputDevices() {
@@ -389,6 +409,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     /**
      * Obtains connected output devices
+     *
      * @return Set of {@link jp.kshoji.blemidi.device.MidiOutputDevice}
      */
     public Set<MidiOutputDevice> getMidiOutputDevices() {
@@ -403,7 +424,8 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     }
 
     /**
-     * Set the event listener to listen the Device attachment event
+     * Set the listener for attaching devices
+     *
      * @param midiDeviceAttachedListener the listener
      */
     public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
@@ -411,7 +433,8 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     }
 
     /**
-     * Set the event listener to listen the Device attachment event
+     * Set the listener for detaching devices
+     *
      * @param midiDeviceDetachedListener the listener
      */
     public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
@@ -419,10 +442,11 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     }
 
     /**
-     * MidiInputDevice for Central
+     * {@link MidiInputDevice} for Central
+     *
      * @author K.Shoji
      */
-    private final class InternalMidiInputDevice extends MidiInputDevice {
+    private static final class InternalMidiInputDevice extends MidiInputDevice {
         private final BluetoothGatt bluetoothGatt;
         private final BluetoothGattCharacteristic midiInputCharacteristic;
 
@@ -483,22 +507,29 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         /**
          * Obtains device address
+         *
          * @return device address
          */
         public String getDeviceAddress() {
             return bluetoothGatt.getDevice().getAddress();
         }
 
-        void incomingData(byte[] data) {
+        /**
+         * Parse the MIDI data
+         *
+         * @param data the MIDI data
+         */
+        private void incomingData(byte[] data) {
             midiParser.parse(data);
         }
     }
 
     /**
-     * MidiOutputDevice for Central
+     * {@link jp.kshoji.blemidi.device.MidiOutputDevice} for Central
+     *
      * @author K.Shoji
      */
-    private final class InternalMidiOutputDevice extends MidiOutputDevice {
+    private static final class InternalMidiOutputDevice extends MidiOutputDevice {
         private final BluetoothGatt bluetoothGatt;
         private final BluetoothGattCharacteristic midiOutputCharacteristic;
 
@@ -554,6 +585,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         /**
          * Obtains device address
+         *
          * @return device address
          */
         public String getDeviceAddress() {

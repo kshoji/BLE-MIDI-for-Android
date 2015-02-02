@@ -11,6 +11,7 @@ public abstract class MidiInputDevice {
 
     /**
      * Attaches {@link jp.kshoji.blemidi.listener.OnMidiInputEventListener}
+     *
      * @param midiInputEventListener the listener
      */
     public abstract void setOnMidiInputEventListener(OnMidiInputEventListener midiInputEventListener);
@@ -21,6 +22,13 @@ public abstract class MidiInputDevice {
      * @return device name
      */
     public abstract String getDeviceName();
+
+    /**
+     * Obtains the device address
+     *
+     * @return device address
+     */
+    public abstract String getDeviceAddress();
 
     @Override
     public final String toString() {

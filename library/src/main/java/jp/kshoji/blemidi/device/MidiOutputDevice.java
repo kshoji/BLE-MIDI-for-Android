@@ -23,6 +23,13 @@ public abstract class MidiOutputDevice {
      */
     public abstract String getDeviceName();
 
+    /**
+     * Obtains the device address
+     *
+     * @return device address
+     */
+    public abstract String getDeviceAddress();
+
     @Override
     public final String toString() {
         return getDeviceName();
@@ -188,6 +195,7 @@ public abstract class MidiOutputDevice {
 
     /**
      * MIDI Time Code(MTC) Quarter Frame
+     *
      * @param timing 0-127
      */
     public final void sendMidiTimeCodeQuarterFrame(int timing) {

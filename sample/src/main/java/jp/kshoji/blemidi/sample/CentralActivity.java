@@ -583,6 +583,12 @@ public class CentralActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == BleUtils.REQUEST_CODE_BLUETOOTH_ENABLE) {
+            if (!BleUtils.isBluetoothEnabled(this)) {
+                // User selected NOT to use Bluetooth.
+                // do nothing
+                return;
+            }
+
             if (!BleUtils.isBleSupported(this)) {
                 // display alert and exit
                 AlertDialog alertDialog = new AlertDialog.Builder(this).create();
