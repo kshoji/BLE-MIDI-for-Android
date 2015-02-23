@@ -1,5 +1,8 @@
 package jp.kshoji.javax.sound.midi.ble;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +34,7 @@ public final class BleMidiDevice implements MidiDevice {
      * @param midiInputDevice the input device
      * @param midiOutputDevice the output device
      */
-    public BleMidiDevice(MidiInputDevice midiInputDevice, MidiOutputDevice midiOutputDevice) {
+    public BleMidiDevice(@Nullable MidiInputDevice midiInputDevice, @Nullable MidiOutputDevice midiOutputDevice) {
         this.midiInputDevice = midiInputDevice;
         this.midiOutputDevice = midiOutputDevice;
 
@@ -48,6 +51,7 @@ public final class BleMidiDevice implements MidiDevice {
         }
     }
 
+    @NonNull
     @Override
     public Info getDeviceInfo() {
         String deviceName = "";
@@ -125,6 +129,7 @@ public final class BleMidiDevice implements MidiDevice {
         return receiver;
     }
 
+    @NonNull
     @Override
     public List<Receiver> getReceivers() {
         ArrayList<Receiver> receivers = new ArrayList<>();
@@ -139,6 +144,7 @@ public final class BleMidiDevice implements MidiDevice {
         return transmitter;
     }
 
+    @NonNull
     @Override
     public List<Transmitter> getTransmitters() {
         ArrayList<Transmitter> transmitters = new ArrayList<>();
@@ -148,7 +154,7 @@ public final class BleMidiDevice implements MidiDevice {
         return Collections.unmodifiableList(transmitters);
     }
 
-    public void setMidiInputDevice(MidiInputDevice midiInputDevice) {
+    public void setMidiInputDevice(@Nullable MidiInputDevice midiInputDevice) {
         this.midiInputDevice = midiInputDevice;
         transmitter = new BleMidiTransmitter(this);
     }
@@ -157,7 +163,7 @@ public final class BleMidiDevice implements MidiDevice {
         return midiInputDevice;
     }
 
-    public void setMidiOutputDevice(MidiOutputDevice midiOutputDevice) {
+    public void setMidiOutputDevice(@Nullable MidiOutputDevice midiOutputDevice) {
         this.midiOutputDevice = midiOutputDevice;
         receiver = new BleMidiReceiver(this);
     }

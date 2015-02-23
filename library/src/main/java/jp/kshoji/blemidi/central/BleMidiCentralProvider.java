@@ -14,6 +14,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.util.List;
@@ -64,7 +66,7 @@ public final class BleMidiCentralProvider {
      * @param context the context
      */
     @SuppressLint("NewApi")
-    public BleMidiCentralProvider(final Context context) throws UnsupportedOperationException {
+    public BleMidiCentralProvider(@NonNull final Context context) throws UnsupportedOperationException {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
@@ -197,7 +199,7 @@ public final class BleMidiCentralProvider {
      *
      * @param midiInputDevice the device
      */
-    public void disconnectDevice(MidiInputDevice midiInputDevice) {
+    public void disconnectDevice(@NonNull MidiInputDevice midiInputDevice) {
         midiCallback.disconnectDevice(midiInputDevice);
     }
 
@@ -206,7 +208,7 @@ public final class BleMidiCentralProvider {
      *
      * @param midiOutputDevice the device
      */
-    public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
+    public void disconnectDevice(@NonNull MidiOutputDevice midiOutputDevice) {
         midiCallback.disconnectDevice(midiOutputDevice);
     }
 
@@ -215,6 +217,7 @@ public final class BleMidiCentralProvider {
      *
      * @return unmodifiable set
      */
+    @NonNull
     public Set<MidiInputDevice> getMidiInputDevices() {
         return midiCallback.getMidiInputDevices();
     }
@@ -224,6 +227,7 @@ public final class BleMidiCentralProvider {
      *
      * @return unmodifiable set
      */
+    @NonNull
     public Set<MidiOutputDevice> getMidiOutputDevices() {
         return midiCallback.getMidiOutputDevices();
     }
@@ -235,7 +239,7 @@ public final class BleMidiCentralProvider {
      *
      * @param onMidiScanStatusListener the listener
      */
-    public void setOnMidiScanStatusListener(OnMidiScanStatusListener onMidiScanStatusListener) {
+    public void setOnMidiScanStatusListener(@Nullable OnMidiScanStatusListener onMidiScanStatusListener) {
         this.onMidiScanStatusListener = onMidiScanStatusListener;
     }
 
@@ -244,7 +248,7 @@ public final class BleMidiCentralProvider {
      *
      * @param midiDeviceAttachedListener the listener
      */
-    public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
+    public void setOnMidiDeviceAttachedListener(@Nullable OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
         this.midiCallback.setOnMidiDeviceAttachedListener(midiDeviceAttachedListener);
     }
 
@@ -253,7 +257,7 @@ public final class BleMidiCentralProvider {
      *
      * @param midiDeviceDetachedListener the listener
      */
-    public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
+    public void setOnMidiDeviceDetachedListener(@Nullable OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiCallback.setOnMidiDeviceDetachedListener(midiDeviceDetachedListener);
     }
 

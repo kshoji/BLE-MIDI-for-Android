@@ -1,5 +1,7 @@
 package jp.kshoji.blemidi.sample.util;
 
+import android.support.annotation.NonNull;
+
 import java.util.Set;
 
 /**
@@ -49,7 +51,7 @@ public class SoundMaker {
 	/**
 	 * @return -1.0 to 1.0
 	 */
-	public double makeWaveStream(Set<Tone> tones) {
+	public double makeWaveStream(@NonNull Set<Tone> tones) {
 		iter++;
 
 		double output = 0.0;

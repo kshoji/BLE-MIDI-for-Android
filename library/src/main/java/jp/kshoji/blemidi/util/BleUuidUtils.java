@@ -1,6 +1,7 @@
 package jp.kshoji.blemidi.util;
 
 import android.os.ParcelUuid;
+import android.support.annotation.NonNull;
 
 import java.util.UUID;
 
@@ -19,7 +20,8 @@ public final class BleUuidUtils {
      * @throws java.lang.NullPointerException if uuid is null.
      * @throws java.lang.IllegalArgumentException if uuid is not formatted correctly.
      */
-    public static UUID fromString(final String uuidString) {
+    @NonNull
+    public static UUID fromString(@NonNull final String uuidString) {
         try {
             return UUID.fromString(uuidString);
         } catch (IllegalArgumentException e) {
@@ -34,6 +36,7 @@ public final class BleUuidUtils {
      * @param uuidShortValue the Short style UUID value.
      * @return an UUID instance.
      */
+    @NonNull
     public static UUID fromShortValue(final int uuidShortValue) {
         return UUID.fromString("0000" + String.format("%04X", uuidShortValue & 0xffff) + "-0000-1000-8000-00805F9B34FB");
     }
@@ -44,6 +47,7 @@ public final class BleUuidUtils {
      * @param uuidShortValue the Short style UUID value.
      * @return an UUID instance.
      */
+    @NonNull
     public static ParcelUuid parcelFromShortValue(final int uuidShortValue) {
         return ParcelUuid.fromString("0000" + String.format("%04X", uuidShortValue & 0xffff) + "-0000-1000-8000-00805F9B34FB");
     }
@@ -54,7 +58,7 @@ public final class BleUuidUtils {
      * @param uuid the UUID
      * @return short style value, -1 if the specified UUID is not short style
      */
-    public static int toShortValue(UUID uuid) {
+    public static int toShortValue(@NonNull UUID uuid) {
         return (int)((uuid.getMostSignificantBits() >> 32) & 0xffff);
     }
 
@@ -65,14 +69,7 @@ public final class BleUuidUtils {
      * @param dst the UUID to be compared
      * @return true if the both of UUIDs matches
      */
-    public static boolean matches(final UUID src, final UUID dst) {
-        if (src == null && dst == null) {
-            return true;
-        }
-        if (src == null || dst == null) {
-            return false;
-        }
-
+    public static boolean matches(@NonNull final UUID src, @NonNull final UUID dst) {
         if (isShortUuid(src) || isShortUuid(dst)) {
             // at least one instance is short style: check only 16bits
             long srcShortUUID = src.getMostSignificantBits() & 0x0000ffff00000000L;
@@ -90,7 +87,7 @@ public final class BleUuidUtils {
      * @param src the UUID
      * @return true if the UUID is short style
      */
-    private static boolean isShortUuid(final UUID src) {
+    private static boolean isShortUuid(@NonNull final UUID src) {
         return ((src.getMostSignificantBits() & 0xffff0000ffffffffL) == 0L) && (src.getLeastSignificantBits() == 0L);
     }
 }

@@ -11,6 +11,7 @@ import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -160,7 +161,7 @@ public class CentralActivity extends Activity {
 
     OnMidiInputEventListener onMidiInputEventListener = new OnMidiInputEventListener() {
         @Override
-        public void onMidiSystemExclusive(MidiInputDevice sender, byte[] systemExclusive) {
+        public void onMidiSystemExclusive(@NonNull MidiInputDevice sender, @NonNull byte[] systemExclusive) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "SystemExclusive from: " + sender.getDeviceName() + ", data:" + Arrays.toString(systemExclusive)));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -170,7 +171,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiNoteOff(MidiInputDevice sender, int channel, int note, int velocity) {
+        public void onMidiNoteOff(@NonNull MidiInputDevice sender, int channel, int note, int velocity) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOff from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -190,7 +191,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity) {
+        public void onMidiNoteOn(@NonNull MidiInputDevice sender, int channel, int note, int velocity) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NoteOn from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", velocity: " + velocity));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -214,7 +215,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiPolyphonicAftertouch(MidiInputDevice sender, int channel, int note, int pressure) {
+        public void onMidiPolyphonicAftertouch(@NonNull MidiInputDevice sender, int channel, int note, int pressure) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "PolyphonicAftertouch  from: " + sender.getDeviceName() + " channel: " + channel + ", note: " + note + ", pressure: " + pressure));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -224,7 +225,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiControlChange(MidiInputDevice sender, int channel, int function, int value) {
+        public void onMidiControlChange(@NonNull MidiInputDevice sender, int channel, int function, int value) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "ControlChange from: " + sender.getDeviceName() + ", channel: " + channel + ", function: " + function + ", value: " + value));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -234,7 +235,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiProgramChange(MidiInputDevice sender, int channel, int program) {
+        public void onMidiProgramChange(@NonNull MidiInputDevice sender, int channel, int program) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "ProgramChange from: " + sender.getDeviceName() + ", channel: " + channel + ", program: " + program));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -251,7 +252,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiChannelAftertouch(MidiInputDevice sender, int channel, int pressure) {
+        public void onMidiChannelAftertouch(@NonNull MidiInputDevice sender, int channel, int pressure) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "ChannelAftertouch from: " + sender.getDeviceName() + ", channel: " + channel + ", pressure: " + pressure));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -261,7 +262,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiPitchWheel(MidiInputDevice sender, int channel, int amount) {
+        public void onMidiPitchWheel(@NonNull MidiInputDevice sender, int channel, int amount) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "PitchWheel from: " + sender.getDeviceName() + ", channel: " + channel + ", amount: " + amount));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -271,7 +272,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiTimeCodeQuarterFrame(MidiInputDevice sender, int timing) {
+        public void onMidiTimeCodeQuarterFrame(@NonNull MidiInputDevice sender, int timing) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "TimeCodeQuarterFrame from: " + sender.getDeviceName() + ", timing: " + timing));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -281,7 +282,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiSongSelect(MidiInputDevice sender, int song) {
+        public void onMidiSongSelect(@NonNull MidiInputDevice sender, int song) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "SongSelect from: " + sender.getDeviceName() + ", song: " + song));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -291,7 +292,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiSongPositionPointer(MidiInputDevice sender, int position) {
+        public void onMidiSongPositionPointer(@NonNull MidiInputDevice sender, int position) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "SongPositionPointer from: " + sender.getDeviceName() + ", position: " + position));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -301,7 +302,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiTuneRequest(MidiInputDevice sender) {
+        public void onMidiTuneRequest(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "TuneRequest from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -311,7 +312,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiTimingClock(MidiInputDevice sender) {
+        public void onMidiTimingClock(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "TimingClock from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -321,7 +322,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiStart(MidiInputDevice sender) {
+        public void onMidiStart(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "Start from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -331,7 +332,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiContinue(MidiInputDevice sender) {
+        public void onMidiContinue(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "Continue from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -341,7 +342,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiStop(MidiInputDevice sender) {
+        public void onMidiStop(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "Stop from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -351,7 +352,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiActiveSensing(MidiInputDevice sender) {
+        public void onMidiActiveSensing(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "ActiveSensing from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -361,7 +362,7 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onMidiReset(MidiInputDevice sender) {
+        public void onMidiReset(@NonNull MidiInputDevice sender) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "Reset from: " + sender.getDeviceName()));
 
             if (thruToggleButton != null && thruToggleButton.isChecked() && getBleMidiOutputDeviceFromSpinner() != null) {
@@ -371,12 +372,12 @@ public class CentralActivity extends Activity {
         }
 
         @Override
-        public void onRPNMessage(MidiInputDevice sender, int channel, int function, int value) {
+        public void onRPNMessage(@NonNull MidiInputDevice sender, int channel, int function, int value) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "RPN message from: " + sender.getDeviceName() + ", channel: " + channel + ", function: " + function + ", value: " + value));
         }
 
         @Override
-        public void onNRPNMessage(MidiInputDevice sender, int channel, int function, int value) {
+        public void onNRPNMessage(@NonNull MidiInputDevice sender, int channel, int function, int value) {
             midiInputEventHandler.sendMessage(Message.obtain(midiInputEventHandler, 0, "NRPN message from: " + sender.getDeviceName() + ", channel: " + channel + ", function: " + function + ", value: " + value));
         }
     };
@@ -532,12 +533,12 @@ public class CentralActivity extends Activity {
 
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
             @Override
-            public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
+            public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
                 midiInputDevice.setOnMidiInputEventListener(onMidiInputEventListener);
             }
 
             @Override
-            public void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice) {
+            public void onMidiOutputDeviceAttached(@NonNull MidiOutputDevice midiOutputDevice) {
                 Message message = new Message();
                 message.arg1 = 0;
                 message.obj = midiOutputDevice;
@@ -547,12 +548,12 @@ public class CentralActivity extends Activity {
 
         bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
             @Override
-            public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
+            public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
                 // do nothing
             }
 
             @Override
-            public void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice) {
+            public void onMidiOutputDeviceDetached(@NonNull MidiOutputDevice midiOutputDevice) {
                 Message message = new Message();
                 message.arg1 = 1;
                 message.obj = midiOutputDevice;
