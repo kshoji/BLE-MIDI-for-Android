@@ -156,7 +156,15 @@ public final class BleMidiDevice implements MidiDevice {
 
     public void setMidiInputDevice(@Nullable MidiInputDevice midiInputDevice) {
         this.midiInputDevice = midiInputDevice;
-        transmitter = new BleMidiTransmitter(this);
+        if (transmitter != null) {
+            transmitter.close();
+        }
+
+        if (midiInputDevice == null) {
+            transmitter = null;
+        } else {
+            transmitter = new BleMidiTransmitter(this);
+        }
     }
 
     public MidiInputDevice getMidiInputDevice() {
@@ -165,7 +173,15 @@ public final class BleMidiDevice implements MidiDevice {
 
     public void setMidiOutputDevice(@Nullable MidiOutputDevice midiOutputDevice) {
         this.midiOutputDevice = midiOutputDevice;
-        receiver = new BleMidiReceiver(this);
+        if (receiver != null) {
+            receiver.close();
+        }
+
+        if (this.midiOutputDevice == null) {
+            receiver = null;
+        } else {
+            receiver = new BleMidiReceiver(this);
+        }
     }
 
     public MidiOutputDevice getMidiOutputDevice() {

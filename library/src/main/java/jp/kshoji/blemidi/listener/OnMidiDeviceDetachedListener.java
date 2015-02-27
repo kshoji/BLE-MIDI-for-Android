@@ -13,14 +13,14 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 public interface OnMidiDeviceDetachedListener {
 
     /**
-     * MIDI input device has been attached
+     * MIDI input device has been detached
      *
      * @param midiInputDevice detached MIDI Input device
      */
     void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice);
 
     /**
-     * MIDI output device has been attached
+     * MIDI output device has been detached
      *
      * @param midiOutputDevice detached MIDI Output device
      */
