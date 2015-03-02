@@ -21,6 +21,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.ParcelUuid;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -221,12 +223,12 @@ public final class BleMidiPeripheralProvider {
      *
      * @param midiInputDevice the device
      */
-    public void disconnectDevice(MidiInputDevice midiInputDevice) {
+    public void disconnectDevice(@NonNull MidiInputDevice midiInputDevice) {
         if (!(midiInputDevice instanceof InternalMidiInputDevice)) {
             return;
         }
 
-        disconnectByDeviceAddress(((InternalMidiInputDevice) midiInputDevice).getDeviceAddress());
+        disconnectByDeviceAddress(midiInputDevice.getDeviceAddress());
     }
 
     /**
@@ -234,12 +236,12 @@ public final class BleMidiPeripheralProvider {
      *
      * @param midiOutputDevice the device
      */
-    public void disconnectDevice(MidiOutputDevice midiOutputDevice) {
+    public void disconnectDevice(@NonNull MidiOutputDevice midiOutputDevice) {
         if (!(midiOutputDevice instanceof InternalMidiOutputDevice)) {
             return;
         }
 
-        disconnectByDeviceAddress(((InternalMidiOutputDevice)midiOutputDevice).getDeviceAddress());
+        disconnectByDeviceAddress(midiOutputDevice.getDeviceAddress());
     }
 
     /**
@@ -247,7 +249,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
      */
-    private void disconnectByDeviceAddress(String deviceAddress) {
+    private void disconnectByDeviceAddress(@NonNull String deviceAddress) {
         synchronized (bluetoothDevicesMap) {
             BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
             if (bluetoothDevice != null) {
@@ -442,7 +444,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param device the device
      */
-    private void connectMidiDevice(BluetoothDevice device) {
+    private void connectMidiDevice(@NonNull BluetoothDevice device) {
         MidiInputDevice midiInputDevice = new InternalMidiInputDevice(device);
         MidiOutputDevice midiOutputDevice = new InternalMidiOutputDevice(device, gattServer, midiCharacteristic);
 
@@ -471,6 +473,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @return the set contains all connected devices
      */
+    @NonNull
     public Set<MidiInputDevice> getMidiInputDevices() {
         Set<MidiInputDevice> result = new HashSet<>();
         result.addAll(midiInputDevicesMap.values());
@@ -482,6 +485,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @return the set contains all connected devices
      */
+    @NonNull
     public Set<MidiOutputDevice> getMidiOutputDevices() {
         Set<MidiOutputDevice> result = new HashSet<>();
         result.addAll(midiOutputDevicesMap.values());
@@ -493,7 +497,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param midiDeviceAttachedListener the listener
      */
-    public void setOnMidiDeviceAttachedListener(OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
+    public void setOnMidiDeviceAttachedListener(@Nullable OnMidiDeviceAttachedListener midiDeviceAttachedListener) {
         this.midiDeviceAttachedListener = midiDeviceAttachedListener;
     }
 
@@ -502,7 +506,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param midiDeviceDetachedListener the listener
      */
-    public void setOnMidiDeviceDetachedListener(OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
+    public void setOnMidiDeviceDetachedListener(@Nullable OnMidiDeviceDetachedListener midiDeviceDetachedListener) {
         this.midiDeviceDetachedListener = midiDeviceDetachedListener;
     }
 
@@ -511,7 +515,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param manufacturer the name
      */
-    public void setManufacturer(String manufacturer) {
+    public void setManufacturer(@NonNull String manufacturer) {
         // length check
         byte[] manufacturerBytes = manufacturer.getBytes(StandardCharsets.UTF_8);
         if (manufacturerBytes.length > DEVICE_NAME_MAX_LENGTH) {
@@ -529,7 +533,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param deviceName the name
      */
-    public void setDeviceName(String deviceName) {
+    public void setDeviceName(@NonNull String deviceName) {
         // length check
         byte[] deviceNameBytes = deviceName.getBytes(StandardCharsets.UTF_8);
         if (deviceNameBytes.length > DEVICE_NAME_MAX_LENGTH) {
@@ -558,7 +562,7 @@ public final class BleMidiPeripheralProvider {
          * @param bluetoothDevice the device
          *
          */
-        public InternalMidiInputDevice(BluetoothDevice bluetoothDevice) {
+        public InternalMidiInputDevice(@NonNull BluetoothDevice bluetoothDevice) {
             super();
             this.bluetoothDevice = bluetoothDevice;
         }
@@ -568,6 +572,7 @@ public final class BleMidiPeripheralProvider {
             midiParser.setMidiInputEventListener(midiInputEventListener);
         }
 
+        @NonNull
         @Override
         public String getDeviceName() {
             if (TextUtils.isEmpty(bluetoothDevice.getName())) {
@@ -576,7 +581,7 @@ public final class BleMidiPeripheralProvider {
             return bluetoothDevice.getName();
         }
 
-        private void incomingData(byte[] data) {
+        private void incomingData(@NonNull byte[] data) {
             midiParser.parse(data);
         }
 
@@ -585,6 +590,7 @@ public final class BleMidiPeripheralProvider {
          *
          * @return device address
          */
+        @NonNull
         public String getDeviceAddress() {
             return bluetoothDevice.getAddress();
         }
@@ -607,13 +613,14 @@ public final class BleMidiPeripheralProvider {
          * @param bluetoothGattServer the gatt server
          * @param midiCharacteristic the characteristic of device
          */
-        public InternalMidiOutputDevice(final BluetoothDevice bluetoothDevice, final BluetoothGattServer bluetoothGattServer, final BluetoothGattCharacteristic midiCharacteristic) {
+        public InternalMidiOutputDevice(@NonNull final BluetoothDevice bluetoothDevice, @NonNull final BluetoothGattServer bluetoothGattServer, @NonNull final BluetoothGattCharacteristic midiCharacteristic) {
             super();
             this.bluetoothDevice = bluetoothDevice;
             this.bluetoothGattServer = bluetoothGattServer;
             this.midiOutputCharacteristic = midiCharacteristic;
         }
 
+        @NonNull
         @Override
         public String getDeviceName() {
             if (TextUtils.isEmpty(bluetoothDevice.getName())) {
@@ -623,11 +630,7 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void transferData(byte[] writeBuffer) {
-            if (midiOutputCharacteristic == null) {
-                return;
-            }
-
+        public void transferData(@NonNull byte[] writeBuffer) {
             midiOutputCharacteristic.setValue(writeBuffer);
 
             try {
@@ -642,7 +645,7 @@ public final class BleMidiPeripheralProvider {
          *
          * @return device address
          */
-        public String getDeviceAddress() {
+        public @NonNull String getDeviceAddress() {
             return bluetoothDevice.getAddress();
         }
     }

@@ -1,5 +1,8 @@
 package jp.kshoji.blemidi.util;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -56,7 +59,7 @@ public final class BleMidiParser {
      *
      * @param sender the sender
      */
-    public BleMidiParser(MidiInputDevice sender) {
+    public BleMidiParser(@NonNull MidiInputDevice sender) {
         this.sender = sender;
         timer = new Timer();
 
@@ -71,7 +74,7 @@ public final class BleMidiParser {
      *
      * @param midiInputEventListener the listener for MIDI events
      */
-    public void setMidiInputEventListener(OnMidiInputEventListener midiInputEventListener) {
+    public void setMidiInputEventListener(@Nullable OnMidiInputEventListener midiInputEventListener) {
         this.midiInputEventListener = midiInputEventListener;
     }
 
@@ -179,7 +182,7 @@ public final class BleMidiParser {
          *
          * @param array data
          */
-        MidiTimerTask(byte[] array) {
+        MidiTimerTask(@NonNull byte[] array) {
             this(INVALID, INVALID, INVALID, array);
         }
     }
@@ -782,7 +785,7 @@ public final class BleMidiParser {
      *
      * @param data incoming data
      */
-    public void parse(byte[] data) {
+    public void parse(@NonNull byte[] data) {
         if (data.length > 1) {
             int header = data[0] & 0xff;
             for (int i = 1; i < data.length; i++) {

@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.support.annotation.NonNull;
 
 /**
  * Utilities for Bluetooth LE
@@ -22,7 +23,7 @@ public class BleUtils {
      * @param context the context
      * @return true if supported
      */
-    public static boolean isBleSupported(Context context) {
+    public static boolean isBleSupported(@NonNull Context context) {
         try {
             if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
                 return false;
@@ -53,7 +54,7 @@ public class BleUtils {
      * @return true if supported
      */
     @SuppressLint("NewApi")
-    public static boolean isBlePeripheralSupported(Context context) {
+    public static boolean isBlePeripheralSupported(@NonNull Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             return false;
         }
@@ -73,7 +74,7 @@ public class BleUtils {
      * @param context the context
      * @return true if bluetooth enabled
      */
-    public static boolean isBluetoothEnabled(Context context) {
+    public static boolean isBluetoothEnabled(@NonNull Context context) {
         BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 
         if (bluetoothManager == null) {
@@ -105,7 +106,7 @@ public class BleUtils {
      *
      * @param activity the activity
      */
-    public static void enableBluetooth(Activity activity) {
+    public static void enableBluetooth(@NonNull Activity activity) {
         activity.startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), REQUEST_CODE_BLUETOOTH_ENABLE);
     }
 }

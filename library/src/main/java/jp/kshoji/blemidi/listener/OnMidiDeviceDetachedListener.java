@@ -1,5 +1,7 @@
 package jp.kshoji.blemidi.listener;
 
+import android.support.annotation.NonNull;
+
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 
@@ -11,16 +13,16 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 public interface OnMidiDeviceDetachedListener {
 
     /**
-     * MIDI input device has been attached
+     * MIDI input device has been detached
      *
      * @param midiInputDevice detached MIDI Input device
      */
-    void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice);
+    void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice);
 
     /**
-     * MIDI output device has been attached
+     * MIDI output device has been detached
      *
      * @param midiOutputDevice detached MIDI Output device
      */
-    void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice);
+    void onMidiOutputDeviceDetached(@NonNull MidiOutputDevice midiOutputDevice);
 }

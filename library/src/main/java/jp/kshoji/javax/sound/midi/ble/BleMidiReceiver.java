@@ -1,5 +1,7 @@
 package jp.kshoji.javax.sound.midi.ble;
 
+import android.support.annotation.NonNull;
+
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.javax.sound.midi.MetaMessage;
 import jp.kshoji.javax.sound.midi.MidiDevice;
@@ -21,17 +23,18 @@ public final class BleMidiReceiver implements MidiDeviceReceiver {
      *
      * @param bleMidiDevice the device
      */
-    public BleMidiReceiver(BleMidiDevice bleMidiDevice) {
+    public BleMidiReceiver(@NonNull BleMidiDevice bleMidiDevice) {
         this.bleMidiDevice = bleMidiDevice;
     }
 
+    @NonNull
     @Override
     public MidiDevice getMidiDevice() {
         return bleMidiDevice;
     }
 
     @Override
-    public void send(MidiMessage message, long l) {
+    public void send(@NonNull MidiMessage message, long l) {
         MidiOutputDevice outputDevice = bleMidiDevice.getMidiOutputDevice();
 
         if (outputDevice == null) {

@@ -8,6 +8,8 @@ import android.bluetooth.le.ScanFilter;
 import android.content.Context;
 import android.os.Build;
 import android.os.ParcelUuid;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +31,8 @@ public final class BleMidiDeviceUtils {
      * @param bluetoothGatt the gatt of device
      * @return null if no service found
      */
-    public static BluetoothGattService getMidiService(final Context context, final BluetoothGatt bluetoothGatt) {
+    @Nullable
+    public static BluetoothGattService getMidiService(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt) {
         List<BluetoothGattService> services = bluetoothGatt.getServices();
         String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForService);
 
@@ -52,7 +55,8 @@ public final class BleMidiDeviceUtils {
      * @param bluetoothGattService the gatt service of device
      * @return null if no characteristic found
      */
-    public static BluetoothGattCharacteristic getMidiInputCharacteristic(final Context context, final BluetoothGattService bluetoothGattService) {
+    @Nullable
+    public static BluetoothGattCharacteristic getMidiInputCharacteristic(@NonNull final Context context, @NonNull final BluetoothGattService bluetoothGattService) {
         List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
         String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForInputCharacteristic);
 
@@ -75,7 +79,8 @@ public final class BleMidiDeviceUtils {
      * @param bluetoothGattService the gatt service of device
      * @return null if no characteristic found
      */
-    public static BluetoothGattCharacteristic getMidiOutputCharacteristic(final Context context, final BluetoothGattService bluetoothGattService) {
+    @Nullable
+    public static BluetoothGattCharacteristic getMidiOutputCharacteristic(@NonNull final Context context, @NonNull final BluetoothGattService bluetoothGattService) {
         List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
         String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForOutputCharacteristic);
 
@@ -97,8 +102,9 @@ public final class BleMidiDeviceUtils {
      * @param context the context
      * @return list of {@link android.bluetooth.le.ScanFilter} for BLE MIDI devices.
      */
+    @NonNull
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public static List<ScanFilter> getBleMidiScanFilters(Context context) {
+    public static List<ScanFilter> getBleMidiScanFilters(@NonNull final Context context) {
         List<ScanFilter> scanFilters = new ArrayList<>();
 
         String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForService);

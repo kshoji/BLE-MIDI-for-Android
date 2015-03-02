@@ -1,6 +1,7 @@
 package jp.kshoji.javax.sound.midi;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +32,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
      *
      * @param context the context
      */
-    public BleMidiSystem(Context context) {
+    public BleMidiSystem(@NonNull Context context) {
         this.context = context.getApplicationContext();
     }
 
@@ -114,7 +115,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     }
 
     @Override
-    public void onMidiInputDeviceAttached(MidiInputDevice midiInputDevice) {
+    public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
         synchronized (midiDeviceMap) {
             BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
             if (existingDevice != null) {
@@ -129,7 +130,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     }
 
     @Override
-    public void onMidiOutputDeviceAttached(MidiOutputDevice midiOutputDevice) {
+    public void onMidiOutputDeviceAttached(@NonNull MidiOutputDevice midiOutputDevice) {
         synchronized (midiDeviceMap) {
             BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
             if (existingDevice != null) {
@@ -144,7 +145,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     }
 
     @Override
-    public void onMidiInputDeviceDetached(MidiInputDevice midiInputDevice) {
+    public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
         synchronized (midiDeviceMap) {
             BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
             if (existingDevice != null) {
@@ -160,7 +161,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     }
 
     @Override
-    public void onMidiOutputDeviceDetached(MidiOutputDevice midiOutputDevice) {
+    public void onMidiOutputDeviceDetached(@NonNull MidiOutputDevice midiOutputDevice) {
         synchronized (midiDeviceMap) {
             BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
             if (existingDevice != null) {

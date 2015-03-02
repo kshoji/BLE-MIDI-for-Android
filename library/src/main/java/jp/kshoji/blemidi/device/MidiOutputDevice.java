@@ -1,5 +1,7 @@
 package jp.kshoji.blemidi.device;
 
+import android.support.annotation.NonNull;
+
 /**
  * Represents BLE MIDI Output Device
  *
@@ -14,13 +16,14 @@ public abstract class MidiOutputDevice {
      *
      * @param writeBuffer byte array to write
      */
-    protected abstract void transferData(byte[] writeBuffer);
+    protected abstract void transferData(@NonNull byte[] writeBuffer);
 
     /**
      * Obtains the device name
      *
      * @return device name
      */
+    @NonNull
     public abstract String getDeviceName();
 
     /**
@@ -28,8 +31,10 @@ public abstract class MidiOutputDevice {
      *
      * @return device address
      */
+    @NonNull
     public abstract String getDeviceAddress();
 
+    @NonNull
     @Override
     public final String toString() {
         return getDeviceName();
@@ -90,7 +95,7 @@ public abstract class MidiOutputDevice {
      *
      * @param systemExclusive : start with 'F0', and end with 'F7'
      */
-    public final void sendMidiSystemExclusive(byte[] systemExclusive) {
+    public final void sendMidiSystemExclusive(@NonNull byte[] systemExclusive) {
         byte[] timestampAddedSystemExclusive = new byte[systemExclusive.length + 2];
         System.arraycopy(systemExclusive, 0, timestampAddedSystemExclusive, 1, systemExclusive.length);
 

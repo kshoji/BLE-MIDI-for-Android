@@ -1,5 +1,6 @@
 package jp.kshoji.javax.sound.midi.ble;
 
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
@@ -26,11 +27,12 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
      *
      * @param bleMidiDevice the device
      */
-    public BleMidiTransmitter(BleMidiDevice bleMidiDevice) {
+    public BleMidiTransmitter(@NonNull BleMidiDevice bleMidiDevice) {
         this.bleMidiDevice = bleMidiDevice;
         open();
     }
 
+    @NonNull
     @Override
     public MidiDevice getMidiDevice() {
         return bleMidiDevice;
@@ -62,7 +64,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiSystemExclusive(MidiInputDevice sender, byte[] systemExclusive) {
+    public void onMidiSystemExclusive(@NonNull MidiInputDevice sender, @NonNull byte[] systemExclusive) {
         if (receiver != null) {
             try {
                 final SysexMessage message = new SysexMessage();
@@ -75,7 +77,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiNoteOff(MidiInputDevice sender, int channel, int note, int velocity) {
+    public void onMidiNoteOff(@NonNull MidiInputDevice sender, int channel, int note, int velocity) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -88,7 +90,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiNoteOn(MidiInputDevice sender, int channel, int note, int velocity) {
+    public void onMidiNoteOn(@NonNull MidiInputDevice sender, int channel, int note, int velocity) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -101,7 +103,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiPolyphonicAftertouch(MidiInputDevice sender, int channel, int note, int pressure) {
+    public void onMidiPolyphonicAftertouch(@NonNull MidiInputDevice sender, int channel, int note, int pressure) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -114,7 +116,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiControlChange(MidiInputDevice sender, int channel, int function, int value) {
+    public void onMidiControlChange(@NonNull MidiInputDevice sender, int channel, int function, int value) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -127,7 +129,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiProgramChange(MidiInputDevice sender, int channel, int program) {
+    public void onMidiProgramChange(@NonNull MidiInputDevice sender, int channel, int program) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -140,7 +142,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiChannelAftertouch(MidiInputDevice sender, int channel, int pressure) {
+    public void onMidiChannelAftertouch(@NonNull MidiInputDevice sender, int channel, int pressure) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -153,11 +155,11 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiPitchWheel(MidiInputDevice sender, int channel, int amount) {
+    public void onMidiPitchWheel(@NonNull MidiInputDevice sender, int channel, int amount) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
-                message.setMessage(ShortMessage.PITCH_BEND, channel, (amount >> 7) & 0x7f, amount & 0x7f);
+                message.setMessage(ShortMessage.PITCH_BEND, channel, amount & 0x7f, (amount >> 7) & 0x7f);
                 receiver.send(message, -1);
             } catch (final InvalidMidiDataException e) {
                 Log.d(Constants.TAG, "InvalidMidiDataException", e);
@@ -166,7 +168,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiTimeCodeQuarterFrame(MidiInputDevice sender, int timing) {
+    public void onMidiTimeCodeQuarterFrame(@NonNull MidiInputDevice sender, int timing) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -179,7 +181,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiSongSelect(MidiInputDevice sender, int song) {
+    public void onMidiSongSelect(@NonNull MidiInputDevice sender, int song) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -192,7 +194,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiSongPositionPointer(MidiInputDevice sender, int position) {
+    public void onMidiSongPositionPointer(@NonNull MidiInputDevice sender, int position) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -205,7 +207,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiTuneRequest(MidiInputDevice sender) {
+    public void onMidiTuneRequest(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -218,7 +220,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiTimingClock(MidiInputDevice sender) {
+    public void onMidiTimingClock(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -231,7 +233,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiStart(MidiInputDevice sender) {
+    public void onMidiStart(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -244,7 +246,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiContinue(MidiInputDevice sender) {
+    public void onMidiContinue(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -257,7 +259,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiStop(MidiInputDevice sender) {
+    public void onMidiStop(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -270,7 +272,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiActiveSensing(MidiInputDevice sender) {
+    public void onMidiActiveSensing(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -283,7 +285,7 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onMidiReset(MidiInputDevice sender) {
+    public void onMidiReset(@NonNull MidiInputDevice sender) {
         if (receiver != null) {
             try {
                 final ShortMessage message = new ShortMessage();
@@ -296,12 +298,12 @@ public final class BleMidiTransmitter implements MidiDeviceTransmitter, OnMidiIn
     }
 
     @Override
-    public void onRPNMessage(MidiInputDevice sender, int channel, int function, int value) {
+    public void onRPNMessage(@NonNull MidiInputDevice sender, int channel, int function, int value) {
         // do nothing in this implementation
     }
 
     @Override
-    public void onNRPNMessage(MidiInputDevice sender, int channel, int function, int value) {
+    public void onNRPNMessage(@NonNull MidiInputDevice sender, int channel, int function, int value) {
         // do nothing in this implementation
     }
 }
