@@ -1,0 +1,48 @@
+package jp.kshoji.blemidi.service;
+
+import android.annotation.TargetApi;
+import android.os.Build;
+
+import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
+
+/**
+ * Service for BLE MIDI Peripheral
+ *
+ * @author K.Shoji
+ */
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+public final class BleMidiPeripheralService extends AbstractBleMidiService {
+    private BleMidiPeripheralProvider midiProvider = null;
+
+    @Override
+    protected void onStart() {
+        midiProvider = new BleMidiPeripheralProvider(this);
+        midiProvider.setOnMidiDeviceAttachedListener(serviceMidiDeviceAttachedListener);
+        midiProvider.setOnMidiDeviceDetachedListener(serviceMidiDeviceDetachedListener);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        stopAdvertising();
+    }
+
+    /**
+     * Starts advertising
+     */
+    public void startAdvertising() {
+        if (midiProvider != null) {
+            midiProvider.startAdvertising();
+        }
+    }
+
+    /**
+     * Stops advertising
+     */
+    public void stopAdvertising() {
+        if (midiProvider != null) {
+            midiProvider.stopAdvertising();
+        }
+    }
+}
