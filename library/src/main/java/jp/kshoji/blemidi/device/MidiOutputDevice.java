@@ -107,7 +107,8 @@ public abstract class MidiOutputDevice {
 
         for (int i = 0; i < timestampAddedSystemExclusive.length; i += 19) {
             writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
-            timestampAddedSystemExclusive[systemExclusive.length] = (byte) (0x80 | (timestamp & 0x7f));
+            // Don't send 0xF7 timestamp on SysEx(MIDI parser will fail) 0x7f -> 0x7e
+            timestampAddedSystemExclusive[systemExclusive.length] = (byte) (0x80 | (timestamp & 0x7e));
 
             if (i + 20 <= timestampAddedSystemExclusive.length) {
                 System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, 19);
