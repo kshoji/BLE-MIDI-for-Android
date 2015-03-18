@@ -3,9 +3,7 @@ package jp.kshoji.blemidi.service;
 import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Binder;
 import android.os.Build;
-import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -28,24 +26,6 @@ import jp.kshoji.blemidi.util.Constants;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 abstract class AbstractBleMidiService extends Service {
 
-    /**
-     * Binder for this Service
-     */
-    public class LocalBinder extends Binder {
-
-        /**
-         * Get the Service
-         *
-         * @return the Service
-         */
-        @NonNull
-        public AbstractBleMidiService getService() {
-            return AbstractBleMidiService.this;
-        }
-    }
-
-    private final IBinder binder = new LocalBinder();
-
     private final Set<MidiInputDevice> midiInputDevices = new HashSet<>();
     private final Set<MidiOutputDevice> midiOutputDevices = new HashSet<>();
 
@@ -67,11 +47,6 @@ abstract class AbstractBleMidiService extends Service {
         }
 
         return START_REDELIVER_INTENT; // must be restarted if stopped by the system, We must respond to midi events(!)
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
     }
 
     @Override

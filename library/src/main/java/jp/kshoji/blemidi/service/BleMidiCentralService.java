@@ -1,5 +1,10 @@
 package jp.kshoji.blemidi.service;
 
+import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
+import android.support.annotation.NonNull;
+
 import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 
 /**
@@ -9,6 +14,29 @@ import jp.kshoji.blemidi.central.BleMidiCentralProvider;
  */
 public final class BleMidiCentralService extends AbstractBleMidiService {
     private BleMidiCentralProvider midiProvider = null;
+
+    /**
+     * Binder for this Service
+     */
+    public class LocalBinder extends Binder {
+
+        /**
+         * Get the Service
+         *
+         * @return the Service
+         */
+        @NonNull
+        public BleMidiCentralService getService() {
+            return BleMidiCentralService.this;
+        }
+    }
+
+    private final IBinder binder = new LocalBinder();
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
 
     @Override
     protected void onStart() {

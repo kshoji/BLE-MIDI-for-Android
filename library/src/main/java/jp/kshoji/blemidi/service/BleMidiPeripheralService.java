@@ -1,7 +1,11 @@
 package jp.kshoji.blemidi.service;
 
 import android.annotation.TargetApi;
+import android.content.Intent;
+import android.os.Binder;
 import android.os.Build;
+import android.os.IBinder;
+import android.support.annotation.NonNull;
 
 import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
 
@@ -13,6 +17,29 @@ import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public final class BleMidiPeripheralService extends AbstractBleMidiService {
     private BleMidiPeripheralProvider midiProvider = null;
+
+    /**
+     * Binder for this Service
+     */
+    public class LocalBinder extends Binder {
+
+        /**
+         * Get the Service
+         *
+         * @return the Service
+         */
+        @NonNull
+        public BleMidiPeripheralService getService() {
+            return BleMidiPeripheralService.this;
+        }
+    }
+
+    private final IBinder binder = new LocalBinder();
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
 
     @Override
     protected void onStart() {
