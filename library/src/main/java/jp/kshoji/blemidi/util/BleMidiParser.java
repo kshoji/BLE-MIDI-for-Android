@@ -31,6 +31,7 @@ public final class BleMidiParser {
     private int parameterValue = 0x3fff;
 
     // for SysEx messages
+    private final Object systemExclusiveLock = new Object();
     private final ReusableByteArrayOutputStream systemExclusiveStream = new ReusableByteArrayOutputStream();
     private final ReusableByteArrayOutputStream systemExclusiveRecoveryStream = new ReusableByteArrayOutputStream();
 
@@ -207,7 +208,7 @@ public final class BleMidiParser {
 
             if (midiEvent == 0xf7) {
                 // is this end of SysEx???
-                synchronized (systemExclusiveRecoveryStream) {
+                synchronized (systemExclusiveLock) {
                     if (systemExclusiveRecoveryStream.size() > 0) {
                         // previous SysEx has been failed, due to timestamp was 0xF7
                         // process SysEx again
@@ -243,7 +244,7 @@ public final class BleMidiParser {
                 }
             } else {
                 // there is no error. reset the stream for recovery
-                synchronized (systemExclusiveRecoveryStream) {
+                synchronized (systemExclusiveLock) {
                     if (systemExclusiveRecoveryStream.size() > 0) {
                         systemExclusiveRecoveryStream.reset();
                     }
@@ -259,7 +260,7 @@ public final class BleMidiParser {
                 case 0xf0: {
                     switch (midiEvent) {
                         case 0xf0:
-                            synchronized (systemExclusiveStream) {
+                            synchronized (systemExclusiveLock) {
                                 systemExclusiveStream.reset();
                                 systemExclusiveStream.write(midiEvent);
                                 systemExclusiveRecoveryStream.reset();
@@ -802,11 +803,11 @@ public final class BleMidiParser {
         } else if (midiState == MIDI_STATE_SIGNAL_SYSEX) {
             if (midiEvent == 0xf7) {
                 // the end of message
-                synchronized (systemExclusiveStream) {
+                synchronized (systemExclusiveLock) {
                     // last written byte is for timestamp
-                    int removed = systemExclusiveStream.replaceLastByte(midiEvent);
-                    if (removed >= 0) {
-                        timestamp = ((header & 0x3f) << 7) | (removed & 0x7f);
+                    int replacedEvent = systemExclusiveStream.replaceLastByte(midiEvent);
+                    if (replacedEvent >= 0) {
+                        timestamp = ((header & 0x3f) << 7) | (replacedEvent & 0x7f);
                     }
                     timeToWait = calculateTimeToWait(timestamp);
                     if (useTimestamp && timeToWait > 0) {
@@ -825,18 +826,17 @@ public final class BleMidiParser {
                     }
 
                     // for error recovery
-                    systemExclusiveStream.replaceLastByte(removed);
-                    systemExclusiveStream.write(midiEvent);
-
                     systemExclusiveRecoveryStream.reset();
                     try {
-                        systemExclusiveRecoveryStream.write(systemExclusiveStream.toByteArray());
+                        systemExclusiveStream.writeTo(systemExclusiveRecoveryStream);
                     } catch (IOException ignored) {
                     }
+                    systemExclusiveRecoveryStream.replaceLastByte(replacedEvent);
+                    systemExclusiveRecoveryStream.write(midiEvent);
                 }
                 midiState = MIDI_STATE_TIMESTAMP;
             } else {
-                synchronized (systemExclusiveStream) {
+                synchronized (systemExclusiveLock) {
                     systemExclusiveStream.write(midiEvent);
                 }
             }
