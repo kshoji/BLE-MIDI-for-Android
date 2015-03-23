@@ -3,6 +3,7 @@ package jp.kshoji.blemidi.util;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -30,7 +31,9 @@ public final class BleMidiParser {
     private int parameterValue = 0x3fff;
 
     // for SysEx messages
+    private final Object systemExclusiveLock = new Object();
     private final ReusableByteArrayOutputStream systemExclusiveStream = new ReusableByteArrayOutputStream();
+    private final ReusableByteArrayOutputStream systemExclusiveRecoveryStream = new ReusableByteArrayOutputStream();
 
     // states
     private static final int MIDI_STATE_TIMESTAMP = 0;
@@ -202,6 +205,51 @@ public final class BleMidiParser {
                 // running status
                 midiState = MIDI_STATE_WAIT;
             }
+
+            if (midiEvent == 0xf7) {
+                // is this end of SysEx???
+                synchronized (systemExclusiveLock) {
+                    if (systemExclusiveRecoveryStream.size() > 0) {
+                        // previous SysEx has been failed, due to timestamp was 0xF7
+                        // process SysEx again
+
+                        // last written byte is for timestamp
+                        int removed = systemExclusiveRecoveryStream.replaceLastByte(midiEvent);
+                        if (removed >= 0) {
+                            timestamp = ((header & 0x3f) << 7) | (removed & 0x7f);
+
+                            timeToWait = calculateTimeToWait(timestamp);
+                            if (useTimestamp && timeToWait > 0) {
+                                timer.schedule(new MidiTimerTask(systemExclusiveRecoveryStream.toByteArray()) {
+                                    @Override
+                                    public void run() {
+                                        if (midiInputEventListener != null) {
+                                            midiInputEventListener.onMidiSystemExclusive(sender, array);
+                                        }
+                                    }
+                                }, timeToWait);
+                            } else {
+                                if (midiInputEventListener != null) {
+                                    midiInputEventListener.onMidiSystemExclusive(sender, systemExclusiveRecoveryStream.toByteArray());
+                                }
+                            }
+                        }
+
+                        systemExclusiveRecoveryStream.reset();
+                    }
+
+                    // process next byte with state: MIDI_STATE_TIMESTAMP
+                    midiState = MIDI_STATE_TIMESTAMP;
+                    return;
+                }
+            } else {
+                // there is no error. reset the stream for recovery
+                synchronized (systemExclusiveLock) {
+                    if (systemExclusiveRecoveryStream.size() > 0) {
+                        systemExclusiveRecoveryStream.reset();
+                    }
+                }
+            }
         }
 
         if (midiState == MIDI_STATE_TIMESTAMP) {
@@ -212,9 +260,11 @@ public final class BleMidiParser {
                 case 0xf0: {
                     switch (midiEvent) {
                         case 0xf0:
-                            synchronized (systemExclusiveStream) {
+                            synchronized (systemExclusiveLock) {
                                 systemExclusiveStream.reset();
                                 systemExclusiveStream.write(midiEvent);
+                                systemExclusiveRecoveryStream.reset();
+
                                 midiState = MIDI_STATE_SIGNAL_SYSEX;
                             }
                             break;
@@ -753,8 +803,12 @@ public final class BleMidiParser {
         } else if (midiState == MIDI_STATE_SIGNAL_SYSEX) {
             if (midiEvent == 0xf7) {
                 // the end of message
-                synchronized (systemExclusiveStream) {
-                    systemExclusiveStream.write(midiEvent);
+                synchronized (systemExclusiveLock) {
+                    // last written byte is for timestamp
+                    int replacedEvent = systemExclusiveStream.replaceLastByte(midiEvent);
+                    if (replacedEvent >= 0) {
+                        timestamp = ((header & 0x3f) << 7) | (replacedEvent & 0x7f);
+                    }
                     timeToWait = calculateTimeToWait(timestamp);
                     if (useTimestamp && timeToWait > 0) {
                         timer.schedule(new MidiTimerTask(systemExclusiveStream.toByteArray()) {
@@ -770,10 +824,19 @@ public final class BleMidiParser {
                             midiInputEventListener.onMidiSystemExclusive(sender, systemExclusiveStream.toByteArray());
                         }
                     }
+
+                    // for error recovery
+                    systemExclusiveRecoveryStream.reset();
+                    try {
+                        systemExclusiveStream.writeTo(systemExclusiveRecoveryStream);
+                    } catch (IOException ignored) {
+                    }
+                    systemExclusiveRecoveryStream.replaceLastByte(replacedEvent);
+                    systemExclusiveRecoveryStream.write(midiEvent);
                 }
                 midiState = MIDI_STATE_TIMESTAMP;
             } else {
-                synchronized (systemExclusiveStream) {
+                synchronized (systemExclusiveLock) {
                     systemExclusiveStream.write(midiEvent);
                 }
             }

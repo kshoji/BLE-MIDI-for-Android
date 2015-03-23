@@ -22,7 +22,24 @@ public final class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
 		this.buf = fixedSizeBuffer;
 	}
 
-	/**
+    /**
+     * Replaces last written byte with the specified value
+     *
+     * @param oneByte the byte value
+     * @return replaced value; -1 if {@link #size()} == 0
+     */
+    public synchronized int replaceLastByte(int oneByte) {
+        if (count > 0) {
+            byte replaced = buf[count - 1];
+            buf[count - 1] = (byte) oneByte;
+            return replaced & 0xff;
+        } else {
+            super.write(oneByte);
+            return -1;
+        }
+    }
+
+    /**
 	 * Construct default instance, maximum buffer size is 1024 bytes.
 	 */
 	public ReusableByteArrayOutputStream() {
