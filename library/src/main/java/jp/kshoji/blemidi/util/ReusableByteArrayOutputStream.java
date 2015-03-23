@@ -31,7 +31,7 @@ public final class ReusableByteArrayOutputStream extends ByteArrayOutputStream {
     public synchronized int replaceLastByte(int oneByte) {
         if (count > 0) {
             byte replaced = buf[count - 1];
-            buf[count] = (byte) oneByte;
+            buf[count - 1] = (byte) oneByte;
             return replaced & 0xff;
         } else {
             super.write(oneByte);
