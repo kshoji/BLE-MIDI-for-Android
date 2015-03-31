@@ -99,17 +99,20 @@ public abstract class MidiOutputDevice {
         byte[] timestampAddedSystemExclusive = new byte[systemExclusive.length + 2];
         System.arraycopy(systemExclusive, 0, timestampAddedSystemExclusive, 1, systemExclusive.length);
 
+        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
+
+        // extend a byte for timestamp LSB, before the last byte('F7')
+        timestampAddedSystemExclusive[systemExclusive.length + 1] = systemExclusive[systemExclusive.length - 1];
+        // set first byte to timestamp LSB
+        timestampAddedSystemExclusive[0] = (byte) (0x80 | (timestamp & 0x7f));
+
         // split into 20 bytes. BLE can't send more than 20 bytes by default MTU.
         byte[] writeBuffer = new byte[20];
-
-        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
-        timestampAddedSystemExclusive[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
-
         for (int i = 0; i < timestampAddedSystemExclusive.length; i += 19) {
-            writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
-            timestampAddedSystemExclusive[systemExclusive.length] = (byte) (0x80 | (timestamp & 0x7f));
+            // Don't send 0xF7 timestamp LSB inside of SysEx(MIDI parser will fail) 0x7f -> 0x7e
+            timestampAddedSystemExclusive[systemExclusive.length] = (byte) (0x80 | (timestamp & 0x7e));
 
-            if (i + 20 <= timestampAddedSystemExclusive.length) {
+            if (i + 19 <= timestampAddedSystemExclusive.length) {
                 System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, 19);
             } else {
                 // last message
@@ -117,6 +120,9 @@ public abstract class MidiOutputDevice {
 
                 System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, timestampAddedSystemExclusive.length - i);
             }
+
+            // timestamp MSB
+            writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
 
             transferData(writeBuffer);
 
