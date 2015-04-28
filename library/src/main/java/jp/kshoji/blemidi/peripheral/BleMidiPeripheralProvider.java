@@ -262,23 +262,25 @@ public final class BleMidiPeripheralProvider {
         synchronized (midiInputDevicesMap) {
             MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
             if (midiInputDevice != null) {
+                midiInputDevicesMap.remove(deviceAddress);
+
                 midiInputDevice.setOnMidiInputEventListener(null);
 
                 if (midiDeviceDetachedListener != null) {
                     midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
                 }
             }
-            midiInputDevicesMap.remove(deviceAddress);
         }
 
         synchronized (midiOutputDevicesMap) {
             MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(deviceAddress);
             if (midiOutputDevice != null) {
+                midiOutputDevicesMap.remove(deviceAddress);
+
                 if (midiDeviceDetachedListener != null) {
                     midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                 }
             }
-            midiOutputDevicesMap.remove(deviceAddress);
         }
     }
 
@@ -359,30 +361,33 @@ public final class BleMidiPeripheralProvider {
                     break;
 
                 case BluetoothProfile.STATE_DISCONNECTED:
-                    if (midiDeviceAttachedListener != null) {
+                    String deviceAddress = device.getAddress();
 
-                        String deviceAddress = device.getAddress();
+                    synchronized (midiInputDevicesMap) {
+                        MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
+                        if (midiInputDevice != null) {
+                            midiInputDevicesMap.remove(deviceAddress);
 
-                        synchronized (midiInputDevicesMap) {
-                            MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
-                            if (midiInputDevice != null) {
-                                midiInputDevice.setOnMidiInputEventListener(null);
+                            midiInputDevice.setOnMidiInputEventListener(null);
+                            if (midiDeviceDetachedListener != null) {
                                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
-                                midiInputDevicesMap.remove(deviceAddress);
                             }
                         }
+                    }
 
-                        synchronized (midiOutputDevicesMap) {
-                            MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(deviceAddress);
-                            if (midiOutputDevice != null) {
+                    synchronized (midiOutputDevicesMap) {
+                        MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(deviceAddress);
+                        if (midiOutputDevice != null) {
+                            midiOutputDevicesMap.remove(deviceAddress);
+
+                            if (midiDeviceDetachedListener != null) {
                                 midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
-                                midiOutputDevicesMap.remove(deviceAddress);
                             }
                         }
+                    }
 
-                        synchronized (bluetoothDevicesMap) {
-                            bluetoothDevicesMap.remove(deviceAddress);
-                        }
+                    synchronized (bluetoothDevicesMap) {
+                        bluetoothDevicesMap.remove(deviceAddress);
                     }
                     break;
             }
