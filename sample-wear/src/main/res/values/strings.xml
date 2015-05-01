@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Wear BLE MIDI</string>
+    <string name="controller">BLE MIDI Controller</string>
+    <string name="synthesizer">BLE MIDI Synthesizer</string>
+    <string name="no_devices_found">No BLE MIDI devices found</string>
+    <string name="connected">BLE MIDI connected. Sound will be played on the BT audio.</string>
+    <string name="title_synthesizer">Synthesizer</string>
+    <string name="title_controller">Controller</string>
+</resources>

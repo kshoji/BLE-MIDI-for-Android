@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "jp.kshoji.blemidi.sample"
-        minSdkVersion 18
+        minSdkVersion 20
         targetSdkVersion 22
         versionCode 3
         versionName "1.2"
@@ -34,7 +34,7 @@ repositories {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    wearApp project(':sample-wear')
     compile project(":library")
-    compile 'com.google.android.gms:play-services:7.3.0'
+    compile 'com.google.android.support:wearable:1.1.0'
+    compile 'com.google.android.gms:play-services-wearable:7.0.0'
 }
