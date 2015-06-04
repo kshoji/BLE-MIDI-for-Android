@@ -1,13 +1,13 @@
 package jp.kshoji.blemidi.sample;
 
-import android.app.Activity;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.view.WatchViewStub;
-import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
 import java.util.HashSet;
@@ -25,9 +25,12 @@ import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.sample.util.SoundMaker;
 import jp.kshoji.blemidi.sample.util.Tone;
 
-public class SynthesizerActivity extends Activity implements OnMidiInputEventListener {
+public class SynthesizerActivity extends WearableActivity implements OnMidiInputEventListener {
 
     private TextView textView;
+    private TextView noteView;
+    private TextView titleView;
+    private View background;
 
     // Play sounds
     AudioTrack audioTrack;
@@ -38,35 +41,45 @@ public class SynthesizerActivity extends Activity implements OnMidiInputEventLis
     int currentProgram = 0;
 
     BleMidiCentralProvider bleMidiCentralProvider;
+    private String[] notenames;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_synthesizer);
-        Log.i("BLE MIDI", "onCreate");
 
         final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(WatchViewStub stub) {
                 textView = (TextView) stub.findViewById(R.id.text);
+                titleView = (TextView) stub.findViewById(R.id.title);
+                background = stub.findViewById(R.id.background);
+                noteView = (TextView) stub.findViewById(R.id.note);
             }
         });
+
+        bleMidiCentralProvider = new BleMidiCentralProvider(this);
+
+        notenames = getResources().getStringArray(R.array.notenames);
+
+        setAmbientEnabled();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
+        bleMidiCentralProvider = null;
+
         textView = null;
+        titleView = null;
+        background = null;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i("BLE MIDI", "onResume");
-
-        bleMidiCentralProvider = new BleMidiCentralProvider(this);
 
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
             @Override
@@ -95,11 +108,17 @@ public class SynthesizerActivity extends Activity implements OnMidiInputEventLis
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        if (bleMidiCentralProvider == null) {
+                            return;
+                        }
+
                         if (bleMidiCentralProvider.getMidiInputDevices().size() <= 1) {
                             if (textView != null) {
                                 textView.setText(getString(R.string.no_devices_found));
                             }
                         }
+
+                        noteView.setText("");
                     }
                 });
             }
@@ -141,6 +160,42 @@ public class SynthesizerActivity extends Activity implements OnMidiInputEventLis
         timer.scheduleAtFixedRate(timerTask, 10, timerRate);
     }
 
+    @Override
+    public void onEnterAmbient(Bundle ambientDetails) {
+        super.onEnterAmbient(ambientDetails);
+
+        if (textView != null) {
+            textView.getPaint().setAntiAlias(false);
+        }
+        if (titleView != null) {
+            titleView.getPaint().setAntiAlias(false);
+        }
+        if (noteView != null) {
+            noteView.getPaint().setAntiAlias(false);
+        }
+        if (background != null) {
+            background.setBackgroundColor(0);
+        }
+    }
+
+    @Override
+    public void onExitAmbient() {
+        super.onExitAmbient();
+
+        if (textView != null) {
+            textView.getPaint().setAntiAlias(true);
+        }
+        if (titleView != null) {
+            titleView.getPaint().setAntiAlias(true);
+        }
+        if (noteView != null) {
+            noteView.getPaint().setAntiAlias(true);
+        }
+        if (background != null) {
+            background.setBackgroundColor(0xff80a0f0);
+        }
+    }
+
     /**
      * @param samplingRate sampling rate for playing
      * @return configured {@link AudioTrack} instance
@@ -155,11 +210,8 @@ public class SynthesizerActivity extends Activity implements OnMidiInputEventLis
     @Override
     protected void onPause() {
         super.onPause();
-        Log.i("BLE MIDI", "onPause");
 
         bleMidiCentralProvider.stopScanDevice();
-
-        bleMidiCentralProvider = null;
 
         if (timer != null) {
             try {
@@ -199,12 +251,15 @@ public class SynthesizerActivity extends Activity implements OnMidiInputEventLis
                     it.remove();
                 }
             }
+
+            if (tones.size() < 1) {
+                noteView.setText("");
+            }
         }
     }
 
     @Override
-    public void onMidiNoteOn(@NonNull MidiInputDevice midiInputDevice, int channel, int note, int velocity) {
-        Log.i("BLE MIDI", "note on:" + note + ", from: " + midiInputDevice);
+    public void onMidiNoteOn(@NonNull MidiInputDevice midiInputDevice, int channel, final int note, int velocity) {
         synchronized (tones) {
             if (velocity == 0) {
                 Iterator<Tone> it = tones.iterator();
@@ -214,7 +269,17 @@ public class SynthesizerActivity extends Activity implements OnMidiInputEventLis
                         it.remove();
                     }
                 }
+
+                if (tones.size() < 1) {
+                    noteView.setText("");
+                }
             } else {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        noteView.setText(notenames[note % 12]);
+                    }
+                });
                 tones.add(new Tone(note, velocity / 127.0, currentProgram));
             }
         }
