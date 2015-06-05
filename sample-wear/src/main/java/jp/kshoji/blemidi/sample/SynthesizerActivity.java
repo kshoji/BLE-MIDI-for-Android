@@ -164,36 +164,20 @@ public class SynthesizerActivity extends WearableActivity implements OnMidiInput
     public void onEnterAmbient(Bundle ambientDetails) {
         super.onEnterAmbient(ambientDetails);
 
-        if (textView != null) {
-            textView.getPaint().setAntiAlias(false);
-        }
-        if (titleView != null) {
-            titleView.getPaint().setAntiAlias(false);
-        }
-        if (noteView != null) {
-            noteView.getPaint().setAntiAlias(false);
-        }
-        if (background != null) {
-            background.setBackgroundColor(0);
-        }
+        textView.getPaint().setAntiAlias(false);
+        titleView.getPaint().setAntiAlias(false);
+        noteView.getPaint().setAntiAlias(false);
+        background.setBackgroundColor(0);
     }
 
     @Override
     public void onExitAmbient() {
         super.onExitAmbient();
 
-        if (textView != null) {
-            textView.getPaint().setAntiAlias(true);
-        }
-        if (titleView != null) {
-            titleView.getPaint().setAntiAlias(true);
-        }
-        if (noteView != null) {
-            noteView.getPaint().setAntiAlias(true);
-        }
-        if (background != null) {
-            background.setBackgroundColor(0xff80a0f0);
-        }
+        textView.getPaint().setAntiAlias(true);
+        titleView.getPaint().setAntiAlias(true);
+        noteView.getPaint().setAntiAlias(true);
+        background.setBackgroundColor(0xff80a0f0);
     }
 
     /**
@@ -253,7 +237,12 @@ public class SynthesizerActivity extends WearableActivity implements OnMidiInput
             }
 
             if (tones.size() < 1) {
-                noteView.setText("");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        noteView.setText("");
+                    }
+                });
             }
         }
     }
@@ -271,7 +260,12 @@ public class SynthesizerActivity extends WearableActivity implements OnMidiInput
                 }
 
                 if (tones.size() < 1) {
-                    noteView.setText("");
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            noteView.setText("");
+                        }
+                    });
                 }
             } else {
                 runOnUiThread(new Runnable() {

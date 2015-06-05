@@ -3,8 +3,9 @@ jdk: openjdk7
 android:
   components:
     - build-tools-22.0.1
-    - extra-android-m2repository
     - android-22
+    - extra-android-m2repository
+    - extra-google-m2repository
   licenses:
     - '.+'
 before_install:
