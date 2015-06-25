@@ -836,7 +836,7 @@ public final class BleMidiParser {
                             // wait for timing
                             while (event.timing < System.currentTimeMillis()) {
                                 try {
-                                    wait(1);
+                                    Thread.sleep(1);
                                 } catch (InterruptedException ignored) {
                                 }
                             }
@@ -846,7 +846,7 @@ public final class BleMidiParser {
                 }
 
                 try {
-                    wait(BUFFER_LENGTH_MILLIS);
+                    Thread.sleep(BUFFER_LENGTH_MILLIS);
                 } catch (InterruptedException ignored) {
                 }
             }
