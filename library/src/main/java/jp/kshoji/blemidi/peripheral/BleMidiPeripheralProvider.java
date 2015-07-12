@@ -155,8 +155,26 @@ public final class BleMidiPeripheralProvider {
 
         // these service will be listened.
         // FIXME these didn't used for service discovery
-        gattServer.addService(informationGattService);
-        gattServer.addService(midiGattService);
+        boolean serviceInitialized = false;
+        while (!serviceInitialized) {
+            try {
+                gattServer.addService(informationGattService);
+                gattServer.addService(midiGattService);// NullPointerException, DeadObjectException thrown here
+                serviceInitialized = true;
+            } catch (Exception e) {
+                Log.d(Constants.TAG, "Adding Service failed, retrying..");
+
+                try {
+                    gattServer.clearServices();
+                } catch (Throwable ignored) {
+                }
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
 
         // set up advertising setting
         AdvertiseSettings advertiseSettings = new AdvertiseSettings.Builder()
