@@ -834,7 +834,7 @@ public final class BleMidiParser {
                     if (midiInputEventListener != null) {
                         for (MidiEventWithTiming event : dequeuedEvents) {
                             // wait for timing
-                            while (event.timing < System.currentTimeMillis()) {
+                            while (event.timing > System.currentTimeMillis()) {
                                 try {
                                     Thread.sleep(1);
                                 } catch (InterruptedException ignored) {
