@@ -113,6 +113,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             synchronized (midiInputDevicesMap) {
                 Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                    ((InternalMidiInputDevice) midiInputDevice).stop();
                     midiInputDevice.setOnMidiInputEventListener(null);
                 }
                 midiInputDevicesMap.remove(gattDeviceAddress);
@@ -285,6 +286,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 midiInputDevicesMap.remove(deviceAddress);
 
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                    ((InternalMidiInputDevice) midiInputDevice).stop();
                     midiInputDevice.setOnMidiInputEventListener(null);
 
                     if (midiDeviceDetachedListener != null) {
@@ -326,6 +328,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         synchronized (midiInputDevicesMap) {
             for (Set<MidiInputDevice> midiInputDevices : midiInputDevicesMap.values()) {
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                    ((InternalMidiInputDevice) midiInputDevice).stop();
                     midiInputDevice.setOnMidiInputEventListener(null);
                 }
 
@@ -486,6 +489,13 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             if (midiInputCharacteristic == null) {
                 throw new IllegalArgumentException("MIDI Input GattCharacteristic not found. Service UUID:" + midiService.getUuid());
             }
+        }
+
+        /**
+         * Stops parser's thread
+         */
+        void stop() {
+            midiParser.stop();
         }
 
         /**

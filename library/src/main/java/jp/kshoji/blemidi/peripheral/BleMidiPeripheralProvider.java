@@ -282,6 +282,7 @@ public final class BleMidiPeripheralProvider {
             if (midiInputDevice != null) {
                 midiInputDevicesMap.remove(deviceAddress);
 
+                ((InternalMidiInputDevice) midiInputDevice).stop();
                 midiInputDevice.setOnMidiInputEventListener(null);
 
                 if (midiDeviceDetachedListener != null) {
@@ -324,6 +325,7 @@ public final class BleMidiPeripheralProvider {
 
         synchronized (midiInputDevicesMap) {
             for (MidiInputDevice midiInputDevice : midiInputDevicesMap.values()) {
+                ((InternalMidiInputDevice) midiInputDevice).stop();
                 midiInputDevice.setOnMidiInputEventListener(null);
             }
             midiInputDevicesMap.clear();
@@ -386,6 +388,7 @@ public final class BleMidiPeripheralProvider {
                         if (midiInputDevice != null) {
                             midiInputDevicesMap.remove(deviceAddress);
 
+                            ((InternalMidiInputDevice) midiInputDevice).stop();
                             midiInputDevice.setOnMidiInputEventListener(null);
                             if (midiDeviceDetachedListener != null) {
                                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
@@ -588,6 +591,13 @@ public final class BleMidiPeripheralProvider {
         public InternalMidiInputDevice(@NonNull BluetoothDevice bluetoothDevice) {
             super();
             this.bluetoothDevice = bluetoothDevice;
+        }
+
+        /**
+         * Stops parser's thread
+         */
+        void stop() {
+            midiParser.stop();
         }
 
         @Override
