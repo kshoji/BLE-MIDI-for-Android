@@ -5,17 +5,18 @@ import android.support.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Timer;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 
 /**
  * BLE MIDI Parser<br />
- * The protocol compatible with Apple's `MIDI over Bluetooth LE` specification.
+ * The protocol compatible with Apple's `MIDI over Bluetooth LE` specification.<br />
+ * One BleMidiParser instance belongs to one MidiInputDevice instance.
  *
  * @author K.Shoji
  */
@@ -49,26 +50,26 @@ public final class BleMidiParser {
 
     // for Timestamp
     private static final int MAX_TIMESTAMP = 8192;
-    private static final int BUFFER_LENGTH_MILLIS = 10;
+    private static final int BUFFER_LENGTH_MILLIS = 30;
     private int timestamp = 0;
     private int lastTimestamp;
     private long lastTimestampRecorded = 0;
     private int zeroTimestampCount = 0;
-    final Timer timer;
+    private Boolean isTimestampAlwaysZero = null;
 
-    OnMidiInputEventListener midiInputEventListener;
-    final MidiInputDevice sender;
+    private OnMidiInputEventListener midiInputEventListener = null;
+    private final MidiInputDevice sender;
 
-    final EventDequeueRunnable eventDequeueRunnable;
+    private final EventDequeueRunnable eventDequeueRunnable;
+    private final Thread eventDequeueThread;
 
     /**
      * Constructor
      *
      * @param sender the sender
      */
-    public BleMidiParser(@NonNull MidiInputDevice sender) {
+    public BleMidiParser(@NonNull final MidiInputDevice sender) {
         this.sender = sender;
-        timer = new Timer();
 
         midiState = MIDI_STATE_TIMESTAMP;
         midiEventKind = 0;
@@ -76,7 +77,8 @@ public final class BleMidiParser {
         midiEventVelocity = 0;
 
         eventDequeueRunnable = new EventDequeueRunnable();
-        new Thread(eventDequeueRunnable, "EventDequeueThread").start();
+        eventDequeueThread = new Thread(eventDequeueRunnable, "EventDequeueThread");
+        eventDequeueThread.start();
     }
 
     /**
@@ -86,51 +88,6 @@ public final class BleMidiParser {
      */
     public void setMidiInputEventListener(@Nullable OnMidiInputEventListener midiInputEventListener) {
         this.midiInputEventListener = midiInputEventListener;
-    }
-
-    /**
-     * Calculate `time to wait` for the event's timestamp
-     *
-     * @param timestamp the event's timestamp
-     * @return time to wait
-     */
-    private long calculateTimeToWait(int timestamp) {
-        long currentTimeMillis = System.currentTimeMillis();
-        if (lastTimestampRecorded == 0) {
-            // first time
-            lastTimestamp = timestamp;
-            lastTimestampRecorded = currentTimeMillis;
-            return 0;
-        }
-
-        if (currentTimeMillis - lastTimestampRecorded > MAX_TIMESTAMP) {
-            // the event comes after long pause
-            lastTimestamp = timestamp;
-            lastTimestampRecorded = currentTimeMillis;
-            zeroTimestampCount = 0;
-            return 0;
-        }
-
-        if (timestamp == 0) {
-            zeroTimestampCount++;
-            if (zeroTimestampCount >= 3) {
-                // decides timestamp is always zero: event fires immediately
-                return 0;
-            }
-        } else {
-            zeroTimestampCount = 0;
-        }
-
-        int originalTimestamp = timestamp;
-        if (timestamp < lastTimestamp) {
-            timestamp += MAX_TIMESTAMP;
-        }
-
-        long result = BUFFER_LENGTH_MILLIS + timestamp - lastTimestamp + lastTimestampRecorded;
-
-        lastTimestamp = originalTimestamp;
-        lastTimestampRecorded = currentTimeMillis;
-        return result;
     }
 
     /**
@@ -146,39 +103,93 @@ public final class BleMidiParser {
      * {@link Runnable} with MIDI event data, and firing timing
      */
     private abstract class MidiEventWithTiming implements Runnable {
-        static final int INVALID = -1;
+        private static final int INVALID = -1;
 
-        final Long timing;
-        final int arg1;
-        final int arg2;
-        final int arg3;
-        final byte[] array;
+        private final long timing;
+        private final int arg1;
+        private final int arg2;
+        private final int arg3;
+        private final byte[] array;
 
-        private MidiEventWithTiming(int arg1, int arg2, int arg3, byte[] array, @NonNull Long timing) {
+        /**
+         * Calculate `time to wait` for the event's timestamp
+         *
+         * @param timestamp the event's timestamp
+         * @return time to wait
+         */
+        private long calculateEventFireTime(final int timestamp) {
+            final long currentTimeMillis = System.currentTimeMillis();
+
+            // checks timestamp value is always zero
+            if (isTimestampAlwaysZero != null) {
+                if (isTimestampAlwaysZero) {
+                    return currentTimeMillis;
+                }
+            } else {
+                if (timestamp == 0) {
+                    if (zeroTimestampCount >= 3) {
+                        // decides timestamp is always zero: event fires immediately
+                        isTimestampAlwaysZero = true;
+                        return currentTimeMillis;
+                    } else {
+                        zeroTimestampCount++;
+                    }
+                } else {
+                    isTimestampAlwaysZero = false;
+                }
+            }
+
+            if (lastTimestampRecorded == 0) {
+                // first time: event fires immediately
+                lastTimestamp = timestamp;
+                lastTimestampRecorded = currentTimeMillis;
+                return currentTimeMillis;
+            }
+
+            if (currentTimeMillis - lastTimestampRecorded >= MAX_TIMESTAMP) {
+                // the event comes after long pause
+                lastTimestamp = timestamp;
+                lastTimestampRecorded = currentTimeMillis;
+                return currentTimeMillis;
+            }
+
+            int adjustedTimestamp = timestamp;
+            if (timestamp + MAX_TIMESTAMP / 2 < lastTimestamp) {
+                adjustedTimestamp += MAX_TIMESTAMP;
+            }
+
+            final long result = BUFFER_LENGTH_MILLIS + adjustedTimestamp - lastTimestamp + lastTimestampRecorded;
+
+            lastTimestamp = timestamp;
+            lastTimestampRecorded = currentTimeMillis;
+            return result;
+        }
+
+        private MidiEventWithTiming(int arg1, int arg2, int arg3, byte[] array, int timestamp) {
             this.arg1 = arg1;
             this.arg2 = arg2;
             this.arg3 = arg3;
             this.array = array;
-            this.timing = timing;
+            timing = calculateEventFireTime(timestamp);
         }
 
         /**
          * Constructor with no arguments
          *
-         * @param timing the event firing timing
+         * @param timestamp BLE MIDI timestamp
          */
-        MidiEventWithTiming(@NonNull Long timing) {
-            this(INVALID, INVALID, INVALID, null, timing);
+        MidiEventWithTiming(int timestamp) {
+            this(INVALID, INVALID, INVALID, null, timestamp);
         }
 
         /**
          * Constructor with 1 argument
          *
          * @param arg1 argument 1
-         * @param timing the event firing timing
+         * @param timestamp BLE MIDI timestamp
          */
-        MidiEventWithTiming(int arg1, @NonNull Long timing) {
-            this(arg1, INVALID, INVALID, null, timing);
+        MidiEventWithTiming(int arg1, int timestamp) {
+            this(arg1, INVALID, INVALID, null, timestamp);
         }
 
         /**
@@ -186,10 +197,10 @@ public final class BleMidiParser {
          *
          * @param arg1 argument 1
          * @param arg2 argument 2
-         * @param timing the event firing timing
+         * @param timestamp BLE MIDI timestamp
          */
-        MidiEventWithTiming(int arg1, int arg2, @NonNull Long timing) {
-            this(arg1, arg2, INVALID, null, timing);
+        MidiEventWithTiming(int arg1, int arg2, int timestamp) {
+            this(arg1, arg2, INVALID, null, timestamp);
         }
 
         /**
@@ -198,20 +209,40 @@ public final class BleMidiParser {
          * @param arg1 argument 1
          * @param arg2 argument 2
          * @param arg3 argument 3
-         * @param timing the event firing timing
+         * @param timestamp BLE MIDI timestamp
          */
-        MidiEventWithTiming(int arg1, int arg2, int arg3, @NonNull Long timing) {
-            this (arg1, arg2, arg3, null, timing);
+        MidiEventWithTiming(int arg1, int arg2, int arg3, int timestamp) {
+            this (arg1, arg2, arg3, null, timestamp);
         }
 
         /**
          * Constructor with array
          *
          * @param array data
-         * @param timing the event firing timing
+         * @param timestamp BLE MIDI timestamp
          */
-        MidiEventWithTiming(@NonNull byte[] array, @NonNull Long timing) {
-            this(INVALID, INVALID, INVALID, array, timing);
+        MidiEventWithTiming(@NonNull byte[] array, int timestamp) {
+            this(INVALID, INVALID, INVALID, array, timestamp);
+        }
+
+        public long getTiming() {
+            return timing;
+        }
+
+        public int getArg1() {
+            return arg1;
+        }
+
+        public int getArg2() {
+            return arg2;
+        }
+
+        public int getArg3() {
+            return arg3;
+        }
+
+        public byte[] getArray() {
+            return array;
         }
     }
 
@@ -221,9 +252,8 @@ public final class BleMidiParser {
      * @param header the header bits
      * @param event the event byte
      */
-    private void parseMidiEvent(int header, byte event) {
-        int midiEvent = event & 0xff;
-        long eventFireTime;
+    private void parseMidiEvent(final int header, final byte event) {
+        final int midiEvent = event & 0xff;
 
         if (midiState == MIDI_STATE_TIMESTAMP) {
             if ((midiEvent & 0x80) == 0) {
@@ -243,12 +273,11 @@ public final class BleMidiParser {
                         if (removed >= 0) {
                             timestamp = ((header & 0x3f) << 7) | (removed & 0x7f);
 
-                            eventFireTime = calculateTimeToWait(timestamp) + System.currentTimeMillis();
-                            addEventToQueue(new MidiEventWithTiming(systemExclusiveRecoveryStream.toByteArray(), eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(systemExclusiveRecoveryStream.toByteArray(), timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
-                                        midiInputEventListener.onMidiSystemExclusive(sender, array);
+                                        midiInputEventListener.onMidiSystemExclusive(sender, getArray());
                                     }
                                 }
                             });
@@ -256,11 +285,11 @@ public final class BleMidiParser {
 
                         systemExclusiveRecoveryStream.reset();
                     }
-
-                    // process next byte with state: MIDI_STATE_TIMESTAMP
-                    midiState = MIDI_STATE_TIMESTAMP;
-                    return;
                 }
+
+                // process next byte with state: MIDI_STATE_TIMESTAMP
+                midiState = MIDI_STATE_TIMESTAMP;
+                return;
             } else {
                 // there is no error. reset the stream for recovery
                 synchronized (systemExclusiveLock) {
@@ -283,9 +312,8 @@ public final class BleMidiParser {
                                 systemExclusiveStream.reset();
                                 systemExclusiveStream.write(midiEvent);
                                 systemExclusiveRecoveryStream.reset();
-
-                                midiState = MIDI_STATE_SIGNAL_SYSEX;
                             }
+                            midiState = MIDI_STATE_SIGNAL_SYSEX;
                             break;
 
                         case 0xf1:
@@ -304,8 +332,7 @@ public final class BleMidiParser {
 
                         case 0xf6:
                             // 0xf6 Tune Request : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -317,8 +344,7 @@ public final class BleMidiParser {
                             break;
                         case 0xf8:
                             // 0xf8 Timing Clock : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -330,8 +356,7 @@ public final class BleMidiParser {
                             break;
                         case 0xfa:
                             // 0xfa Start : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -343,8 +368,7 @@ public final class BleMidiParser {
                             break;
                         case 0xfb:
                             // 0xfb Continue : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -356,8 +380,7 @@ public final class BleMidiParser {
                             break;
                         case 0xfc:
                             // 0xfc Stop : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -369,8 +392,7 @@ public final class BleMidiParser {
                             break;
                         case 0xfe:
                             // 0xfe Active Sensing : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -382,8 +404,7 @@ public final class BleMidiParser {
                             break;
                         case 0xff:
                             // 0xff Reset : 1byte
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
@@ -428,12 +449,11 @@ public final class BleMidiParser {
                 // 2bytes pattern
                 case 0xc0: // program change
                     midiEventNote = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiProgramChange(sender, arg1 & 0xf, arg2);
+                                midiInputEventListener.onMidiProgramChange(sender, getArg1() & 0xf, getArg2());
                             }
                         }
                     });
@@ -441,12 +461,11 @@ public final class BleMidiParser {
                     break;
                 case 0xd0: // channel after-touch
                     midiEventNote = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiChannelAftertouch(sender, arg1 & 0xf, arg2);
+                                midiInputEventListener.onMidiChannelAftertouch(sender, getArg1() & 0xf, getArg2());
                             }
                         }
                     });
@@ -457,12 +476,11 @@ public final class BleMidiParser {
                         case 0xf1:
                             // 0xf1 MIDI Time Code Quarter Frame. : 2bytes
                             midiEventNote = midiEvent;
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(midiEventNote, eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(midiEventNote, timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
-                                        midiInputEventListener.onMidiTimeCodeQuarterFrame(sender, arg1);
+                                        midiInputEventListener.onMidiTimeCodeQuarterFrame(sender, getArg1());
                                     }
                                 }
                             });
@@ -471,12 +489,11 @@ public final class BleMidiParser {
                         case 0xf3:
                             // 0xf3 Song Select. : 2bytes
                             midiEventNote = midiEvent;
-                            eventFireTime = calculateTimeToWait(timestamp);
-                            addEventToQueue(new MidiEventWithTiming(midiEventNote, eventFireTime) {
+                            addEventToQueue(new MidiEventWithTiming(midiEventNote, timestamp) {
                                 @Override
                                 public void run() {
                                     if (midiInputEventListener != null) {
-                                        midiInputEventListener.onMidiSongSelect(sender, arg1);
+                                        midiInputEventListener.onMidiSongSelect(sender, getArg1());
                                     }
                                 }
                             });
@@ -516,12 +533,11 @@ public final class BleMidiParser {
                 // 3bytes pattern
                 case 0x80: // note off
                     midiEventVelocity = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiNoteOff(sender, arg1 & 0xf, arg2, arg3);
+                                midiInputEventListener.onMidiNoteOff(sender, getArg1() & 0xf, getArg2(), getArg3());
                             }
                         }
                     });
@@ -529,15 +545,14 @@ public final class BleMidiParser {
                     break;
                 case 0x90: // note on
                     midiEventVelocity = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
                                 if (midiEventVelocity == 0) {
-                                    midiInputEventListener.onMidiNoteOff(sender, arg1 & 0xf, arg2, arg3);
+                                    midiInputEventListener.onMidiNoteOff(sender, getArg1() & 0xf, getArg2(), getArg3());
                                 } else {
-                                    midiInputEventListener.onMidiNoteOn(sender, arg1 & 0xf, arg2, arg3);
+                                    midiInputEventListener.onMidiNoteOn(sender, getArg1() & 0xf, getArg2(), getArg3());
                                 }
                             }
                         }
@@ -546,12 +561,11 @@ public final class BleMidiParser {
                     break;
                 case 0xa0: // control polyphonic key pressure
                     midiEventVelocity = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiPolyphonicAftertouch(sender, arg1 & 0xf, arg2, arg3);
+                                midiInputEventListener.onMidiPolyphonicAftertouch(sender, getArg1() & 0xf, getArg2(), getArg3());
                             }
                         }
                     });
@@ -591,22 +605,20 @@ public final class BleMidiParser {
 
                             if (parameterNumber != 0x3fff) {
                                 if (parameterMode == PARAMETER_MODE_RPN) {
-                                    eventFireTime = calculateTimeToWait(timestamp);
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, eventFireTime) {
+                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
                                         @Override
                                         public void run() {
                                             if (midiInputEventListener != null) {
-                                                midiInputEventListener.onRPNMessage(sender, arg1 & 0xf, arg2 & 0x3fff, arg3 & 0x3fff);
+                                                midiInputEventListener.onRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                             }
                                         }
                                     });
                                 } else if (parameterMode == PARAMETER_MODE_NRPN) {
-                                    eventFireTime = calculateTimeToWait(timestamp);
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, eventFireTime) {
+                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
                                         @Override
                                         public void run() {
                                             if (midiInputEventListener != null) {
-                                                midiInputEventListener.onNRPNMessage(sender, arg1 & 0xf, arg2 & 0x3fff, arg3 & 0x3fff);
+                                                midiInputEventListener.onNRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                             }
                                         }
                                     });
@@ -620,22 +632,20 @@ public final class BleMidiParser {
 
                             if (parameterNumber != 0x3fff) {
                                 if (parameterMode == PARAMETER_MODE_RPN) {
-                                    eventFireTime = calculateTimeToWait(timestamp);
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, eventFireTime) {
+                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
                                         @Override
                                         public void run() {
                                             if (midiInputEventListener != null) {
-                                                midiInputEventListener.onRPNMessage(sender, arg1 & 0xf, arg2 & 0x3fff, arg3 & 0x3fff);
+                                                midiInputEventListener.onRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                             }
                                         }
                                     });
                                 } else if (parameterMode == PARAMETER_MODE_NRPN) {
-                                    eventFireTime = calculateTimeToWait(timestamp);
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, eventFireTime) {
+                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
                                         @Override
                                         public void run() {
                                             if (midiInputEventListener != null) {
-                                                midiInputEventListener.onNRPNMessage(sender, arg1 & 0xf, arg2 & 0x3fff, arg3 & 0x3fff);
+                                                midiInputEventListener.onNRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                             }
                                         }
                                     });
@@ -647,12 +657,11 @@ public final class BleMidiParser {
                             break;
                     }
 
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiControlChange(sender, arg1 & 0xf, arg2, arg3);
+                                midiInputEventListener.onMidiControlChange(sender, getArg1() & 0xf, getArg2(), getArg3());
                             }
                         }
                     });
@@ -660,12 +669,11 @@ public final class BleMidiParser {
                     break;
                 case 0xe0: // pitch bend
                     midiEventVelocity = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventKind, midiEventNote, midiEventVelocity, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiPitchWheel(sender, arg1 & 0xf, (arg2 & 0x7f) | ((arg3 & 0x7f) << 7));
+                                midiInputEventListener.onMidiPitchWheel(sender, getArg1() & 0xf, (getArg2() & 0x7f) | ((getArg3() & 0x7f) << 7));
                             }
                         }
                     });
@@ -673,12 +681,11 @@ public final class BleMidiParser {
                     break;
                 case 0xf0: // Song Position Pointer.
                     midiEventVelocity = midiEvent;
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(midiEventNote, midiEventVelocity, eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(midiEventNote, midiEventVelocity, timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiSongPositionPointer(sender, (arg1 & 0x7f) | ((arg2 & 0x7f) << 7));
+                                midiInputEventListener.onMidiSongPositionPointer(sender, (getArg1() & 0x7f) | ((getArg2() & 0x7f) << 7));
                             }
                         }
                     });
@@ -698,12 +705,11 @@ public final class BleMidiParser {
                     if (replacedEvent >= 0) {
                         timestamp = ((header & 0x3f) << 7) | (replacedEvent & 0x7f);
                     }
-                    eventFireTime = calculateTimeToWait(timestamp);
-                    addEventToQueue(new MidiEventWithTiming(systemExclusiveStream.toByteArray(), eventFireTime) {
+                    addEventToQueue(new MidiEventWithTiming(systemExclusiveStream.toByteArray(), timestamp) {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                midiInputEventListener.onMidiSystemExclusive(sender, array);
+                                midiInputEventListener.onMidiSystemExclusive(sender, getArray());
                             }
                         }
                     });
@@ -740,7 +746,7 @@ public final class BleMidiParser {
         }
     }
 
-    private final List<MidiEventWithTiming> queuedEventList = new ArrayList<>();
+    private final Collection<MidiEventWithTiming> queuedEventList = new ArrayList<>();
 
     /**
      * Add a event to event queue
@@ -750,40 +756,43 @@ public final class BleMidiParser {
         synchronized (queuedEventList) {
             queuedEventList.add(event);
         }
+        eventDequeueThread.interrupt();
     }
 
     /**
      * Runnable for MIDI event queueing
      */
-    class EventDequeueRunnable implements Runnable {
-        boolean isRunning = true;
-        private List<MidiEventWithTiming> dequeuedEvents = new ArrayList<>();
+    private class EventDequeueRunnable implements Runnable {
+        private volatile boolean isRunning = true;
+        private final List<MidiEventWithTiming> dequeuedEvents = new ArrayList<>();
 
         private final Comparator<MidiEventWithTiming> midiTimerTaskComparator = new Comparator<MidiEventWithTiming>() {
             @Override
-            public int compare(MidiEventWithTiming lhs, MidiEventWithTiming rhs) {
+            public int compare(final MidiEventWithTiming lhs, final MidiEventWithTiming rhs) {
                 // sort by tick
-                int tickDifference = (int) (lhs.timing - rhs.timing);
+                int tickDifference = (int) (lhs.getTiming() - rhs.getTiming());
                 if (tickDifference != 0) {
                     return tickDifference * 256;
                 }
 
-                int lhsMessage = lhs.arg1;
-                int rhsMessage = rhs.arg1;
+                int lhsMessage = lhs.getArg1();
+                int rhsMessage = rhs.getArg1();
 
                 // apply zero if message is empty
                 if (lhsMessage == MidiEventWithTiming.INVALID) {
-                    if (lhs.array == null || lhs.array.length < 1) {
+                    final byte[] lhsArray = lhs.getArray();
+                    if (lhsArray == null || lhsArray.length < 1) {
                         lhsMessage = 0;
                     } else {
-                        lhsMessage = lhs.array[0];
+                        lhsMessage = lhsArray[0];
                     }
                 }
                 if (rhsMessage == MidiEventWithTiming.INVALID) {
-                    if (rhs.array == null || rhs.array.length < 1) {
+                    final byte[] rhsArray = rhs.getArray();
+                    if (rhsArray == null || rhsArray.length < 1) {
                         rhsMessage = 0;
                     } else {
-                        rhsMessage = rhs.array[0];
+                        rhsMessage = rhsArray[0];
                     }
                 }
 
@@ -791,8 +800,8 @@ public final class BleMidiParser {
                 // sort by the MIDI data priority order, as:
                 // system message > control messages > note on > note off
                 // swap the priority of note on, and note off
-                int lhsInt = (lhsMessage & 0xf0);
-                int rhsInt = (rhsMessage & 0xf0);
+                int lhsInt = lhsMessage & 0xf0;
+                int rhsInt = rhsMessage & 0xf0;
 
                 if ((lhsInt & 0x90) == 0x80) {
                     lhsInt |= 0x10;
@@ -812,13 +821,12 @@ public final class BleMidiParser {
         @Override
         public void run() {
             while (isRunning) {
-                dequeuedEvents.clear();
-
                 // deque events
-                long currentTime = System.currentTimeMillis();
+                dequeuedEvents.clear();
+                final long currentTime = System.currentTimeMillis();
                 synchronized (queuedEventList) {
                     for (MidiEventWithTiming event : queuedEventList) {
-                        if (event.timing <= currentTime) {
+                        if (event.getTiming() <= currentTime) {
                             // collect past events
                             dequeuedEvents.add(event);
                         }
@@ -826,27 +834,27 @@ public final class BleMidiParser {
                     queuedEventList.removeAll(dequeuedEvents);
                 }
 
-                if (dequeuedEvents.size() > 0) {
+                if (!dequeuedEvents.isEmpty()) {
                     // sort event order
                     Collections.sort(dequeuedEvents, midiTimerTaskComparator);
 
                     // fire events
-                    if (midiInputEventListener != null) {
-                        for (MidiEventWithTiming event : dequeuedEvents) {
-                            // wait for timing
-                            while (event.timing > System.currentTimeMillis()) {
-                                try {
-                                    Thread.sleep(1);
-                                } catch (InterruptedException ignored) {
-                                }
-                            }
-                            event.run();
-                        }
+                    for (MidiEventWithTiming event : dequeuedEvents) {
+                        event.run();
                     }
                 }
 
+                // sleep until interrupt
                 try {
-                    Thread.sleep(BUFFER_LENGTH_MILLIS);
+                    boolean isEmpty;
+                    synchronized (queuedEventList) {
+                        isEmpty = queuedEventList.isEmpty();
+                    }
+                    if (isEmpty) {
+                        Thread.sleep(1000);
+                    } else {
+                        Thread.sleep(1);
+                    }
                 } catch (InterruptedException ignored) {
                 }
             }
