@@ -2,6 +2,7 @@ package jp.kshoji.blemidi.util;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.SparseIntArray;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,12 +28,22 @@ public final class BleMidiParser {
     private int midiEventVelocity;
 
     // for RPN/NRPN messages
-    private static final int PARAMETER_MODE_NONE = 0;
-    private static final int PARAMETER_MODE_RPN = 1;
-    private static final int PARAMETER_MODE_NRPN = 2;
-    private int parameterMode = PARAMETER_MODE_NONE;
-    private int parameterNumber = 0x3fff;
-    private int parameterValue = 0x3fff;
+    private static final int RPN_STATUS_NONE = 0;
+    private static final int RPN_STATUS_RPN = 1;
+    private static final int RPN_STATUS_NRPN = 2;
+    private int rpnNrpnFunction;
+    private int rpnNrpnValueMsb;
+    private int rpnNrpnValueLsb;
+    private int rpnStatus = RPN_STATUS_NONE;
+    private int rpnFunctionMsb = 0x7f;
+    private int rpnFunctionLsb = 0x7f;
+    private int nrpnFunctionMsb = 0x7f;
+    private int nrpnFunctionLsb = 0x7f;
+
+    private final SparseIntArray rpnCacheMsb = new SparseIntArray();
+    private final SparseIntArray rpnCacheLsb = new SparseIntArray();
+    private final SparseIntArray nrpnCacheMsb = new SparseIntArray();
+    private final SparseIntArray nrpnCacheLsb = new SparseIntArray();
 
     // for SysEx messages
     private final Object systemExclusiveLock = new Object();
@@ -573,85 +584,101 @@ public final class BleMidiParser {
                     break;
                 case 0xb0: // control change
                     midiEventVelocity = midiEvent;
-                    switch (midiEventNote & 0x7f) {
-                        case 98:
-                            // NRPN LSB
-                            parameterNumber &= 0x3f80;
-                            parameterNumber |= midiEventVelocity & 0x7f;
-                            parameterMode = PARAMETER_MODE_NRPN;
-                            break;
-                        case 99:
-                            // NRPN MSB
-                            parameterNumber &= 0x007f;
-                            parameterNumber |= (midiEventVelocity & 0x7f) << 7;
-                            parameterMode = PARAMETER_MODE_NRPN;
-                            break;
-                        case 100:
-                            // RPN LSB
-                            parameterNumber &= 0x3f80;
-                            parameterNumber |= midiEventVelocity & 0x7f;
-                            parameterMode = PARAMETER_MODE_RPN;
-                            break;
-                        case 101:
-                            // RPN MSB
-                            parameterNumber &= 0x007f;
-                            parameterNumber |= (midiEventVelocity & 0x7f) << 7;
-                            parameterMode = PARAMETER_MODE_RPN;
-                            break;
-                        case 38:
-                            // data LSB
-                            parameterValue &= 0x3f80;
-                            parameterValue |= midiEventVelocity & 0x7f;
 
-                            if (parameterNumber != 0x3fff) {
-                                if (parameterMode == PARAMETER_MODE_RPN) {
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
-                                        @Override
-                                        public void run() {
-                                            if (midiInputEventListener != null) {
-                                                midiInputEventListener.onRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
-                                            }
+                    // process RPN/NRPN messages
+                    switch (midiEventNote) {
+                        case 6: {
+                            // RPN/NRPN value MSB
+                            rpnNrpnValueMsb = midiEventVelocity & 0x7f;
+                            if (rpnStatus == RPN_STATUS_RPN) {
+                                rpnNrpnFunction = ((rpnFunctionMsb & 0x7f) << 7) | (rpnFunctionLsb & 0x7f);
+                                rpnCacheMsb.put(rpnNrpnFunction, rpnNrpnValueMsb);
+                                rpnNrpnValueLsb = rpnCacheLsb.get(rpnNrpnFunction, 0/*if not found*/);
+                                addEventToQueue(new MidiEventWithTiming(midiEventKind, rpnNrpnFunction, (rpnNrpnValueMsb << 7 | rpnNrpnValueLsb), timestamp) {
+                                    @Override
+                                    public void run() {
+                                        if (midiInputEventListener != null) {
+                                            midiInputEventListener.onRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                         }
-                                    });
-                                } else if (parameterMode == PARAMETER_MODE_NRPN) {
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
-                                        @Override
-                                        public void run() {
-                                            if (midiInputEventListener != null) {
-                                                midiInputEventListener.onNRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
-                                            }
+                                    }
+                                });
+                            } else if (rpnStatus == RPN_STATUS_NRPN) {
+                                rpnNrpnFunction = ((nrpnFunctionMsb & 0x7f) << 7) | (nrpnFunctionLsb & 0x7f);
+                                nrpnCacheMsb.put(rpnNrpnFunction, rpnNrpnValueMsb);
+                                rpnNrpnValueLsb = nrpnCacheLsb.get(rpnNrpnFunction, 0/*if not found*/);
+                                addEventToQueue(new MidiEventWithTiming(midiEventKind, rpnNrpnFunction, (rpnNrpnValueMsb << 7 | rpnNrpnValueLsb), timestamp) {
+                                    @Override
+                                    public void run() {
+                                        if (midiInputEventListener != null) {
+                                            midiInputEventListener.onNRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                         }
-                                    });
-                                }
+                                    }
+                                });
                             }
                             break;
-                        case 6:
-                            // data MSB
-                            parameterValue &= 0x007f;
-                            parameterValue |= (midiEventVelocity & 0x7f) << 7;
-
-                            if (parameterNumber != 0x3fff) {
-                                if (parameterMode == PARAMETER_MODE_RPN) {
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
-                                        @Override
-                                        public void run() {
-                                            if (midiInputEventListener != null) {
-                                                midiInputEventListener.onRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
-                                            }
+                        }
+                        case 38: {
+                            // RPN/NRPN value LSB
+                            rpnNrpnValueLsb = midiEventVelocity & 0x7f;
+                            if (rpnStatus == RPN_STATUS_RPN) {
+                                rpnNrpnFunction = ((rpnFunctionMsb & 0x7f) << 7) | (rpnFunctionLsb & 0x7f);
+                                rpnNrpnValueMsb = rpnCacheMsb.get(rpnNrpnFunction, 0/*if not found*/);
+                                rpnCacheLsb.put(rpnNrpnFunction, rpnNrpnValueLsb);
+                                addEventToQueue(new MidiEventWithTiming(midiEventKind, rpnNrpnFunction, (rpnNrpnValueMsb << 7 | rpnNrpnValueLsb), timestamp) {
+                                    @Override
+                                    public void run() {
+                                        if (midiInputEventListener != null) {
+                                            midiInputEventListener.onRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                         }
-                                    });
-                                } else if (parameterMode == PARAMETER_MODE_NRPN) {
-                                    addEventToQueue(new MidiEventWithTiming(midiEventKind, parameterNumber, parameterValue, timestamp) {
-                                        @Override
-                                        public void run() {
-                                            if (midiInputEventListener != null) {
-                                                midiInputEventListener.onNRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
-                                            }
+                                    }
+                                });
+                            } else if (rpnStatus == RPN_STATUS_NRPN) {
+                                rpnNrpnFunction = ((nrpnFunctionMsb & 0x7f) << 7) | (nrpnFunctionLsb & 0x7f);
+                                rpnNrpnValueMsb = nrpnCacheMsb.get(rpnNrpnFunction, 0/*if not found*/);
+                                nrpnCacheLsb.put(rpnNrpnFunction, rpnNrpnValueLsb);
+                                addEventToQueue(new MidiEventWithTiming(midiEventKind, rpnNrpnFunction, (rpnNrpnValueMsb << 7 | rpnNrpnValueLsb), timestamp) {
+                                    @Override
+                                    public void run() {
+                                        if (midiInputEventListener != null) {
+                                            midiInputEventListener.onNRPNMessage(sender, getArg1() & 0xf, getArg2() & 0x3fff, getArg3() & 0x3fff);
                                         }
-                                    });
-                                }
+                                    }
+                                });
                             }
                             break;
+                        }
+                        case 98: {
+                            // NRPN parameter number LSB
+                            nrpnFunctionLsb = midiEventVelocity & 0x7f;
+                            rpnStatus = RPN_STATUS_NRPN;
+                            break;
+                        }
+                        case 99: {
+                            // NRPN parameter number MSB
+                            nrpnFunctionMsb = midiEventVelocity & 0x7f;
+                            rpnStatus = RPN_STATUS_NRPN;
+                            break;
+                        }
+                        case 100: {
+                            // RPN parameter number LSB
+                            rpnFunctionLsb = midiEventVelocity & 0x7f;
+                            if (rpnFunctionMsb == 0x7f && rpnFunctionLsb == 0x7f) {
+                                rpnStatus = RPN_STATUS_NONE;
+                            } else {
+                                rpnStatus = RPN_STATUS_RPN;
+                            }
+                            break;
+                        }
+                        case 101: {
+                            // RPN parameter number MSB
+                            rpnFunctionMsb = midiEventVelocity & 0x7f;
+                            if (rpnFunctionMsb == 0x7f && rpnFunctionLsb == 0x7f) {
+                                rpnStatus = RPN_STATUS_NONE;
+                            } else {
+                                rpnStatus = RPN_STATUS_RPN;
+                            }
+                            break;
+                        }
                         default:
                             // do nothing
                             break;
