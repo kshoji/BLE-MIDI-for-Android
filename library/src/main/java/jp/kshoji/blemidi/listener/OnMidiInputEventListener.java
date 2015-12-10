@@ -90,7 +90,7 @@ public interface OnMidiInputEventListener {
      * MIDI Time Code(MTC) Quarter Frame
      *
      * @param sender the device sent this message
-     * @param timing 0-127
+     * @param timing 0-16383
      */
     void onMidiTimeCodeQuarterFrame(@NonNull MidiInputDevice sender, int timing);
 
