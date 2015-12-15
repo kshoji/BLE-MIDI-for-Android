@@ -17,7 +17,7 @@
     <dependency>
       <groupId>com.android.support</groupId>
       <artifactId>support-annotations</artifactId>
-      <version>23.1.1</version>
+      <version>22.2.1</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>
