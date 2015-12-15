@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "jp.kshoji.blemidi.sample"
-        minSdkVersion 18
+        minSdkVersion 22
         versionCode 3
         versionName "1.2"
     }
@@ -26,14 +26,15 @@ android {
 
 repositories {
     maven {
-        url 'https://github.com/kshoji/javax.sound.midi-for-Android/raw/master/javax.sound.midi/repository'
+        url 'https://github.com/kshoji/javax.sound.midi-for-Android/raw/develop/javax.sound.midi/repository'
     }
     mavenCentral()
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    wearApp project(':sample-wear')
     compile project(":library")
-    compile 'com.google.android.gms:play-services:8.3.0'
+    compile 'com.google.android.support:wearable:1.2.0'
+    provided 'com.google.android.wearable:wearable:1.0.0'
+    compile 'com.google.android.gms:play-services-wearable:8.3.0'
 }

@@ -155,8 +155,26 @@ public final class BleMidiPeripheralProvider {
 
         // these service will be listened.
         // FIXME these didn't used for service discovery
-        gattServer.addService(informationGattService);
-        gattServer.addService(midiGattService);
+        boolean serviceInitialized = false;
+        while (!serviceInitialized) {
+            try {
+                gattServer.addService(informationGattService);
+                gattServer.addService(midiGattService);// NullPointerException, DeadObjectException thrown here
+                serviceInitialized = true;
+            } catch (Exception e) {
+                Log.d(Constants.TAG, "Adding Service failed, retrying..");
+
+                try {
+                    gattServer.clearServices();
+                } catch (Throwable ignored) {
+                }
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
 
         // set up advertising setting
         AdvertiseSettings advertiseSettings = new AdvertiseSettings.Builder()
@@ -264,6 +282,7 @@ public final class BleMidiPeripheralProvider {
             if (midiInputDevice != null) {
                 midiInputDevicesMap.remove(deviceAddress);
 
+                ((InternalMidiInputDevice) midiInputDevice).stop();
                 midiInputDevice.setOnMidiInputEventListener(null);
 
                 if (midiDeviceDetachedListener != null) {
@@ -306,6 +325,7 @@ public final class BleMidiPeripheralProvider {
 
         synchronized (midiInputDevicesMap) {
             for (MidiInputDevice midiInputDevice : midiInputDevicesMap.values()) {
+                ((InternalMidiInputDevice) midiInputDevice).stop();
                 midiInputDevice.setOnMidiInputEventListener(null);
             }
             midiInputDevicesMap.clear();
@@ -368,6 +388,7 @@ public final class BleMidiPeripheralProvider {
                         if (midiInputDevice != null) {
                             midiInputDevicesMap.remove(deviceAddress);
 
+                            ((InternalMidiInputDevice) midiInputDevice).stop();
                             midiInputDevice.setOnMidiInputEventListener(null);
                             if (midiDeviceDetachedListener != null) {
                                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
@@ -570,6 +591,13 @@ public final class BleMidiPeripheralProvider {
         public InternalMidiInputDevice(@NonNull BluetoothDevice bluetoothDevice) {
             super();
             this.bluetoothDevice = bluetoothDevice;
+        }
+
+        /**
+         * Stops parser's thread
+         */
+        void stop() {
+            midiParser.stop();
         }
 
         @Override
