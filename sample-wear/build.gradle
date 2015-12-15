@@ -37,5 +37,5 @@ dependencies {
     compile project(":library")
     compile 'com.google.android.support:wearable:1.2.0'
     provided 'com.google.android.wearable:wearable:1.0.0'
-    compile 'com.google.android.gms:play-services-wearable:7.3.0'
+    compile 'com.google.android.gms:play-services-wearable:8.3.0'
 }
