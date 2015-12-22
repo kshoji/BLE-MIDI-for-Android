@@ -35,6 +35,6 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     wearApp project(':sample-wear')
-    compile project(":library")
+    compile project(':BLE-MIDI-library')
     compile 'com.google.android.gms:play-services:7.3.0'
 }
