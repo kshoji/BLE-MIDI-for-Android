@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>jp.kshoji</groupId>
+  <artifactId>ble-midi</artifactId>
+  <version>0.0.10-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20151222.145201</timestamp>
+      <buildNumber>1</buildNumber>
+    </snapshot>
+    <lastUpdated>20151222145201</lastUpdated>
+  </versioning>
+</metadata>
