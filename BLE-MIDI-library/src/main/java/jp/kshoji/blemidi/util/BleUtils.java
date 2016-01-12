@@ -23,13 +23,13 @@ public class BleUtils {
      * @param context the context
      * @return true if supported
      */
-    public static boolean isBleSupported(@NonNull Context context) {
+    public static boolean isBleSupported(@NonNull final Context context) {
         try {
             if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
                 return false;
             }
 
-            BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+            final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 
             final BluetoothAdapter bluetoothAdapter;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
@@ -41,7 +41,7 @@ public class BleUtils {
             if (bluetoothAdapter != null) {
                 return true;
             }
-        } catch (Throwable t) {
+        } catch (final Throwable ignored) {
             // ignore exception
         }
         return false;
@@ -54,7 +54,7 @@ public class BleUtils {
      * @return true if supported
      */
     @SuppressLint("NewApi")
-    public static boolean isBlePeripheralSupported(@NonNull Context context) {
+    public static boolean isBlePeripheralSupported(@NonNull final Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             return false;
         }
@@ -74,8 +74,8 @@ public class BleUtils {
      * @param context the context
      * @return true if bluetooth enabled
      */
-    public static boolean isBluetoothEnabled(@NonNull Context context) {
-        BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+    public static boolean isBluetoothEnabled(@NonNull final Context context) {
+        final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 
         if (bluetoothManager == null) {
             return false;
@@ -106,7 +106,7 @@ public class BleUtils {
      *
      * @param activity the activity
      */
-    public static void enableBluetooth(@NonNull Activity activity) {
+    public static void enableBluetooth(@NonNull final Activity activity) {
         activity.startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), REQUEST_CODE_BLUETOOTH_ENABLE);
     }
 }

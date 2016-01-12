@@ -20,7 +20,9 @@ import jp.kshoji.javax.sound.midi.Transmitter;
  * @author K.Shoji
  */
 public final class BleMidiDevice implements MidiDevice {
+    @Nullable
     private BleMidiReceiver receiver;
+    @Nullable
     private BleMidiTransmitter transmitter;
 
     private boolean isOpened;
@@ -34,7 +36,7 @@ public final class BleMidiDevice implements MidiDevice {
      * @param midiInputDevice the input device
      * @param midiOutputDevice the output device
      */
-    public BleMidiDevice(@Nullable MidiInputDevice midiInputDevice, @Nullable MidiOutputDevice midiOutputDevice) {
+    public BleMidiDevice(@Nullable final MidiInputDevice midiInputDevice, @Nullable final MidiOutputDevice midiOutputDevice) {
         this.midiInputDevice = midiInputDevice;
         this.midiOutputDevice = midiOutputDevice;
 
@@ -124,37 +126,45 @@ public final class BleMidiDevice implements MidiDevice {
         return transmitter == null ? 0 : 1;
     }
 
+    @NonNull
     @Override
     public Receiver getReceiver() throws MidiUnavailableException {
+        if (receiver == null) {
+            throw new MidiUnavailableException("Receiver not found");
+        }
         return receiver;
     }
 
     @NonNull
     @Override
     public List<Receiver> getReceivers() {
-        ArrayList<Receiver> receivers = new ArrayList<>();
+        final List<Receiver> receivers = new ArrayList<>();
         if (receiver != null) {
             receivers.add(receiver);
         }
         return Collections.unmodifiableList(receivers);
     }
 
+    @NonNull
     @Override
     public Transmitter getTransmitter() throws MidiUnavailableException {
+        if (transmitter == null) {
+            throw new MidiUnavailableException("Tranmitter not found");
+        }
         return transmitter;
     }
 
     @NonNull
     @Override
     public List<Transmitter> getTransmitters() {
-        ArrayList<Transmitter> transmitters = new ArrayList<>();
+        final List<Transmitter> transmitters = new ArrayList<>();
         if (transmitter != null) {
             transmitters.add(transmitter);
         }
         return Collections.unmodifiableList(transmitters);
     }
 
-    public void setMidiInputDevice(@Nullable MidiInputDevice midiInputDevice) {
+    public void setMidiInputDevice(@Nullable final MidiInputDevice midiInputDevice) {
         this.midiInputDevice = midiInputDevice;
         if (transmitter != null) {
             transmitter.close();
@@ -171,7 +181,7 @@ public final class BleMidiDevice implements MidiDevice {
         return midiInputDevice;
     }
 
-    public void setMidiOutputDevice(@Nullable MidiOutputDevice midiOutputDevice) {
+    public void setMidiOutputDevice(@Nullable final MidiOutputDevice midiOutputDevice) {
         this.midiOutputDevice = midiOutputDevice;
         if (receiver != null) {
             receiver.close();
