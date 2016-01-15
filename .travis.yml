@@ -1,5 +1,5 @@
 language: android
-jdk: openjdk7
+jdk: oraclejdk7
 android:
   components:
     - build-tools-22.0.1
