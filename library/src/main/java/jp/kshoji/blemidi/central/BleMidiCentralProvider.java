@@ -2,6 +2,7 @@ package jp.kshoji.blemidi.central;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -35,6 +36,7 @@ import jp.kshoji.blemidi.util.Constants;
  * @author K.Shoji
  */
 public final class BleMidiCentralProvider {
+    private static final String TAG = "BLE-DEBUG[2]";
     private final BluetoothAdapter bluetoothAdapter;
     private final Context context;
     private final Handler handler;
@@ -46,11 +48,17 @@ public final class BleMidiCentralProvider {
     private final BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) {
+
             if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
                 return;
             }
 
-            bluetoothDevice.connectGatt(context, true, midiCallback);
+            ((Activity)context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                bluetoothDevice.connectGatt(context, true, midiCallback);
+                }
+            });
         }
     };
 
