@@ -574,9 +574,6 @@ public class CentralActivity extends Activity {
                 }
             }
         });
-
-        // scan devices for 30 seconds
-        //bleMidiCentralProvider.startScanDevice(30000);
     }
 
     @Override
