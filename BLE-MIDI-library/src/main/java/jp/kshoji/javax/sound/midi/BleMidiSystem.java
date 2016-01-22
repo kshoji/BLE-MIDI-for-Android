@@ -14,6 +14,7 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
 import jp.kshoji.blemidi.util.BleUtils;
 import jp.kshoji.javax.sound.midi.ble.BleMidiDevice;
+import jp.kshoji.javax.sound.midi.ble.BleMidiSynthesizer;
 
 /**
  * {@link jp.kshoji.javax.sound.midi.MidiSystem} initializer for BLE MIDI
@@ -24,7 +25,8 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     private static BleMidiPeripheralProvider peripheralProvider;
     private static BleMidiCentralProvider centralProvider;
 
-    private static final Map<String, BleMidiDevice> midiDeviceMap = new HashMap<>();
+    private final Map<String, BleMidiDevice> midiDeviceMap = new HashMap<>();
+    private final Map<String, BleMidiSynthesizer> midiSynthesizerMap = new HashMap<>();
     private final Context context;
 
     /**
@@ -32,7 +34,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
      *
      * @param context the context
      */
-    public BleMidiSystem(@NonNull Context context) {
+    public BleMidiSystem(@NonNull final Context context) {
         this.context = context.getApplicationContext();
     }
 
@@ -70,7 +72,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
         }
 
         synchronized (midiDeviceMap) {
-            for (BleMidiDevice bleMidiDevice : midiDeviceMap.values()) {
+            for (final BleMidiDevice bleMidiDevice : midiDeviceMap.values()) {
                 bleMidiDevice.close();
             }
 
@@ -115,63 +117,110 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     }
 
     @Override
-    public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
+    public void onMidiInputDeviceAttached(@NonNull final MidiInputDevice midiInputDevice) {
+        final BleMidiDevice addedDevice;
         synchronized (midiDeviceMap) {
-            BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
+            final BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
             if (existingDevice != null) {
+                addedDevice = existingDevice;
                 existingDevice.setMidiInputDevice(midiInputDevice);
                 MidiSystem.addMidiDevice(existingDevice);
             } else {
-                BleMidiDevice midiDevice = new BleMidiDevice(midiInputDevice, null);
+                final BleMidiDevice midiDevice = new BleMidiDevice(midiInputDevice, null);
+                addedDevice = midiDevice;
                 midiDeviceMap.put(midiInputDevice.getDeviceAddress(), midiDevice);
                 MidiSystem.addMidiDevice(midiDevice);
             }
         }
-    }
 
-    @Override
-    public void onMidiOutputDeviceAttached(@NonNull MidiOutputDevice midiOutputDevice) {
-        synchronized (midiDeviceMap) {
-            BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
-            if (existingDevice != null) {
-                existingDevice.setMidiOutputDevice(midiOutputDevice);
-                MidiSystem.addMidiDevice(existingDevice);
-            } else {
-                BleMidiDevice midiDevice = new BleMidiDevice(null, midiOutputDevice);
-                midiDeviceMap.put(midiOutputDevice.getDeviceAddress(), midiDevice);
-                MidiSystem.addMidiDevice(midiDevice);
+        synchronized (midiSynthesizerMap) {
+            final BleMidiSynthesizer existingSynthesizer = midiSynthesizerMap.get(midiInputDevice.getDeviceAddress());
+            if (existingSynthesizer == null) {
+                final BleMidiSynthesizer synthesizer = new BleMidiSynthesizer(addedDevice);
+                MidiSystem.addSynthesizer(synthesizer);
+                midiSynthesizerMap.put(midiInputDevice.getDeviceAddress(), synthesizer);
             }
         }
     }
 
     @Override
-    public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
+    public void onMidiOutputDeviceAttached(@NonNull final MidiOutputDevice midiOutputDevice) {
+        final BleMidiDevice addedDevice;
         synchronized (midiDeviceMap) {
-            BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
+            final BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
+            if (existingDevice == null) {
+                final BleMidiDevice midiDevice = new BleMidiDevice(null, midiOutputDevice);
+                addedDevice = midiDevice;
+                midiDeviceMap.put(midiOutputDevice.getDeviceAddress(), midiDevice);
+                MidiSystem.addMidiDevice(midiDevice);
+            } else {
+                addedDevice = existingDevice;
+                existingDevice.setMidiOutputDevice(midiOutputDevice);
+                MidiSystem.addMidiDevice(existingDevice);
+            }
+        }
+
+        synchronized (midiSynthesizerMap) {
+            final BleMidiSynthesizer existingSynthesizer = midiSynthesizerMap.get(midiOutputDevice.getDeviceAddress());
+            if (existingSynthesizer == null) {
+                final BleMidiSynthesizer synthesizer = new BleMidiSynthesizer(addedDevice);
+                midiSynthesizerMap.put(midiOutputDevice.getDeviceAddress(), synthesizer);
+                MidiSystem.addSynthesizer(synthesizer);
+            } else {
+                try {
+                    existingSynthesizer.setReceiver(addedDevice.getReceiver());
+                } catch (final MidiUnavailableException ignored) {
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onMidiInputDeviceDetached(@NonNull final MidiInputDevice midiInputDevice) {
+        String removedDeviceAddress = null;
+        synchronized (midiDeviceMap) {
+            final BleMidiDevice existingDevice = midiDeviceMap.get(midiInputDevice.getDeviceAddress());
             if (existingDevice != null) {
                 existingDevice.setMidiInputDevice(null);
 
                 if (existingDevice.getMidiOutputDevice() == null) {
                     // both of devices are disconnected
+                    removedDeviceAddress = midiInputDevice.getDeviceAddress();
                     midiDeviceMap.remove(midiInputDevice.getDeviceAddress());
                     MidiSystem.removeMidiDevice(existingDevice);
                 }
             }
         }
+
+        if (removedDeviceAddress != null) {
+            synchronized (midiSynthesizerMap) {
+                MidiSystem.removeSynthesizer(midiSynthesizerMap.get(removedDeviceAddress));
+                midiSynthesizerMap.remove(removedDeviceAddress);
+            }
+        }
     }
 
     @Override
-    public void onMidiOutputDeviceDetached(@NonNull MidiOutputDevice midiOutputDevice) {
+    public void onMidiOutputDeviceDetached(@NonNull final MidiOutputDevice midiOutputDevice) {
+        String removedDeviceAddress = null;
         synchronized (midiDeviceMap) {
-            BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
+            final BleMidiDevice existingDevice = midiDeviceMap.get(midiOutputDevice.getDeviceAddress());
             if (existingDevice != null) {
                 existingDevice.setMidiOutputDevice(null);
 
                 if (existingDevice.getMidiInputDevice() == null) {
                     // both of devices are disconnected
+                    removedDeviceAddress = midiOutputDevice.getDeviceAddress();
                     midiDeviceMap.remove(midiOutputDevice.getDeviceAddress());
                     MidiSystem.removeMidiDevice(existingDevice);
                 }
+            }
+        }
+
+        if (removedDeviceAddress != null) {
+            synchronized (midiSynthesizerMap) {
+                MidiSystem.removeSynthesizer(midiSynthesizerMap.get(removedDeviceAddress));
+                midiSynthesizerMap.remove(removedDeviceAddress);
             }
         }
     }
