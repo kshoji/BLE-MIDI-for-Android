@@ -2,6 +2,7 @@ package jp.kshoji.blemidi.central;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -46,11 +47,30 @@ public final class BleMidiCentralProvider {
     private final BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) {
+
             if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
                 return;
             }
 
-            bluetoothDevice.connectGatt(context, true, midiCallback);
+            if (context instanceof Activity) {
+                ((Activity) context).runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        bluetoothDevice.connectGatt(context, true, midiCallback);
+                    }
+                });
+            } else {
+                if (Thread.currentThread() == context.getMainLooper().getThread()) {
+                    bluetoothDevice.connectGatt(context, true, midiCallback);
+                } else {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            bluetoothDevice.connectGatt(context, true, midiCallback);
+                        }
+                    });
+                }
+            }
         }
     };
 
@@ -98,7 +118,25 @@ public final class BleMidiCentralProvider {
                         }
 
                         if (!midiCallback.isConnected(bluetoothDevice)) {
-                            bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                            if (context instanceof Activity) {
+                                ((Activity) context).runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                                    }
+                                });
+                            } else {
+                                if (Thread.currentThread() == context.getMainLooper().getThread()) {
+                                    bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                                } else {
+                                    handler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                                        }
+                                    });
+                                }
+                            }
                         }
                     }
                 }
