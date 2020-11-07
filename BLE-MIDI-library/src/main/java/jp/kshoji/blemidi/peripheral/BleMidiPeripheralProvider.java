@@ -222,14 +222,6 @@ public final class BleMidiPeripheralProvider {
             // BT Adapter is not turned ON
         }
 
-        if (gattServer != null) {
-            try {
-                gattServer.clearServices();
-            } catch (Throwable ignored) {
-                // android.os.DeadObjectException
-                gattServer = null;
-            }
-        }
     }
 
     private boolean requireBonding = false;
