@@ -470,7 +470,31 @@ public final class BleMidiPeripheralProvider {
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
 
+            byte[] descriptorValue = descriptor.getValue();
+            try {
+                System.arraycopy(value, 0, descriptorValue, offset, value.length);
+                descriptor.setValue(descriptorValue);
+            } catch (IndexOutOfBoundsException ignored) {
+            }
+
             gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
+        }
+
+        @Override
+        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
+            super.onDescriptorReadRequest(device, requestId, offset, descriptor);
+
+            if (offset == 0) {
+                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, descriptor.getValue());
+            } else {
+                final byte[] value = descriptor.getValue();
+                byte[] result = new byte[value.length - offset];
+                try {
+                    System.arraycopy(value, offset, result, 0, result.length);
+                } catch (IndexOutOfBoundsException ignored) {
+                }
+                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, result);
+            }
         }
     };
 
