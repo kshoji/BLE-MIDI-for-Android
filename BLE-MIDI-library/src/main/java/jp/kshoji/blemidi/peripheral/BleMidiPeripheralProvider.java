@@ -16,10 +16,7 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Build;
 import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
@@ -221,18 +218,6 @@ public final class BleMidiPeripheralProvider {
         } catch (IllegalStateException ignored) {
             // BT Adapter is not turned ON
         }
-
-    }
-
-    private boolean requireBonding = false;
-
-    /**
-     * Set if the Bluetooth LE device need `Pairing`
-     *
-     * @param needsPairing if true, request paring with the connecting device
-     */
-    public void setRequestPairing(boolean needsPairing) {
-        this.requireBonding = needsPairing;
     }
 
     /**
@@ -350,37 +335,7 @@ public final class BleMidiPeripheralProvider {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
-                    // check bond status
-                    if (requireBonding && device.getBondState() == BluetoothDevice.BOND_NONE) {
-                        // create bond
-                        device.createBond();
-                        device.setPairingConfirmation(true);
-
-                        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-                        context.registerReceiver(new BroadcastReceiver() {
-                            @Override
-                            public void onReceive(Context context, Intent intent) {
-                                final String action = intent.getAction();
-
-                                if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                                    final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-
-                                    if (state == BluetoothDevice.BOND_BONDED) {
-                                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-
-                                        // successfully bonded
-                                        context.unregisterReceiver(this);
-
-                                        // connecting to the device
-                                        connectMidiDevice(device);
-                                    }
-                                }
-                            }
-                        }, filter);
-                    } else {
-                        // connecting to the device
-                        connectMidiDevice(device);
-                    }
+                    connectMidiDevice(device);
                     break;
 
                 case BluetoothProfile.STATE_DISCONNECTED:
