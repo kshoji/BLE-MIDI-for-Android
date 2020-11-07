@@ -213,7 +213,9 @@ public final class BleMidiCentralProvider {
     public void stopScanDevice() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
+                final BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                bluetoothLeScanner.flushPendingScanResults(scanCallback);
+                bluetoothLeScanner.stopScan(scanCallback);
             } else {
                 bluetoothAdapter.stopLeScan(leScanCallback);
             }
