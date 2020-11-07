@@ -311,15 +311,24 @@ public final class BleMidiPeripheralProvider {
 
         synchronized (bluetoothDevicesMap) {
             for (BluetoothDevice bluetoothDevice : bluetoothDevicesMap.values()) {
-                if (gattServer != null) {
-                    gattServer.cancelConnection(bluetoothDevice);
-                }
+                gattServer.cancelConnection(bluetoothDevice);
+                bluetoothDevice.connectGatt(context, true, disconnectCallback);
             }
             bluetoothDevicesMap.clear();
         }
 
         if (gattServer != null) {
-            gattServer.close();
+            try {
+                gattServer.clearServices();
+                gattServiceInitialized = false;
+            } catch (Throwable ignored) {
+                // android.os.DeadObjectException
+            }
+            try {
+                gattServer.close();
+            } catch (Throwable ignored) {
+                // android.os.DeadObjectException
+            }
             gattServer = null;
         }
 

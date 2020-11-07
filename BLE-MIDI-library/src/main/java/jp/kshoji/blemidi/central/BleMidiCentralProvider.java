@@ -303,7 +303,7 @@ public final class BleMidiCentralProvider {
      * Terminates provider
      */
     public void terminate() {
-        stopScanDevice();
         midiCallback.terminate();
+        stopScanDevice();
     }
 }
