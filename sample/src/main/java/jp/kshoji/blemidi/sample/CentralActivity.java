@@ -616,8 +616,6 @@ public class CentralActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-
         if (bleMidiCentralProvider != null) {
             bleMidiCentralProvider.terminate();
         }
@@ -643,6 +641,8 @@ public class CentralActivity extends Activity {
                 audioTrack = null;
             }
         }
+
+        super.onDestroy();
     }
 
     /**
