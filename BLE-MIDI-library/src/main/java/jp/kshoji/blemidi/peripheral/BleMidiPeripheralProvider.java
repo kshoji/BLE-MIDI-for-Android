@@ -510,8 +510,7 @@ public final class BleMidiPeripheralProvider {
      */
     @NonNull
     public Set<MidiInputDevice> getMidiInputDevices() {
-        Set<MidiInputDevice> result = new HashSet<>();
-        result.addAll(midiInputDevicesMap.values());
+        Set<MidiInputDevice> result = new HashSet<>(midiInputDevicesMap.values());
         return Collections.unmodifiableSet(result);
     }
 
@@ -522,8 +521,7 @@ public final class BleMidiPeripheralProvider {
      */
     @NonNull
     public Set<MidiOutputDevice> getMidiOutputDevices() {
-        Set<MidiOutputDevice> result = new HashSet<>();
-        result.addAll(midiOutputDevicesMap.values());
+        Set<MidiOutputDevice> result = new HashSet<>(midiOutputDevicesMap.values());
         return Collections.unmodifiableSet(result);
     }
 
