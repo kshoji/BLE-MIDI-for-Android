@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
@@ -15,10 +16,7 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Build;
 import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
@@ -81,6 +79,7 @@ public final class BleMidiPeripheralProvider {
     private final BluetoothGattService midiGattService;
     private final BluetoothGattCharacteristic midiCharacteristic;
     private BluetoothGattServer gattServer;
+    private boolean gattServiceInitialized = false;
 
     private final Map<String, MidiInputDevice> midiInputDevicesMap = new HashMap<>();
     private final Map<String, MidiOutputDevice> midiOutputDevicesMap = new HashMap<>();
@@ -154,13 +153,24 @@ public final class BleMidiPeripheralProvider {
         }
 
         // these service will be listened.
-        // FIXME these didn't used for service discovery
-        boolean serviceInitialized = false;
-        while (!serviceInitialized) {
+        while (!gattServiceInitialized) {
+            gattServer.clearServices();
             try {
                 gattServer.addService(informationGattService);
+                while (gattServer.getService(informationGattService.getUuid()) == null) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
                 gattServer.addService(midiGattService);// NullPointerException, DeadObjectException thrown here
-                serviceInitialized = true;
+                while (gattServer.getService(midiGattService.getUuid()) == null) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+                gattServiceInitialized = true;
             } catch (Exception e) {
                 Log.d(Constants.TAG, "Adding Service failed, retrying..");
 
@@ -208,26 +218,6 @@ public final class BleMidiPeripheralProvider {
         } catch (IllegalStateException ignored) {
             // BT Adapter is not turned ON
         }
-
-        if (gattServer != null) {
-            try {
-                gattServer.clearServices();
-            } catch (Throwable ignored) {
-                // android.os.DeadObjectException
-                gattServer = null;
-            }
-        }
-    }
-
-    private boolean requireBonding = false;
-
-    /**
-     * Set if the Bluetooth LE device need `Pairing`
-     *
-     * @param needsPairing if true, request paring with the connecting device
-     */
-    public void setRequestPairing(boolean needsPairing) {
-        this.requireBonding = needsPairing;
     }
 
     /**
@@ -263,6 +253,21 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
+     * callback for disconnecting a bluetooth device
+     */
+    private final BluetoothGattCallback disconnectCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+            Log.d(Constants.TAG, "onConnectionStateChange status: " + status + ", newState: " + newState);
+            // disconnect the device
+            if (gatt != null) {
+                gatt.disconnect();
+            }
+        }
+    };
+
+    /**
      * Disconnects the device by its address
      *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
@@ -272,33 +277,7 @@ public final class BleMidiPeripheralProvider {
             BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
             if (bluetoothDevice != null) {
                 gattServer.cancelConnection(bluetoothDevice);
-            }
-
-            bluetoothDevicesMap.remove(deviceAddress);
-        }
-
-        synchronized (midiInputDevicesMap) {
-            MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
-            if (midiInputDevice != null) {
-                midiInputDevicesMap.remove(deviceAddress);
-
-                ((InternalMidiInputDevice) midiInputDevice).stop();
-                midiInputDevice.setOnMidiInputEventListener(null);
-
-                if (midiDeviceDetachedListener != null) {
-                    midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
-                }
-            }
-        }
-
-        synchronized (midiOutputDevicesMap) {
-            MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(deviceAddress);
-            if (midiOutputDevice != null) {
-                midiOutputDevicesMap.remove(deviceAddress);
-
-                if (midiDeviceDetachedListener != null) {
-                    midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
-                }
+                bluetoothDevice.connectGatt(context, true, disconnectCallback);
             }
         }
     }
@@ -356,37 +335,7 @@ public final class BleMidiPeripheralProvider {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
-                    // check bond status
-                    if (requireBonding && device.getBondState() == BluetoothDevice.BOND_NONE) {
-                        // create bond
-                        device.createBond();
-                        device.setPairingConfirmation(true);
-
-                        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-                        context.registerReceiver(new BroadcastReceiver() {
-                            @Override
-                            public void onReceive(Context context, Intent intent) {
-                                final String action = intent.getAction();
-
-                                if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                                    final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-
-                                    if (state == BluetoothDevice.BOND_BONDED) {
-                                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-
-                                        // successfully bonded
-                                        context.unregisterReceiver(this);
-
-                                        // connecting to the device
-                                        connectMidiDevice(device);
-                                    }
-                                }
-                            }
-                        }, filter);
-                    } else {
-                        // connecting to the device
-                        connectMidiDevice(device);
-                    }
+                    connectMidiDevice(device);
                     break;
 
                 case BluetoothProfile.STATE_DISCONNECTED:
@@ -470,7 +419,31 @@ public final class BleMidiPeripheralProvider {
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
 
+            byte[] descriptorValue = descriptor.getValue();
+            try {
+                System.arraycopy(value, 0, descriptorValue, offset, value.length);
+                descriptor.setValue(descriptorValue);
+            } catch (IndexOutOfBoundsException ignored) {
+            }
+
             gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[] {});
+        }
+
+        @Override
+        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
+            super.onDescriptorReadRequest(device, requestId, offset, descriptor);
+
+            if (offset == 0) {
+                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, descriptor.getValue());
+            } else {
+                final byte[] value = descriptor.getValue();
+                byte[] result = new byte[value.length - offset];
+                try {
+                    System.arraycopy(value, offset, result, 0, result.length);
+                } catch (IndexOutOfBoundsException ignored) {
+                }
+                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, result);
+            }
         }
     };
 
@@ -510,8 +483,7 @@ public final class BleMidiPeripheralProvider {
      */
     @NonNull
     public Set<MidiInputDevice> getMidiInputDevices() {
-        Set<MidiInputDevice> result = new HashSet<>();
-        result.addAll(midiInputDevicesMap.values());
+        Set<MidiInputDevice> result = new HashSet<>(midiInputDevicesMap.values());
         return Collections.unmodifiableSet(result);
     }
 
@@ -522,8 +494,7 @@ public final class BleMidiPeripheralProvider {
      */
     @NonNull
     public Set<MidiOutputDevice> getMidiOutputDevices() {
-        Set<MidiOutputDevice> result = new HashSet<>();
-        result.addAll(midiOutputDevicesMap.values());
+        Set<MidiOutputDevice> result = new HashSet<>(midiOutputDevicesMap.values());
         return Collections.unmodifiableSet(result);
     }
 
