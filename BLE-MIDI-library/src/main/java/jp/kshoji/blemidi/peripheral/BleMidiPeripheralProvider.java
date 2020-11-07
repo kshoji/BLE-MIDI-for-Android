@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
@@ -275,6 +276,21 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
+     * callback for disconnecting a bluetooth device
+     */
+    private final BluetoothGattCallback disconnectCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+            Log.d(Constants.TAG, "onConnectionStateChange status: " + status + ", newState: " + newState);
+            // disconnect the device
+            if (gatt != null) {
+                gatt.disconnect();
+            }
+        }
+    };
+
+    /**
      * Disconnects the device by its address
      *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
@@ -284,33 +300,7 @@ public final class BleMidiPeripheralProvider {
             BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
             if (bluetoothDevice != null) {
                 gattServer.cancelConnection(bluetoothDevice);
-            }
-
-            bluetoothDevicesMap.remove(deviceAddress);
-        }
-
-        synchronized (midiInputDevicesMap) {
-            MidiInputDevice midiInputDevice = midiInputDevicesMap.get(deviceAddress);
-            if (midiInputDevice != null) {
-                midiInputDevicesMap.remove(deviceAddress);
-
-                ((InternalMidiInputDevice) midiInputDevice).stop();
-                midiInputDevice.setOnMidiInputEventListener(null);
-
-                if (midiDeviceDetachedListener != null) {
-                    midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
-                }
-            }
-        }
-
-        synchronized (midiOutputDevicesMap) {
-            MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(deviceAddress);
-            if (midiOutputDevice != null) {
-                midiOutputDevicesMap.remove(deviceAddress);
-
-                if (midiDeviceDetachedListener != null) {
-                    midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
-                }
+                bluetoothDevice.connectGatt(context, true, disconnectCallback);
             }
         }
     }
