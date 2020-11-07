@@ -81,6 +81,7 @@ public final class BleMidiPeripheralProvider {
     private final BluetoothGattService midiGattService;
     private final BluetoothGattCharacteristic midiCharacteristic;
     private BluetoothGattServer gattServer;
+    private boolean gattServiceInitialized = false;
 
     private final Map<String, MidiInputDevice> midiInputDevicesMap = new HashMap<>();
     private final Map<String, MidiOutputDevice> midiOutputDevicesMap = new HashMap<>();
@@ -154,13 +155,24 @@ public final class BleMidiPeripheralProvider {
         }
 
         // these service will be listened.
-        // FIXME these didn't used for service discovery
-        boolean serviceInitialized = false;
-        while (!serviceInitialized) {
+        while (!gattServiceInitialized) {
+            gattServer.clearServices();
             try {
                 gattServer.addService(informationGattService);
+                while (gattServer.getService(informationGattService.getUuid()) == null) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
                 gattServer.addService(midiGattService);// NullPointerException, DeadObjectException thrown here
-                serviceInitialized = true;
+                while (gattServer.getService(midiGattService.getUuid()) == null) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+                gattServiceInitialized = true;
             } catch (Exception e) {
                 Log.d(Constants.TAG, "Adding Service failed, retrying..");
 
