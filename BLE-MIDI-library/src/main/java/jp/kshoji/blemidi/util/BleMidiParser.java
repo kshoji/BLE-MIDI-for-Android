@@ -61,7 +61,7 @@ public final class BleMidiParser {
 
     // for Timestamp
     private static final int MAX_TIMESTAMP = 8192;
-    private static final int BUFFER_LENGTH_MILLIS = 30;
+    private static final int BUFFER_LENGTH_MILLIS = 50;
     private int timestamp = 0;
     private int lastTimestamp;
     private long lastTimestampRecorded = 0;
@@ -164,12 +164,17 @@ public final class BleMidiParser {
                 return currentTimeMillis;
             }
 
-            int adjustedTimestamp = timestamp;
-            if (timestamp + MAX_TIMESTAMP / 2 < lastTimestamp) {
-                adjustedTimestamp += MAX_TIMESTAMP;
+            final long elapsedRealtime = currentTimeMillis - lastTimestampRecorded;
+            // realTimestampPeriod: how many times MAX_TIMESTAMP passed
+            long realTimestampPeriod = (lastTimestamp + elapsedRealtime) / MAX_TIMESTAMP;
+            if (realTimestampPeriod > 0 && timestamp > 7000) {
+                realTimestampPeriod--;
             }
-
-            final long result = BUFFER_LENGTH_MILLIS + adjustedTimestamp - lastTimestamp + lastTimestampRecorded;
+            final long lastTimestampStarted = lastTimestampRecorded - lastTimestamp;
+            // result: time to wait
+            final long result = BUFFER_LENGTH_MILLIS // buffer
+                    + lastTimestampStarted + realTimestampPeriod * MAX_TIMESTAMP + timestamp // time to fire event
+                    - currentTimeMillis; // current time
 
             lastTimestamp = timestamp;
             lastTimestampRecorded = currentTimeMillis;
@@ -764,7 +769,7 @@ public final class BleMidiParser {
      *
      * @param data incoming data
      */
-    public void parse(@NonNull byte[] data) {
+    public synchronized void parse(@NonNull byte[] data) {
         if (data.length > 1) {
             int header = data[0] & 0xff;
             for (int i = 1; i < data.length; i++) {
