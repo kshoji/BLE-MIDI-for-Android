@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="jp.kshoji.blemidi">
 
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
 </manifest>

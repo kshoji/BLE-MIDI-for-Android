@@ -1,8 +1,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 29
+    buildToolsVersion '29.0.3'
 
     defaultConfig {
         minSdkVersion 18
@@ -29,10 +29,10 @@ repositories {
 }
 
 dependencies {
-    compile 'jp.kshoji:javax-sound-midi:0.0.4-SNAPSHOT:@aar'
+    api 'jp.kshoji:javax-sound-midi:0.0.4-SNAPSHOT:@aar'
     //noinspection GradleDependency
-    compile 'com.android.support:support-annotations:22.2.1'
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    api 'com.android.support:support-annotations:22.2.1'
+    api fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 apply plugin: 'maven'
@@ -40,7 +40,7 @@ group = 'jp.kshoji'
 uploadArchives {
     repositories.mavenDeployer {
         repository url: 'file://' + file('../library/repository').absolutePath
-        pom.version = '0.0.10-SNAPSHOT'
+        pom.version = '0.0.11-SNAPSHOT'
         pom.artifactId = 'ble-midi'
     }
 }
