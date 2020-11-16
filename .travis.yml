@@ -1,9 +1,9 @@
 language: android
-jdk: oraclejdk7
+jdk: oraclejdk9
 android:
   components:
-    - build-tools-22.0.1
-    - android-22
+    - build-tools-29.0.3
+    - android-29
     - extra-android-m2repository
     - extra-google-m2repository
   licenses:
