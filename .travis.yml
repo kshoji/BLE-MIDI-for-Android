@@ -1,6 +1,6 @@
 language: android
 dist: trusty
-jdk: oraclejdk9
+jdk: openjdk9
 android:
   components:
     - build-tools-29.0.3
@@ -11,6 +11,8 @@ android:
     - '.+'
 before_install:
  - chmod +x gradlew
+ - rm "${JAVA_HOME}/lib/security/cacerts"
+ - ln -s /etc/ssl/certs/java/cacerts "${JAVA_HOME}/lib/security/cacerts"
 script:
   - ./gradlew check
 
