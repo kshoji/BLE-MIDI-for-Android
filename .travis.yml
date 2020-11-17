@@ -1,15 +1,18 @@
 language: android
-jdk: oraclejdk7
+dist: trusty
+jdk: openjdk9
 android:
   components:
-    - build-tools-22.0.1
-    - android-22
+    - build-tools-29.0.3
+    - android-29
     - extra-android-m2repository
     - extra-google-m2repository
   licenses:
     - '.+'
 before_install:
  - chmod +x gradlew
+ - rm "${JAVA_HOME}/lib/security/cacerts"
+ - ln -s /etc/ssl/certs/java/cacerts "${JAVA_HOME}/lib/security/cacerts"
 script:
   - ./gradlew check
 
