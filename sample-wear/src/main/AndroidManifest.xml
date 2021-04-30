@@ -14,10 +14,14 @@
         android:required="true"/>
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.DeviceDefault">
+
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
 
         <uses-library android:name="com.google.android.wearable" android:required="false" />
 

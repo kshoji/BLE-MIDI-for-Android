@@ -29,12 +29,13 @@ public final class BleMidiDeviceUtils {
      *
      * @param context the context
      * @param bluetoothGatt the gatt of device
+     * @param midiVersion the MIDI major version: 1 or 2
      * @return null if no service found
      */
     @Nullable
-    public static BluetoothGattService getMidiService(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt) {
+    public static BluetoothGattService getMidiService(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt, final int midiVersion) {
         List<BluetoothGattService> services = bluetoothGatt.getServices();
-        String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForService);
+        String[] uuidStringArray = context.getResources().getStringArray(midiVersion == 1 ? R.array.uuidListForMidiService : R.array.uuidListForMidi2Service);
 
         for (BluetoothGattService service : services) {
             for (String uuidString : uuidStringArray) {
@@ -53,12 +54,13 @@ public final class BleMidiDeviceUtils {
      *
      * @param context the context
      * @param bluetoothGattService the gatt service of device
+     * @param midiVersion the MIDI major version: 1 or 2
      * @return null if no characteristic found
      */
     @Nullable
-    public static BluetoothGattCharacteristic getMidiInputCharacteristic(@NonNull final Context context, @NonNull final BluetoothGattService bluetoothGattService) {
+    public static BluetoothGattCharacteristic getMidiInputCharacteristic(@NonNull final Context context, @NonNull final BluetoothGattService bluetoothGattService, final int midiVersion) {
         List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
-        String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForInputCharacteristic);
+        String[] uuidStringArray = context.getResources().getStringArray(midiVersion == 1 ? R.array.uuidListForMidiInputCharacteristic : R.array.uuidListForMidi2InputCharacteristic);
 
         for (BluetoothGattCharacteristic characteristic : characteristics) {
             for (String uuidString : uuidStringArray) {
@@ -77,12 +79,13 @@ public final class BleMidiDeviceUtils {
      *
      * @param context the context
      * @param bluetoothGattService the gatt service of device
+     * @param midiVersion the MIDI major version: 1 or 2
      * @return null if no characteristic found
      */
     @Nullable
-    public static BluetoothGattCharacteristic getMidiOutputCharacteristic(@NonNull final Context context, @NonNull final BluetoothGattService bluetoothGattService) {
+    public static BluetoothGattCharacteristic getMidiOutputCharacteristic(@NonNull final Context context, @NonNull final BluetoothGattService bluetoothGattService, final int midiVersion) {
         List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
-        String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForOutputCharacteristic);
+        String[] uuidStringArray = context.getResources().getStringArray(midiVersion == 1 ? R.array.uuidListForMidiOutputCharacteristic : R.array.uuidListForMidi2OutputCharacteristic);
 
         for (BluetoothGattCharacteristic characteristic : characteristics) {
             for (String uuidString : uuidStringArray) {
@@ -100,14 +103,15 @@ public final class BleMidiDeviceUtils {
      * Obtains list of ScanFilter for BLE MIDI
      *
      * @param context the context
+     * @param midiVersion the MIDI major version: 1 or 2
      * @return list of {@link android.bluetooth.le.ScanFilter} for BLE MIDI devices.
      */
     @NonNull
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public static List<ScanFilter> getBleMidiScanFilters(@NonNull final Context context) {
+    public static List<ScanFilter> getBleMidiScanFilters(@NonNull final Context context, final int midiVersion) {
         List<ScanFilter> scanFilters = new ArrayList<>();
 
-        String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForService);
+        String[] uuidStringArray = context.getResources().getStringArray(midiVersion == 1 ? R.array.uuidListForMidiService : R.array.uuidListForMidi2Service);
         for (String uuidString : uuidStringArray) {
             scanFilters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(uuidString)).build());
         }

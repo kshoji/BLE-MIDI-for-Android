@@ -7,28 +7,28 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import jp.kshoji.blemidi.device.MidiInputDevice;
-import jp.kshoji.blemidi.device.MidiOutputDevice;
+import jp.kshoji.blemidi.device.Midi2InputDevice;
+import jp.kshoji.blemidi.device.Midi2OutputDevice;
 import jp.kshoji.javax.sound.midi.MidiDevice;
 import jp.kshoji.javax.sound.midi.MidiUnavailableException;
 import jp.kshoji.javax.sound.midi.Receiver;
 import jp.kshoji.javax.sound.midi.Transmitter;
 
 /**
- * {@link jp.kshoji.javax.sound.midi.MidiDevice} implementation
+ * {@link MidiDevice} implementation
  *
  * @author K.Shoji
  */
-public final class BleMidiDevice implements MidiDevice {
+public final class BleMidi2Device implements MidiDevice {
     @Nullable
-    private BleMidiReceiver receiver;
+    private BleMidi2Receiver receiver;
     @Nullable
-    private BleMidiTransmitter transmitter;
+    private BleMidi2Transmitter transmitter;
 
     private boolean isOpened;
 
-    private MidiInputDevice midiInputDevice;
-    private MidiOutputDevice midiOutputDevice;
+    private Midi2InputDevice midiInputDevice;
+    private Midi2OutputDevice midiOutputDevice;
 
     /**
      * Constructor
@@ -36,7 +36,7 @@ public final class BleMidiDevice implements MidiDevice {
      * @param midiInputDevice the input device
      * @param midiOutputDevice the output device
      */
-    public BleMidiDevice(@Nullable final MidiInputDevice midiInputDevice, @Nullable final MidiOutputDevice midiOutputDevice) {
+    public BleMidi2Device(@Nullable final Midi2InputDevice midiInputDevice, @Nullable final Midi2OutputDevice midiOutputDevice) {
         this.midiInputDevice = midiInputDevice;
         this.midiOutputDevice = midiOutputDevice;
 
@@ -45,11 +45,11 @@ public final class BleMidiDevice implements MidiDevice {
         }
 
         if (midiOutputDevice != null) {
-            receiver = new BleMidiReceiver(this);
+            receiver = new BleMidi2Receiver(this);
         }
 
         if (midiInputDevice != null) {
-            transmitter = new BleMidiTransmitter(this);
+            transmitter = new BleMidi2Transmitter(this);
         }
     }
 
@@ -165,7 +165,7 @@ public final class BleMidiDevice implements MidiDevice {
         return Collections.unmodifiableList(transmitters);
     }
 
-    public void setMidiInputDevice(@Nullable final MidiInputDevice midiInputDevice) {
+    public void setMidiInputDevice(@Nullable final Midi2InputDevice midiInputDevice) {
         this.midiInputDevice = midiInputDevice;
         if (transmitter != null) {
             transmitter.close();
@@ -174,15 +174,15 @@ public final class BleMidiDevice implements MidiDevice {
         if (midiInputDevice == null) {
             transmitter = null;
         } else {
-            transmitter = new BleMidiTransmitter(this);
+            transmitter = new BleMidi2Transmitter(this);
         }
     }
 
-    public MidiInputDevice getMidiInputDevice() {
+    public Midi2InputDevice getMidiInputDevice() {
         return midiInputDevice;
     }
 
-    public void setMidiOutputDevice(@Nullable final MidiOutputDevice midiOutputDevice) {
+    public void setMidiOutputDevice(@Nullable final Midi2OutputDevice midiOutputDevice) {
         this.midiOutputDevice = midiOutputDevice;
         if (receiver != null) {
             receiver.close();
@@ -191,11 +191,11 @@ public final class BleMidiDevice implements MidiDevice {
         if (this.midiOutputDevice == null) {
             receiver = null;
         } else {
-            receiver = new BleMidiReceiver(this);
+            receiver = new BleMidi2Receiver(this);
         }
     }
 
-    public MidiOutputDevice getMidiOutputDevice() {
+    public Midi2OutputDevice getMidiOutputDevice() {
         return midiOutputDevice;
     }
 

@@ -12,6 +12,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import jp.kshoji.blemidi.device.Midi2InputDevice;
+import jp.kshoji.blemidi.device.Midi2OutputDevice;
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
@@ -28,6 +30,8 @@ abstract class AbstractBleMidiService extends Service {
 
     private final Set<MidiInputDevice> midiInputDevices = new HashSet<>();
     private final Set<MidiOutputDevice> midiOutputDevices = new HashSet<>();
+    private final Set<Midi2InputDevice> midi2InputDevices = new HashSet<>();
+    private final Set<Midi2OutputDevice> midi2OutputDevices = new HashSet<>();
 
     private OnMidiDeviceAttachedListener midiDeviceAttachedListener = null;
     private OnMidiDeviceDetachedListener midiDeviceDetachedListener = null;
@@ -54,8 +58,10 @@ abstract class AbstractBleMidiService extends Service {
         super.onDestroy();
 
         midiInputDevices.clear();
+        midi2InputDevices.clear();
 
         midiOutputDevices.clear();
+        midi2OutputDevices.clear();
 
         Log.d(Constants.TAG, "MIDI service stopped.");
     }
@@ -89,6 +95,16 @@ abstract class AbstractBleMidiService extends Service {
     }
 
     /**
+     * Get {@link java.util.Set} of{@link jp.kshoji.blemidi.device.Midi2InputDevice} to send MIDI events.
+     *
+     * @return the Set of MidiInputDevice
+     */
+    @NonNull
+    public Set<Midi2InputDevice> getMidi2InputDevices() {
+        return Collections.unmodifiableSet(midi2InputDevices);
+    }
+
+    /**
      * Get {@link java.util.Set} of{@link jp.kshoji.blemidi.device.MidiOutputDevice} to send MIDI events.
      *
      * @return the Set of MidiOutputDevice
@@ -98,7 +114,17 @@ abstract class AbstractBleMidiService extends Service {
         return Collections.unmodifiableSet(midiOutputDevices);
     }
 
-    protected OnMidiDeviceAttachedListener serviceMidiDeviceAttachedListener = new OnMidiDeviceAttachedListener() {
+    /**
+     * Get {@link java.util.Set} of{@link jp.kshoji.blemidi.device.Midi2OutputDevice} to send MIDI events.
+     *
+     * @return the Set of MidiOutputDevice
+     */
+    @NonNull
+    public Set<Midi2OutputDevice> getMidi2OutputDevices() {
+        return Collections.unmodifiableSet(midi2OutputDevices);
+    }
+
+    protected final OnMidiDeviceAttachedListener serviceMidiDeviceAttachedListener = new OnMidiDeviceAttachedListener() {
 
         @Override
         public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
@@ -117,9 +143,27 @@ abstract class AbstractBleMidiService extends Service {
                 midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
             }
         }
+
+        @Override
+        public void onMidi2InputDeviceAttached(@NonNull Midi2InputDevice midiInputDevice) {
+            midi2InputDevices.add(midiInputDevice);
+
+            if (midiDeviceAttachedListener != null) {
+                midiDeviceAttachedListener.onMidi2InputDeviceAttached(midiInputDevice);
+            }
+        }
+
+        @Override
+        public void onMidi2OutputDeviceAttached(@NonNull Midi2OutputDevice midiOutputDevice) {
+            midi2OutputDevices.add(midiOutputDevice);
+
+            if (midiDeviceAttachedListener != null) {
+                midiDeviceAttachedListener.onMidi2OutputDeviceAttached(midiOutputDevice);
+            }
+        }
     };
 
-    protected OnMidiDeviceDetachedListener serviceMidiDeviceDetachedListener = new OnMidiDeviceDetachedListener() {
+    protected final OnMidiDeviceDetachedListener serviceMidiDeviceDetachedListener = new OnMidiDeviceDetachedListener() {
 
         @Override
         public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
@@ -137,6 +181,25 @@ abstract class AbstractBleMidiService extends Service {
 
             if (midiDeviceDetachedListener != null) {
                 midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
+            }
+        }
+
+        @Override
+        public void onMidi2InputDeviceDetached(@NonNull Midi2InputDevice midiInputDevice) {
+            midiInputDevice.setOnMidiInputEventListener(null);
+            midi2InputDevices.remove(midiInputDevice);
+
+            if (midiDeviceDetachedListener != null) {
+                midiDeviceDetachedListener.onMidi2InputDeviceDetached(midiInputDevice);
+            }
+        }
+
+        @Override
+        public void onMidi2OutputDeviceDetached(@NonNull Midi2OutputDevice midiOutputDevice) {
+            midi2OutputDevices.remove(midiOutputDevice);
+
+            if (midiDeviceDetachedListener != null) {
+                midiDeviceDetachedListener.onMidi2OutputDeviceDetached(midiOutputDevice);
             }
         }
     };

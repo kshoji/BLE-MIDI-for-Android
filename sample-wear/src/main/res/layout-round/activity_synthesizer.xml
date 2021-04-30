@@ -5,7 +5,7 @@
                 android:layout_height="match_parent"
                 android:background="#8af"
                 android:orientation="vertical"
-                tools:context=".MainActivity"
+                tools:context=".SynthesizerActivity"
                 tools:deviceIds="wear_square"
                 android:id="@+id/background">
 

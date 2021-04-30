@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="TypographyDashes">
     <!-- Advertise and Services UUID for MIDI -->
-    <string-array name="uuidListForService">
+    <string-array name="uuidListForMidiService">
         <item>713d0000-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit -->
         <item>6e400001-b5a3-f393-e0a9-e50e24dcca9e</item><!-- Nordic Semiconductor nRF-UART-App -->
         <item>15c3d473-ab76-483f-a874-d08849b8f5c7</item><!-- QUICCO mi.1 -->
@@ -10,7 +10,7 @@
 
     <!-- Characteristics UUID for MIDI Input -->
     <!-- Notify -->
-    <string-array name="uuidListForInputCharacteristic">
+    <string-array name="uuidListForMidiInputCharacteristic">
         <item>713d0002-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit RX -->
         <item>6E400003-B5A3-F393-E0A9-E50E24DCCA9E</item><!-- Nordic Semiconductor RX -->
         <item>c26b5a53-04e0-4706-9928-25b035924bc2</item><!-- QUICCO mi.1 -->
@@ -19,10 +19,27 @@
 
     <!-- Characteristics UUID for MIDI Output -->
     <!-- Write without Response -->
-    <string-array name="uuidListForOutputCharacteristic">
+    <string-array name="uuidListForMidiOutputCharacteristic">
         <item>713d0003-503e-4c75-ba94-3148f18d941e</item><!-- RedBearLab Biscuit TX -->
         <item>6E400002-B5A3-F393-E0A9-E50E24DCCA9E</item><!-- Nordic Semiconductor TX -->
         <item>c26b5a53-04e0-4706-9928-25b035924bc2</item><!-- QUICCO mi.1 -->
         <item>7772e5db-3868-4112-a1a9-f2669d106bf3</item><!-- Apple BLE MIDI -->
+    </string-array>
+
+    <!-- Advertise and Services UUID for MIDI 2.0 -->
+    <string-array name="uuidListForMidi2Service">
+        <item>da4c2bf9-b4dc-4c75-8a84-661537c32f1f</item><!-- FIXME proper uuid -->
+    </string-array>
+
+    <!-- Characteristics UUID for MIDI 2.0 Input -->
+    <!-- Notify -->
+    <string-array name="uuidListForMidi2InputCharacteristic">
+        <item>c6fa363e-91bb-4c31-b4d0-0607bf914c20</item><!-- FIXME proper uuid -->
+    </string-array>
+
+    <!-- Characteristics UUID for MIDI 2.0 Output -->
+    <!-- Write without Response -->
+    <string-array name="uuidListForMidi2OutputCharacteristic">
+        <item>c6fa363e-91bb-4c31-b4d0-0607bf914c20</item><!-- FIXME proper uuid -->
     </string-array>
 </resources>

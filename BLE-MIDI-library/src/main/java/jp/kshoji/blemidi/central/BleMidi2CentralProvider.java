@@ -39,23 +39,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import jp.kshoji.blemidi.device.MidiInputDevice;
-import jp.kshoji.blemidi.device.MidiOutputDevice;
+import jp.kshoji.blemidi.device.Midi2InputDevice;
+import jp.kshoji.blemidi.device.Midi2OutputDevice;
+import jp.kshoji.blemidi.listener.OnMidi2InputEventListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
-import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
+import jp.kshoji.blemidi.util.BleMidi2Parser;
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
-import jp.kshoji.blemidi.util.BleMidiParser;
 import jp.kshoji.blemidi.util.BleUuidUtils;
 import jp.kshoji.blemidi.util.Constants;
+import jp.kshoji.blemidi.util.MidiCapabilityNegotiator;
 
 /**
  * Client for BLE MIDI Peripheral device service
  *
  * @author K.Shoji
  */
-public final class BleMidiCentralProvider {
+public final class BleMidi2CentralProvider {
     private final BluetoothAdapter bluetoothAdapter;
     private final Context context;
     private final Handler handler;
@@ -98,6 +99,9 @@ public final class BleMidiCentralProvider {
      * Callback for BLE device scanning (for Lollipop or later)
      */
     private final ScanCallback scanCallback;
+    private volatile boolean isScanning = false;
+    private Runnable stopScanRunnable = null;
+    private OnMidiScanStatusListener onMidiScanStatusListener;
 
     /**
      * Constructor<br />
@@ -106,7 +110,7 @@ public final class BleMidiCentralProvider {
      * @param context the context
      */
     @SuppressLint("NewApi")
-    public BleMidiCentralProvider(@NonNull final Context context) throws UnsupportedOperationException {
+    public BleMidi2CentralProvider(@NonNull final Context context) throws UnsupportedOperationException {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
@@ -142,17 +146,17 @@ public final class BleMidiCentralProvider {
                                 ((Activity) context).runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                                        bluetoothDevice.connectGatt(BleMidi2CentralProvider.this.context, true, midiCallback);
                                     }
                                 });
                             } else {
                                 if (Thread.currentThread() == context.getMainLooper().getThread()) {
-                                    bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                                    bluetoothDevice.connectGatt(BleMidi2CentralProvider.this.context, true, midiCallback);
                                 } else {
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
+                                            bluetoothDevice.connectGatt(BleMidi2CentralProvider.this.context, true, midiCallback);
                                         }
                                     });
                                 }
@@ -165,8 +169,6 @@ public final class BleMidiCentralProvider {
             scanCallback = null;
         }
     }
-
-    private volatile boolean isScanning = false;
 
     /**
      * Set if the Bluetooth LE device need `Pairing` <br />
@@ -183,18 +185,16 @@ public final class BleMidiCentralProvider {
         midiCallback.setNeedsBonding(needsPairing);
     }
 
-    private Runnable stopScanRunnable = null;
-
     /**
      * Starts to scan devices
      *
      * @param timeoutInMilliSeconds 0 or negative value : no timeout
      */
-    @SuppressLint({ "Deprecation", "NewApi" })
+    @SuppressLint({"Deprecation", "NewApi"})
     public void startScanDevice(int timeoutInMilliSeconds) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-            List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context, 1);
+            List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context, 2);
             ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
             bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
         } else {
@@ -229,7 +229,7 @@ public final class BleMidiCentralProvider {
     /**
      * Stops to scan devices
      */
-    @SuppressLint({ "Deprecation", "NewApi" })
+    @SuppressLint({"Deprecation", "NewApi"})
     public void stopScanDevice() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -259,7 +259,7 @@ public final class BleMidiCentralProvider {
      *
      * @param midiInputDevice the device
      */
-    public void disconnectDevice(@NonNull MidiInputDevice midiInputDevice) {
+    public void disconnectDevice(@NonNull Midi2InputDevice midiInputDevice) {
         midiCallback.disconnectDevice(midiInputDevice);
     }
 
@@ -268,31 +268,29 @@ public final class BleMidiCentralProvider {
      *
      * @param midiOutputDevice the device
      */
-    public void disconnectDevice(@NonNull MidiOutputDevice midiOutputDevice) {
+    public void disconnectDevice(@NonNull Midi2OutputDevice midiOutputDevice) {
         midiCallback.disconnectDevice(midiOutputDevice);
     }
 
     /**
-     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiInputDevice} that is currently connected
+     * Obtains the set of {@link Midi2InputDevice} that is currently connected
      *
      * @return unmodifiable set
      */
     @NonNull
-    public Set<MidiInputDevice> getMidiInputDevices() {
+    public Set<Midi2InputDevice> getMidiInputDevices() {
         return midiCallback.getMidiInputDevices();
     }
 
     /**
-     * Obtains the set of {@link jp.kshoji.blemidi.device.MidiOutputDevice} that is currently connected
+     * Obtains the set of {@link Midi2OutputDevice} that is currently connected
      *
      * @return unmodifiable set
      */
     @NonNull
-    public Set<MidiOutputDevice> getMidiOutputDevices() {
+    public Set<Midi2OutputDevice> getMidiOutputDevices() {
         return midiCallback.getMidiOutputDevices();
     }
-
-    private OnMidiScanStatusListener onMidiScanStatusListener;
 
     /**
      * Set the listener of device scanning status
@@ -335,15 +333,15 @@ public final class BleMidiCentralProvider {
      * @author K.Shoji
      */
     static final class BleMidiCallback extends BluetoothGattCallback {
-        private final Map<String, Set<MidiInputDevice>> midiInputDevicesMap = new HashMap<>();
-        private final Map<String, Set<MidiOutputDevice>> midiOutputDevicesMap = new HashMap<>();
+        private volatile static Object gattDiscoverServicesLock = null;
+        private final Map<String, Set<Midi2InputDevice>> midiInputDevicesMap = new HashMap<>();
+        private final Map<String, Set<Midi2OutputDevice>> midiOutputDevicesMap = new HashMap<>();
         private final Map<String, List<BluetoothGatt>> deviceAddressGattMap = new HashMap<>();
         private final Context context;
-
         private OnMidiDeviceAttachedListener midiDeviceAttachedListener;
         private OnMidiDeviceDetachedListener midiDeviceDetachedListener;
-
         private boolean needsBonding = false;
+        private BondingBroadcastReceiver bondingBroadcastReceiver;
 
         /**
          * Constructor
@@ -367,7 +365,6 @@ public final class BleMidiCentralProvider {
             }
         }
 
-        private volatile static Object gattDiscoverServicesLock = null;
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
@@ -417,10 +414,11 @@ public final class BleMidiCentralProvider {
 
             // find MIDI Input device
             synchronized (midiInputDevicesMap) {
+                // check if the same device already connected
                 if (midiInputDevicesMap.containsKey(gattDeviceAddress)) {
-                    Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
+                    Set<Midi2InputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
                     if (midiInputDevices != null) {
-                        for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                        for (Midi2InputDevice midiInputDevice : midiInputDevices) {
                             ((InternalMidiInputDevice) midiInputDevice).stop();
                             midiInputDevice.setOnMidiInputEventListener(null);
                         }
@@ -437,7 +435,7 @@ public final class BleMidiCentralProvider {
             }
             if (midiInputDevice != null) {
                 synchronized (midiInputDevicesMap) {
-                    Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
+                    Set<Midi2InputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
                     if (midiInputDevices == null) {
                         midiInputDevices = new HashSet<>();
                         midiInputDevicesMap.put(gattDeviceAddress, midiInputDevices);
@@ -445,18 +443,11 @@ public final class BleMidiCentralProvider {
 
                     midiInputDevices.add(midiInputDevice);
                 }
-
-                // don't notify if the same device already connected
-                if (!deviceAddressGattMap.containsKey(gattDeviceAddress))
-                {
-                    if (midiDeviceAttachedListener != null) {
-                        midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
-                    }
-                }
             }
 
             // find MIDI Output device
             synchronized (midiOutputDevicesMap) {
+                // check if the same device already connected
                 midiOutputDevicesMap.remove(gattDeviceAddress);
             }
 
@@ -468,20 +459,13 @@ public final class BleMidiCentralProvider {
             }
             if (midiOutputDevice != null) {
                 synchronized (midiOutputDevicesMap) {
-                    Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
+                    Set<Midi2OutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
                     if (midiOutputDevices == null) {
                         midiOutputDevices = new HashSet<>();
                         midiOutputDevicesMap.put(gattDeviceAddress, midiOutputDevices);
                     }
 
                     midiOutputDevices.add(midiOutputDevice);
-                }
-
-                // don't notify if the same device already connected
-                if (!deviceAddressGattMap.containsKey(gattDeviceAddress)) {
-                    if (midiDeviceAttachedListener != null) {
-                        midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
-                    }
                 }
             }
 
@@ -531,6 +515,39 @@ public final class BleMidiCentralProvider {
                     // Set the connection priority to high(for low latency)
                     gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
                 }
+
+                if (midiInputDevice != null && midiOutputDevice != null) {
+                    final InternalMidiInputDevice finalMidiInputDevice = midiInputDevice;
+                    final InternalMidiOutputDevice finalMidiOutputDevice = midiOutputDevice;
+                    new MidiCapabilityNegotiator(midiInputDevice, midiOutputDevice).startProtocolNegotiation(new MidiCapabilityNegotiator.MidiNegotiationCallback() {
+                        @Override
+                        public void onMidiNegotiated(MidiCapabilityNegotiator.MidiProtocol midiProtocol, MidiCapabilityNegotiator.MidiExtension midiExtension) {
+                            // store the MIDI Capability
+                            finalMidiInputDevice.setProtocolInformation(midiProtocol, midiExtension);
+                            finalMidiOutputDevice.setProtocolInformation(midiProtocol, midiExtension);
+
+                            // don't notify if the same device already connected
+                            if (!deviceAddressGattMap.containsKey(gattDeviceAddress)) {
+                                if (midiDeviceAttachedListener != null) {
+                                    midiDeviceAttachedListener.onMidi2InputDeviceAttached(finalMidiInputDevice);
+                                    midiDeviceAttachedListener.onMidi2OutputDeviceAttached(finalMidiOutputDevice);
+                                }
+                            }
+                        }
+                    }, true);
+                } else {
+                    // don't notify if the same device already connected
+                    if (!deviceAddressGattMap.containsKey(gattDeviceAddress)) {
+                        if (midiDeviceAttachedListener != null) {
+                            if (midiInputDevice != null) {
+                                midiDeviceAttachedListener.onMidi2InputDeviceAttached(midiInputDevice);
+                            }
+                            if (midiOutputDevice != null) {
+                                midiDeviceAttachedListener.onMidi2OutputDeviceAttached(midiOutputDevice);
+                            }
+                        }
+                    }
+                }
             }
 
             // all finished
@@ -541,10 +558,10 @@ public final class BleMidiCentralProvider {
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
 
-            Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
+            Set<Midi2InputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
             if (midiInputDevices != null) {
-                for (MidiInputDevice midiInputDevice : midiInputDevices) {
-                    ((InternalMidiInputDevice)midiInputDevice).incomingData(characteristic.getValue());
+                for (Midi2InputDevice midiInputDevice : midiInputDevices) {
+                    ((InternalMidiInputDevice) midiInputDevice).incomingData(characteristic.getValue());
                 }
             }
         }
@@ -554,7 +571,7 @@ public final class BleMidiCentralProvider {
          *
          * @param midiInputDevice the device
          */
-        void disconnectDevice(@NonNull MidiInputDevice midiInputDevice) {
+        void disconnectDevice(@NonNull Midi2InputDevice midiInputDevice) {
             if (!(midiInputDevice instanceof InternalMidiInputDevice)) {
                 return;
             }
@@ -567,7 +584,7 @@ public final class BleMidiCentralProvider {
          *
          * @param midiOutputDevice the device
          */
-        void disconnectDevice(@NonNull MidiOutputDevice midiOutputDevice) {
+        void disconnectDevice(@NonNull Midi2OutputDevice midiOutputDevice) {
             if (!(midiOutputDevice instanceof InternalMidiOutputDevice)) {
                 return;
             }
@@ -595,16 +612,16 @@ public final class BleMidiCentralProvider {
             }
 
             synchronized (midiInputDevicesMap) {
-                Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(deviceAddress);
+                Set<Midi2InputDevice> midiInputDevices = midiInputDevicesMap.get(deviceAddress);
                 if (midiInputDevices != null) {
                     midiInputDevicesMap.remove(deviceAddress);
 
-                    for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                    for (Midi2InputDevice midiInputDevice : midiInputDevices) {
                         ((InternalMidiInputDevice) midiInputDevice).stop();
                         midiInputDevice.setOnMidiInputEventListener(null);
 
                         if (midiDeviceDetachedListener != null) {
-                            midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
+                            midiDeviceDetachedListener.onMidi2InputDeviceDetached(midiInputDevice);
                         }
 
                     }
@@ -613,13 +630,13 @@ public final class BleMidiCentralProvider {
             }
 
             synchronized (midiOutputDevicesMap) {
-                Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(deviceAddress);
+                Set<Midi2OutputDevice> midiOutputDevices = midiOutputDevicesMap.get(deviceAddress);
                 if (midiOutputDevices != null) {
                     midiOutputDevicesMap.remove(deviceAddress);
 
-                    for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                    for (Midi2OutputDevice midiOutputDevice : midiOutputDevices) {
                         if (midiDeviceDetachedListener != null) {
-                            midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
+                            midiDeviceDetachedListener.onMidi2OutputDeviceDetached(midiOutputDevice);
                         }
                     }
                     midiOutputDevices.clear();
@@ -644,8 +661,8 @@ public final class BleMidiCentralProvider {
             }
 
             synchronized (midiInputDevicesMap) {
-                for (Set<MidiInputDevice> midiInputDevices : midiInputDevicesMap.values()) {
-                    for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                for (Set<Midi2InputDevice> midiInputDevices : midiInputDevicesMap.values()) {
+                    for (Midi2InputDevice midiInputDevice : midiInputDevices) {
                         ((InternalMidiInputDevice) midiInputDevice).stop();
                         midiInputDevice.setOnMidiInputEventListener(null);
                     }
@@ -665,8 +682,6 @@ public final class BleMidiCentralProvider {
             }
         }
 
-        private BondingBroadcastReceiver bondingBroadcastReceiver;
-
         /**
          * Set if the Bluetooth LE device need `Pairing`
          *
@@ -678,59 +693,16 @@ public final class BleMidiCentralProvider {
         }
 
         /**
-         * {@link android.content.BroadcastReceiver} for BLE Bonding
-         *
-         * @author K.Shoji
-         */
-        private class BondingBroadcastReceiver extends BroadcastReceiver {
-            final MidiInputDevice midiInputDevice;
-            final MidiOutputDevice midiOutputDevice;
-
-            /**
-             * Constructor
-             *
-             * @param midiInputDevice input device
-             * @param midiOutputDevice output device
-             */
-            BondingBroadcastReceiver(@Nullable MidiInputDevice midiInputDevice, @Nullable MidiOutputDevice midiOutputDevice) {
-                this.midiInputDevice = midiInputDevice;
-                this.midiOutputDevice = midiOutputDevice;
-            }
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                final String action = intent.getAction();
-
-                if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                    final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-
-                    if (state == BluetoothDevice.BOND_BONDED) {
-                        // successfully bonded
-                        context.unregisterReceiver(this);
-                        bondingBroadcastReceiver = null;
-
-                        if (midiInputDevice != null) {
-                            ((InternalMidiInputDevice) midiInputDevice).configureAsCentralDevice();
-                        }
-                        if (midiOutputDevice != null) {
-                            ((InternalMidiOutputDevice) midiOutputDevice).configureAsCentralDevice();
-                        }
-                    }
-                }
-            }
-        }
-
-        /**
          * Obtains connected input devices
          *
-         * @return Set of {@link MidiInputDevice}
+         * @return Set of {@link Midi2InputDevice}
          */
         @NonNull
-        public Set<MidiInputDevice> getMidiInputDevices() {
-            Collection<Set<MidiInputDevice>> values = midiInputDevicesMap.values();
+        public Set<Midi2InputDevice> getMidiInputDevices() {
+            Collection<Set<Midi2InputDevice>> values = midiInputDevicesMap.values();
 
-            Set<MidiInputDevice> result = new HashSet<>();
-            for (Set<MidiInputDevice> value: values) {
+            Set<Midi2InputDevice> result = new HashSet<>();
+            for (Set<Midi2InputDevice> value : values) {
                 result.addAll(value);
             }
 
@@ -740,14 +712,14 @@ public final class BleMidiCentralProvider {
         /**
          * Obtains connected output devices
          *
-         * @return Set of {@link MidiOutputDevice}
+         * @return Set of {@link Midi2OutputDevice}
          */
         @NonNull
-        public Set<MidiOutputDevice> getMidiOutputDevices() {
-            Collection<Set<MidiOutputDevice>> values = midiOutputDevicesMap.values();
+        public Set<Midi2OutputDevice> getMidiOutputDevices() {
+            Collection<Set<Midi2OutputDevice>> values = midiOutputDevicesMap.values();
 
-            Set<MidiOutputDevice> result = new HashSet<>();
-            for (Set<MidiOutputDevice> value: values) {
+            Set<Midi2OutputDevice> result = new HashSet<>();
+            for (Set<Midi2OutputDevice> value : values) {
                 result.addAll(value);
             }
 
@@ -773,20 +745,20 @@ public final class BleMidiCentralProvider {
         }
 
         /**
-         * {@link MidiInputDevice} for Central
+         * {@link Midi2InputDevice} for Central
          *
          * @author K.Shoji
          */
-        private static final class InternalMidiInputDevice extends MidiInputDevice {
+        private static final class InternalMidiInputDevice extends Midi2InputDevice {
             private final BluetoothGatt bluetoothGatt;
             private final BluetoothGattCharacteristic midiInputCharacteristic;
 
-            private final BleMidiParser midiParser = new BleMidiParser(this);
+            private final BleMidi2Parser midiParser = new BleMidi2Parser(this);
 
             /**
              * Constructor for Central
              *
-             * @param context the context
+             * @param context       the context
              * @param bluetoothGatt the gatt of device
              * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
              */
@@ -794,7 +766,7 @@ public final class BleMidiCentralProvider {
                 super();
                 this.bluetoothGatt = bluetoothGatt;
 
-                BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt, 1);
+                BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt, 2);
                 if (midiService == null) {
                     List<UUID> uuidList = new ArrayList<>();
                     for (BluetoothGattService service : bluetoothGatt.getServices()) {
@@ -803,7 +775,7 @@ public final class BleMidiCentralProvider {
                     throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
                 }
 
-                midiInputCharacteristic = BleMidiDeviceUtils.getMidiInputCharacteristic(context, midiService, 1);
+                midiInputCharacteristic = BleMidiDeviceUtils.getMidiInputCharacteristic(context, midiService, 2);
                 if (midiInputCharacteristic == null) {
                     throw new IllegalArgumentException("MIDI Input GattCharacteristic not found. Service UUID:" + midiService.getUuid());
                 }
@@ -834,7 +806,7 @@ public final class BleMidiCentralProvider {
             }
 
             @Override
-            public void setOnMidiInputEventListener(OnMidiInputEventListener midiInputEventListener) {
+            public void setOnMidiInputEventListener(OnMidi2InputEventListener midiInputEventListener) {
                 midiParser.setMidiInputEventListener(midiInputEventListener);
             }
 
@@ -865,18 +837,18 @@ public final class BleMidiCentralProvider {
         }
 
         /**
-         * {@link MidiOutputDevice} for Central
+         * {@link Midi2OutputDevice} for Central
          *
          * @author K.Shoji
          */
-        private static final class InternalMidiOutputDevice extends MidiOutputDevice {
+        private static final class InternalMidiOutputDevice extends Midi2OutputDevice {
             private final BluetoothGatt bluetoothGatt;
             private final BluetoothGattCharacteristic midiOutputCharacteristic;
 
             /**
              * Constructor for Central
              *
-             * @param context the context
+             * @param context       the context
              * @param bluetoothGatt the gatt of device
              * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
              */
@@ -884,7 +856,7 @@ public final class BleMidiCentralProvider {
                 super();
                 this.bluetoothGatt = bluetoothGatt;
 
-                BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt, 1);
+                BluetoothGattService midiService = BleMidiDeviceUtils.getMidiService(context, bluetoothGatt, 2);
                 if (midiService == null) {
                     List<UUID> uuidList = new ArrayList<>();
                     for (BluetoothGattService service : bluetoothGatt.getServices()) {
@@ -893,7 +865,7 @@ public final class BleMidiCentralProvider {
                     throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
                 }
 
-                midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService, 1);
+                midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService, 2);
                 if (midiOutputCharacteristic == null) {
                     throw new IllegalArgumentException("MIDI Output GattCharacteristic not found. Service UUID:" + midiService.getUuid());
                 }
@@ -932,6 +904,49 @@ public final class BleMidiCentralProvider {
             @NonNull
             public String getDeviceAddress() {
                 return bluetoothGatt.getDevice().getAddress();
+            }
+        }
+
+        /**
+         * {@link BroadcastReceiver} for BLE Bonding
+         *
+         * @author K.Shoji
+         */
+        private class BondingBroadcastReceiver extends BroadcastReceiver {
+            final Midi2InputDevice midiInputDevice;
+            final Midi2OutputDevice midiOutputDevice;
+
+            /**
+             * Constructor
+             *
+             * @param midiInputDevice  input device
+             * @param midiOutputDevice output device
+             */
+            BondingBroadcastReceiver(@Nullable Midi2InputDevice midiInputDevice, @Nullable Midi2OutputDevice midiOutputDevice) {
+                this.midiInputDevice = midiInputDevice;
+                this.midiOutputDevice = midiOutputDevice;
+            }
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+
+                if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                    final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+
+                    if (state == BluetoothDevice.BOND_BONDED) {
+                        // successfully bonded
+                        context.unregisterReceiver(this);
+                        bondingBroadcastReceiver = null;
+
+                        if (midiInputDevice != null) {
+                            ((InternalMidiInputDevice) midiInputDevice).configureAsCentralDevice();
+                        }
+                        if (midiOutputDevice != null) {
+                            ((InternalMidiOutputDevice) midiOutputDevice).configureAsCentralDevice();
+                        }
+                    }
+                }
             }
         }
     }

@@ -1,13 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.wearable.view.WatchViewStub
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/watch_view_stub"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:rectLayout="@layout/rect_activity_synthesizer"
-    app:roundLayout="@layout/round_activity_synthesizer"
-    tools:context=".MainActivity"
-    tools:deviceIds="wear">
-</android.support.wearable.view.WatchViewStub>
+    android:background="#8af"
+    android:orientation="vertical"
+    tools:context=".SynthesizerActivity"
+    tools:deviceIds="wear_square"
+    android:id="@+id/background">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/text"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:text="@string/title_synthesizer"
+        android:textColor="#fff"/>
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/note"
+        android:layout_centerHorizontal="true"
+        android:text="@string/no_devices_found"
+        android:textColor="#fff"/>
+
+    <TextView
+        android:id="@+id/note"
+        android:textSize="50sp"
+        android:layout_marginBottom="20sp"
+        android:textColor="#fff"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
+</RelativeLayout>

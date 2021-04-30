@@ -7,6 +7,7 @@ import java.util.List;
 
 import jp.kshoji.javax.sound.midi.Instrument;
 import jp.kshoji.javax.sound.midi.MidiChannel;
+import jp.kshoji.javax.sound.midi.MidiDevice;
 import jp.kshoji.javax.sound.midi.MidiUnavailableException;
 import jp.kshoji.javax.sound.midi.Patch;
 import jp.kshoji.javax.sound.midi.Receiver;
@@ -22,7 +23,7 @@ import jp.kshoji.javax.sound.midi.impl.MidiChannelImpl;
  * @author K.Shoji
  */
 public class BleMidiSynthesizer implements Synthesizer {
-    private final BleMidiDevice bleMidiDevice;
+    private final MidiDevice bleMidiDevice;
     private MidiChannel[] channels;
     private VoiceStatus[] voiceStatuses;
 
@@ -31,7 +32,7 @@ public class BleMidiSynthesizer implements Synthesizer {
      *
      * @param bleMidiDevice the device
      */
-    public BleMidiSynthesizer(final BleMidiDevice bleMidiDevice) {
+    public BleMidiSynthesizer(final MidiDevice bleMidiDevice) {
         this.bleMidiDevice = bleMidiDevice;
 
         Receiver receiver = null;
