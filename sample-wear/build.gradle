@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId "jp.kshoji.blemidi.sample"
         minSdkVersion 22
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 3
         versionName "1.2"
     }
@@ -36,6 +36,5 @@ dependencies {
     implementation project(':BLE-MIDI-library')
     implementation 'com.google.android.support:wearable:2.8.1'
     compileOnly 'com.google.android.wearable:wearable:2.8.1'
-    implementation 'androidx.wear:wear:1.1.0'
     implementation 'com.google.android.gms:play-services-wearable:17.1.0'
 }
