@@ -408,7 +408,21 @@ public class BleMidiUnityPlugin {
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiOutputDeviceDetached", midiOutputDevice.getDeviceAddress());
             }
         });
-        bleMidiCentralProvider.startScanDevice(0);
+    }
+
+    /**
+     * Starts scan device
+     * @param timeoutInMilliSeconds timeout in msec, 0 : no timeout
+     */
+    public void startScanDevice(int timeoutInMilliSeconds) {
+        bleMidiCentralProvider.startScanDevice(timeoutInMilliSeconds);
+    }
+
+    /**
+     * Stops scan device
+     */
+    public void stopScanDevice() {
+        bleMidiCentralProvider.stopScanDevice();
     }
 
     public void terminate() {
