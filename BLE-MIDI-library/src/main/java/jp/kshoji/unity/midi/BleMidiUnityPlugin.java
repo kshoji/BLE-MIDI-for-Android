@@ -3,7 +3,9 @@ package jp.kshoji.unity.midi;
 import java.util.HashMap;
 import java.util.Locale;
 import android.content.Context;
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 
 import com.unity3d.player.UnityPlayer;
 import jp.kshoji.blemidi.central.BleMidiCentralProvider;
@@ -18,7 +20,7 @@ import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
  * @author K.Shoji
  */
 public class BleMidiUnityPlugin {
-    private static final String GAME_OBJECT_NAME = "MidiBehaviour";
+    private static final String GAME_OBJECT_NAME = "MidiManager";
 
     private final OnMidiInputEventListener midiInputEventListener = new OnMidiInputEventListener() {
 
@@ -423,6 +425,22 @@ public class BleMidiUnityPlugin {
      */
     public void stopScanDevice() {
         bleMidiCentralProvider.stopScanDevice();
+    }
+
+
+    /**
+     * Obtains device name for deviceId
+     * @param deviceId the device id
+     * @return device name, product name, or null
+     */
+    public String getDeviceName(String deviceId) {
+        MidiOutputDevice device = midiOutputDeviceMap.get(deviceId);
+        if (device != null) {
+            if (!TextUtils.isEmpty(device.getDeviceName())) {
+                return device.getDeviceName();
+            }
+        }
+        return null;
     }
 
     public void terminate() {
