@@ -30,9 +30,6 @@ Repository Overview
 - Sample Project: `sample`
     - Includes `BleMidiCentralActivity`, and `BleMidiPeripheralActivity` examples.
 
-Pre-compiled sample app is available on [Google Play Market](https://play.google.com/store/apps/details?id=jp.kshoji.blemidi.sample).
-<br />![QR Code](https://dl.dropboxusercontent.com/u/3968074/qr_ble_midi_sample.png)
-
 Usage of the library
 --------------------
 
