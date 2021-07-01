@@ -5,5 +5,5 @@
     <item android:id="@+id/action_toggle_scan"
         android:title="@string/start_scan"
         android:orderInCategory="100"
-        app:showAsAction="ifRoom" />
+        android:showAsAction="ifRoom" />
 </menu>
