@@ -1,6 +1,6 @@
 BLE MIDI for Android
 ====================
-[![Build Status](https://travis-ci.org/kshoji/BLE-MIDI-for-Android.svg?branch=master)](https://travis-ci.org/kshoji/BLE-MIDI-for-Android)
+[![Build Status](https://travis-ci.com/kshoji/BLE-MIDI-for-Android.svg?branch=develop)](https://travis-ci.com/kshoji/BLE-MIDI-for-Android)
 
 MIDI over Bluetooth LE library for Android `API Level 18`(4.3, JellyBean) or later
 
@@ -29,9 +29,6 @@ Repository Overview
 - Library Project: `library`
 - Sample Project: `sample`
     - Includes `BleMidiCentralActivity`, and `BleMidiPeripheralActivity` examples.
-
-Pre-compiled sample app is available on [Google Play Market](https://play.google.com/store/apps/details?id=jp.kshoji.blemidi.sample).
-<br />![QR Code](https://dl.dropboxusercontent.com/u/3968074/qr_ble_midi_sample.png)
 
 Usage of the library
 --------------------

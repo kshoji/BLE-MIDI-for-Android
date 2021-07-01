@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 30
 
     defaultConfig {
         applicationId "jp.kshoji.blemidi.sample"
         minSdkVersion 22
+        targetSdkVersion 30
         versionCode 3
         versionName "1.2"
     }
@@ -32,9 +32,9 @@ repositories {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(":library")
-    compile 'com.google.android.support:wearable:1.2.0'
-    provided 'com.google.android.wearable:wearable:1.0.0'
-    compile 'com.google.android.gms:play-services-wearable:8.3.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':BLE-MIDI-library')
+    implementation 'com.google.android.support:wearable:2.8.1'
+    compileOnly 'com.google.android.wearable:wearable:2.8.1'
+    implementation 'com.google.android.gms:play-services-wearable:17.1.0'
 }

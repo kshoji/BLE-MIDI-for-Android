@@ -1,13 +1,16 @@
 package jp.kshoji.blemidi.sample;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -67,6 +70,24 @@ public class CentralActivity extends Activity {
         return true;
     }
 
+    private static final int PERMISSION_REQUEST_FINE_LOCATION = 1;
+
+    private int scanDuration;
+    private void startScanDeviceWithRequestingPermission(int duration) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (!shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    scanDuration = duration;
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_FINE_LOCATION);
+                    return;
+                }
+            }
+        }
+
+        // already has permission
+        bleMidiCentralProvider.startScanDevice(duration);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -74,11 +95,23 @@ public class CentralActivity extends Activity {
                 if (isScanning) {
                     bleMidiCentralProvider.stopScanDevice();
                 } else {
-                    bleMidiCentralProvider.startScanDevice(0);
+                    startScanDeviceWithRequestingPermission(scanDuration);
                 }
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (requestCode == PERMISSION_REQUEST_FINE_LOCATION) {
+                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    bleMidiCentralProvider.startScanDevice(0);
+                }
+            }
+        }
     }
 
     // User interface
@@ -576,7 +609,7 @@ public class CentralActivity extends Activity {
         });
 
         // scan devices for 30 seconds
-        bleMidiCentralProvider.startScanDevice(30000);
+        startScanDeviceWithRequestingPermission(30000);
     }
 
     @Override
@@ -616,8 +649,6 @@ public class CentralActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-
         if (bleMidiCentralProvider != null) {
             bleMidiCentralProvider.terminate();
         }
@@ -643,6 +674,8 @@ public class CentralActivity extends Activity {
                 audioTrack = null;
             }
         }
+
+        super.onDestroy();
     }
 
     /**

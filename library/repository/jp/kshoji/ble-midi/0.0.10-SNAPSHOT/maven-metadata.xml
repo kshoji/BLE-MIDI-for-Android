@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>jp.kshoji</groupId>
+  <artifactId>ble-midi</artifactId>
+  <version>0.0.10-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20210612.070708</timestamp>
+      <buildNumber>4</buildNumber>
+    </snapshot>
+    <lastUpdated>20210612070708</lastUpdated>
+    <snapshotVersions>
+      <snapshotVersion>
+        <extension>aar</extension>
+        <value>0.0.10-20210612.070708-4</value>
+        <updated>20210612070708</updated>
+      </snapshotVersion>
+      <snapshotVersion>
+        <extension>pom</extension>
+        <value>0.0.10-20210612.070708-4</value>
+        <updated>20210612070708</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+</metadata>

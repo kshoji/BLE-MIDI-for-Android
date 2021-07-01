@@ -594,8 +594,6 @@ public class PeripheralActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-
         if (bleMidiPeripheralProvider != null) {
             bleMidiPeripheralProvider.terminate();
         }
@@ -621,6 +619,8 @@ public class PeripheralActivity extends Activity {
                 audioTrack = null;
             }
         }
+
+        super.onDestroy();
     }
 
     /**
