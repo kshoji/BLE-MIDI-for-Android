@@ -565,7 +565,7 @@ public final class BleMidiParser {
                         @Override
                         public void run() {
                             if (midiInputEventListener != null) {
-                                if (midiEventVelocity == 0) {
+                                if (getArg3() == 0) {
                                     midiInputEventListener.onMidiNoteOff(sender, getArg1() & 0xf, getArg2(), getArg3());
                                 } else {
                                     midiInputEventListener.onMidiNoteOn(sender, getArg1() & 0xf, getArg2(), getArg3());
