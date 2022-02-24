@@ -167,6 +167,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         // find MIDI Output device
         synchronized (midiOutputDevicesMap) {
+            Set<MidiOutputDevice> devices = midiOutputDevicesMap.get(gattDeviceAddress);
+            for (MidiOutputDevice device : devices) {
+                device.stop();
+            }
             midiOutputDevicesMap.remove(gattDeviceAddress);
         }
 
@@ -328,6 +332,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 midiOutputDevicesMap.remove(deviceAddress);
 
                 for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                    midiOutputDevice.stop();
                     if (midiDeviceDetachedListener != null) {
                         midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                     }
@@ -366,6 +371,13 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         }
 
         synchronized (midiOutputDevicesMap) {
+            for (Set<MidiOutputDevice> midiOutputDevices : midiOutputDevicesMap.values()) {
+                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                    midiOutputDevice.stop();
+                }
+
+                midiOutputDevices.clear();
+            }
             midiOutputDevicesMap.clear();
         }
 

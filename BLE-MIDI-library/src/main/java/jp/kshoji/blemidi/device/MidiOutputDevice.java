@@ -2,6 +2,9 @@ package jp.kshoji.blemidi.device;
 
 import android.support.annotation.NonNull;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 /**
  * Represents BLE MIDI Output Device
  *
@@ -10,6 +13,8 @@ import android.support.annotation.NonNull;
 public abstract class MidiOutputDevice {
 
     public static final int MAX_TIMESTAMP = 8192;
+
+    final ByteArrayOutputStream transferDataStream = new ByteArrayOutputStream();
 
     /**
      * Transfer data
@@ -40,16 +45,67 @@ public abstract class MidiOutputDevice {
         return getDeviceName();
     }
 
+    volatile boolean transferDataThreadAlive;
+    final Thread transferDataThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            transferDataThreadAlive = true;
+
+            while (transferDataThreadAlive) {
+                synchronized (transferDataStream) {
+                    if (writtenDataCount > 0) {
+                        transferData(transferDataStream.toByteArray());
+                        transferDataStream.reset();
+                        writtenDataCount = 0;
+                    }
+                }
+
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+    });
+
+    protected MidiOutputDevice() {
+        transferDataThread.start();
+    }
+
+    /**
+     * Stops transfer thread
+     */
+    public void stop() {
+        transferDataThreadAlive = false;
+    }
+
+    transient int writtenDataCount;
+    private void storeTransferData(byte[] data) {
+        synchronized (transferDataStream) {
+            long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
+            if (writtenDataCount == 0) {
+                // Store timestamp high
+                transferDataStream.write((byte) (0x80 | ((timestamp >> 7) & 0x3f)));
+                writtenDataCount++;
+            }
+            // timestamp low
+            transferDataStream.write((byte) (0x80 | (timestamp & 0x7f)));
+            writtenDataCount++;
+            try {
+                transferDataStream.write(data);
+                writtenDataCount += data.length;
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
     /**
      * Sends MIDI message to output device.
      *
      * @param byte1 the first byte
      */
     private void sendMidiMessage(int byte1) {
-        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
-        byte[] writeBuffer = new byte[] { (byte) (0x80 | ((timestamp >> 7) & 0x3f)), (byte) (0x80 | (timestamp & 0x7f)), (byte) byte1 };
-
-        transferData(writeBuffer);
+        storeTransferData(new byte[] { (byte) byte1 });
     }
 
     /**
@@ -59,15 +115,7 @@ public abstract class MidiOutputDevice {
      * @param byte2 the second byte
      */
     private void sendMidiMessage(int byte1, int byte2) {
-        byte[] writeBuffer = new byte[4];
-        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
-
-        writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
-        writeBuffer[1] = (byte) (0x80 | (timestamp & 0x7f));
-        writeBuffer[2] = (byte) byte1;
-        writeBuffer[3] = (byte) byte2;
-
-        transferData(writeBuffer);
+        storeTransferData(new byte[] { (byte) byte1, (byte) byte2 });
     }
 
     /**
@@ -78,16 +126,7 @@ public abstract class MidiOutputDevice {
      * @param byte3 the third byte
      */
     private void sendMidiMessage(int byte1, int byte2, int byte3) {
-        byte[] writeBuffer = new byte[5];
-        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
-
-        writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
-        writeBuffer[1] = (byte) (0x80 | (timestamp & 0x7f));
-        writeBuffer[2] = (byte) byte1;
-        writeBuffer[3] = (byte) byte2;
-        writeBuffer[4] = (byte) byte3;
-
-        transferData(writeBuffer);
+        storeTransferData(new byte[] { (byte) byte1, (byte) byte2, (byte) byte3 });
     }
 
     /**
@@ -124,6 +163,7 @@ public abstract class MidiOutputDevice {
             // timestamp MSB
             writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
 
+            // immediately transfer data
             transferData(writeBuffer);
 
             timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
