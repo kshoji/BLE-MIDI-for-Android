@@ -167,9 +167,11 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         // find MIDI Output device
         synchronized (midiOutputDevicesMap) {
-            Set<MidiOutputDevice> devices = midiOutputDevicesMap.get(gattDeviceAddress);
-            for (MidiOutputDevice device : devices) {
-                device.stop();
+            Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
+            if (midiOutputDevices != null) {
+                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                    midiOutputDevice.stop();
+                }
             }
             midiOutputDevicesMap.remove(gattDeviceAddress);
         }
