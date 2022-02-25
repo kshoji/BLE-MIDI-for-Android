@@ -39,7 +39,7 @@ group = 'jp.kshoji'
 uploadArchives {
     repositories.mavenDeployer {
         repository url: 'file://' + file('../library/repository').absolutePath
-        pom.version = '0.0.10'
+        pom.version = '0.0.11'
         pom.artifactId = 'ble-midi'
     }
 }
