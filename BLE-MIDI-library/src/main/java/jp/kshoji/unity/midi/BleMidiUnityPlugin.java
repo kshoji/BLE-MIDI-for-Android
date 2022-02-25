@@ -14,6 +14,7 @@ import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
 
 /**
  * BLE MIDI Plugin for Unity
@@ -379,6 +380,7 @@ public class BleMidiUnityPlugin {
         }
     }
 
+    private BleMidiPeripheralProvider bleMidiPeripheralProvider;
     private BleMidiCentralProvider bleMidiCentralProvider;
     HashMap<String, MidiOutputDevice> midiOutputDeviceMap = new HashMap<>();
 
@@ -410,6 +412,33 @@ public class BleMidiUnityPlugin {
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiOutputDeviceDetached", midiOutputDevice.getDeviceAddress());
             }
         });
+
+        bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
+        bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new OnMidiDeviceAttachedListener() {
+            @Override
+            public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiInputDeviceAttached", midiInputDevice.getDeviceAddress());
+            }
+
+            @Override
+            public void onMidiOutputDeviceAttached(@NonNull MidiOutputDevice midiOutputDevice) {
+                midiOutputDeviceMap.put(midiOutputDevice.getDeviceAddress(), midiOutputDevice);
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiOutputDeviceAttached", midiOutputDevice.getDeviceAddress());
+            }
+        });
+        bleMidiPeripheralProvider.setOnMidiDeviceDetachedListener(new OnMidiDeviceDetachedListener() {
+            @Override
+            public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiInputDeviceDetached", midiInputDevice.getDeviceAddress());
+            }
+
+            @Override
+            public void onMidiOutputDeviceDetached(@NonNull MidiOutputDevice midiOutputDevice) {
+                midiOutputDeviceMap.remove(midiOutputDevice.getDeviceAddress());
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiOutputDeviceDetached", midiOutputDevice.getDeviceAddress());
+            }
+        });
     }
 
     /**
@@ -427,6 +456,21 @@ public class BleMidiUnityPlugin {
         bleMidiCentralProvider.stopScanDevice();
     }
 
+    /**
+     * Starts advertising
+     */
+    public void startAdvertising()
+    {
+        bleMidiPeripheralProvider.startAdvertising();
+    }
+
+    /**
+     * Stops advertising
+     */
+    public void stopAdvertising()
+    {
+        bleMidiPeripheralProvider.stopAdvertising();
+    }
 
     /**
      * Obtains device name for deviceId
@@ -447,6 +491,10 @@ public class BleMidiUnityPlugin {
         if (bleMidiCentralProvider != null) {
             bleMidiCentralProvider.stopScanDevice();
             bleMidiCentralProvider.terminate();
+        }
+        if (bleMidiPeripheralProvider != null) {
+            bleMidiPeripheralProvider.stopAdvertising();
+            bleMidiPeripheralProvider.terminate();
         }
     }
 }
