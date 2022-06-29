@@ -134,17 +134,26 @@ public final class BleMidiParser {
             // checks timestamp value is always zero
             if (isTimestampAlwaysZero != null) {
                 if (isTimestampAlwaysZero) {
-                    if ((timestamp & 0x7f) != 0) {
+                    if (timestamp != 0) {
                         // timestamp comes with non-zero. prevent misdetection
                         isTimestampAlwaysZero = false;
+                        zeroTimestampCount = 0;
                         lastTimestampRecorded = 0;
                     } else {
                         // event fires immediately
                         return currentTimeMillis;
                     }
+                } else {
+                    if (timestamp == 0) {
+                        // recheck timestamp value on next time
+                        isTimestampAlwaysZero = null;
+                        zeroTimestampCount = 0;
+                        // event fires immediately
+                        return currentTimeMillis;
+                    }
                 }
             } else {
-                if ((timestamp & 0x7f) == 0) {
+                if (timestamp == 0) {
                     if (zeroTimestampCount >= 3) {
                         // decides timestamp is always zero
                         isTimestampAlwaysZero = true;
@@ -155,6 +164,8 @@ public final class BleMidiParser {
                     return currentTimeMillis;
                 } else {
                     isTimestampAlwaysZero = false;
+                    zeroTimestampCount = 0;
+                    lastTimestampRecorded = 0;
                 }
             }
 
