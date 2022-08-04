@@ -1,10 +1,10 @@
 language: android
 dist: trusty
-jdk: openjdk8
+jdk: openjdk11
 android:
   components:
     - build-tools-30.0.2
-    - android-29
+    - android-32
     - extra-android-m2repository
     - extra-google-m2repository
   licenses:
