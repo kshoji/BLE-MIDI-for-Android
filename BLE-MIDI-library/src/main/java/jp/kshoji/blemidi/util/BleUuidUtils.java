@@ -1,7 +1,8 @@
 package jp.kshoji.blemidi.util;
 
 import android.os.ParcelUuid;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 import java.util.UUID;
 

@@ -1,21 +1,30 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 32
 
     defaultConfig {
         minSdkVersion 18
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
         }
     }
 }
@@ -34,13 +43,22 @@ dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
 }
 
-apply plugin: 'maven'
-group = 'jp.kshoji'
-uploadArchives {
-    repositories.mavenDeployer {
-        repository url: 'file://' + file('../library/repository').absolutePath
-        pom.version = '0.0.11'
-        pom.artifactId = 'ble-midi'
+publishing {
+    publications {
+        release(MavenPublication) {
+            group = 'jp.kshoji'
+            artifactId = 'ble-midi'
+            version = '0.0.12-SNAPSHOT'
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url = "${project.rootDir}/library/repository"
+        }
     }
 }
-task install(dependsOn: uploadArchives)
