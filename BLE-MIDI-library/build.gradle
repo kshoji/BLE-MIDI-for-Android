@@ -8,6 +8,7 @@ android {
 
     defaultConfig {
         minSdkVersion 18
+        targetSdkVersion 32
     }
 
     compileOptions {
