@@ -8,5 +8,12 @@
     <string name="stop_scan">stop scan</string>
     <string name="start_advertise">start advertise</string>
     <string name="stop_advertise">stop advertise</string>
+    <string name="midi_input">MIDI Input</string>
+    <string name="midi_output">MIDI Output</string>
+    <string name="midi_device">MIDI Device :</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="midi_thru_in_to_out">MIDI Thru(In to Out) :</string>
+    <string name="thru_off">Thru OFF</string>
+    <string name="thru_on">Thru ON</string>
 
 </resources>

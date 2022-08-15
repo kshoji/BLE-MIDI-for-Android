@@ -18,7 +18,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:text="MIDI Device :"
+                android:text="@string/midi_device"
                 android:textAppearance="?android:attr/textAppearanceMedium" />
 
             <Spinner
@@ -33,7 +33,7 @@
                 android:id="@+id/disconnectButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Disconnect" />
+                android:text="@string/disconnect" />
         </LinearLayout>
 
         <LinearLayout
@@ -46,7 +46,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:text="MIDI Thru(In to Out) :"
+                android:text="@string/midi_thru_in_to_out"
                 android:textAppearance="?android:attr/textAppearanceMedium" />
 
             <ToggleButton
@@ -54,8 +54,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:textOff="Thru OFF"
-                android:textOn="Thru ON" />
+                android:textOff="@string/thru_off"
+                android:textOn="@string/thru_on" />
         </LinearLayout>
     </LinearLayout>
 
@@ -68,98 +68,111 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="0" />
+            android:tag="0"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonCis"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="1" />
+            android:tag="1"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonD"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="2" />
+            android:tag="2"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonDis"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="3" />
+            android:tag="3"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonE"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="4" />
+            android:tag="4"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonF"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="5" />
+            android:tag="5"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonFis"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="6" />
+            android:tag="6"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonG"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="7" />
+            android:tag="7"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonGis"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="8" />
+            android:tag="8"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonA"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="9" />
+            android:tag="9"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonAis"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="10" />
+            android:tag="10"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonB"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="11" />
+            android:tag="11"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/buttonC2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="12" />
+            android:tag="12"
+            style="?android:attr/buttonBarButtonStyle" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="MIDI Input"
+        android:text="@string/midi_input"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <ListView
@@ -175,7 +188,7 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="MIDI Output"
+        android:text="@string/midi_output"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <ListView

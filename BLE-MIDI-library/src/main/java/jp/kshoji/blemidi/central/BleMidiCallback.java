@@ -79,7 +79,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
     private volatile static Object gattDiscoverServicesLock = null;
     @Override
-    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) throws SecurityException {
         super.onConnectionStateChange(gatt, status, newState);
         // In this method, the `status` parameter shall be ignored.
         // so, look `newState` parameter only.
@@ -296,7 +296,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
      *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
      */
-    private void disconnectByDeviceAddress(@NonNull String deviceAddress) {
+    private void disconnectByDeviceAddress(@NonNull String deviceAddress) throws SecurityException {
         synchronized (deviceAddressGattMap) {
             List<BluetoothGatt> bluetoothGatts = deviceAddressGattMap.get(deviceAddress);
 
@@ -347,7 +347,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     /**
      * Terminates callback
      */
-    public void terminate() {
+    public void terminate() throws SecurityException {
         synchronized (deviceAddressGattMap) {
             for (List<BluetoothGatt> bluetoothGatts : deviceAddressGattMap.values()) {
                 if (bluetoothGatts != null) {
@@ -514,7 +514,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          * @param bluetoothGatt the gatt of device
          * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
          */
-        public InternalMidiInputDevice(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt) throws IllegalArgumentException {
+        public InternalMidiInputDevice(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt) throws IllegalArgumentException, SecurityException {
             super();
             this.bluetoothGatt = bluetoothGatt;
 
@@ -543,7 +543,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         /**
          * Configure the device as BLE Central
          */
-        public void configureAsCentralDevice() {
+        public void configureAsCentralDevice() throws SecurityException {
             bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
 
             List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
@@ -564,7 +564,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         @NonNull
         @Override
-        public String getDeviceName() {
+        public String getDeviceName() throws SecurityException {
             return bluetoothGatt.getDevice().getName();
         }
 
@@ -604,7 +604,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          * @param bluetoothGatt the gatt of device
          * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
          */
-        public InternalMidiOutputDevice(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt) throws IllegalArgumentException {
+        public InternalMidiOutputDevice(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt) throws IllegalArgumentException, SecurityException {
             super();
             this.bluetoothGatt = bluetoothGatt;
 
@@ -631,7 +631,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         }
 
         @Override
-        public void transferData(@NonNull byte[] writeBuffer) {
+        public void transferData(@NonNull byte[] writeBuffer) throws SecurityException {
             midiOutputCharacteristic.setValue(writeBuffer);
 
             try {
@@ -644,7 +644,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         @NonNull
         @Override
-        public String getDeviceName() {
+        public String getDeviceName() throws SecurityException {
             return bluetoothGatt.getDevice().getName();
         }
 

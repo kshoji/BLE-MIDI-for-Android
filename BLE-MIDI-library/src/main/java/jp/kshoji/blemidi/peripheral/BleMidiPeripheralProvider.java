@@ -141,7 +141,7 @@ public final class BleMidiPeripheralProvider {
     /**
      * Starts advertising
      */
-    public void startAdvertising() {
+    public void startAdvertising() throws SecurityException {
         // register Gatt service to Gatt server
         if (gattServer == null) {
             gattServer = bluetoothManager.openGattServer(context, gattServerCallback);
@@ -212,7 +212,7 @@ public final class BleMidiPeripheralProvider {
     /**
      * Stops advertising
      */
-    public void stopAdvertising() {
+    public void stopAdvertising() throws SecurityException {
         try {
             bluetoothLeAdvertiser.stopAdvertising(advertiseCallback);
         } catch (IllegalStateException ignored) {
@@ -257,7 +257,7 @@ public final class BleMidiPeripheralProvider {
      */
     private final BluetoothGattCallback disconnectCallback = new BluetoothGattCallback() {
         @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) throws SecurityException {
             super.onConnectionStateChange(gatt, status, newState);
             Log.d(Constants.TAG, "onConnectionStateChange status: " + status + ", newState: " + newState);
             // disconnect the device
@@ -272,7 +272,7 @@ public final class BleMidiPeripheralProvider {
      *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
      */
-    private void disconnectByDeviceAddress(@NonNull String deviceAddress) {
+    private void disconnectByDeviceAddress(@NonNull String deviceAddress) throws SecurityException {
         synchronized (bluetoothDevicesMap) {
             BluetoothDevice bluetoothDevice = bluetoothDevicesMap.get(deviceAddress);
             if (bluetoothDevice != null) {
@@ -285,7 +285,7 @@ public final class BleMidiPeripheralProvider {
     /**
      * Terminates provider
      */
-    public void terminate() {
+    public void terminate() throws SecurityException {
         stopAdvertising();
 
         synchronized (bluetoothDevicesMap) {
@@ -373,7 +373,7 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
+        public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) throws SecurityException {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
 
             UUID characteristicUuid = characteristic.getUuid();
@@ -398,7 +398,7 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) throws SecurityException {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value);
 
             if (BleUuidUtils.matches(characteristic.getUuid(), CHARACTERISTIC_BLE_MIDI)) {
@@ -416,7 +416,7 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+        public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) throws SecurityException {
             super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
 
             byte[] descriptorValue = descriptor.getValue();
@@ -430,7 +430,7 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
+        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) throws SecurityException {
             super.onDescriptorReadRequest(device, requestId, offset, descriptor);
 
             if (offset == 0) {
@@ -587,7 +587,7 @@ public final class BleMidiPeripheralProvider {
 
         @NonNull
         @Override
-        public String getDeviceName() {
+        public String getDeviceName() throws SecurityException {
             if (TextUtils.isEmpty(bluetoothDevice.getName())) {
                 return bluetoothDevice.getAddress();
             }
@@ -635,7 +635,7 @@ public final class BleMidiPeripheralProvider {
 
         @NonNull
         @Override
-        public String getDeviceName() {
+        public String getDeviceName() throws SecurityException {
             if (TextUtils.isEmpty(bluetoothDevice.getName())) {
                 return bluetoothDevice.getAddress();
             }
@@ -643,7 +643,7 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void transferData(@NonNull byte[] writeBuffer) {
+        public void transferData(@NonNull byte[] writeBuffer) throws SecurityException {
             midiOutputCharacteristic.setValue(writeBuffer);
 
             try {

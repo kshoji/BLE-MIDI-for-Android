@@ -31,13 +31,7 @@ public class BleUtils {
 
             final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 
-            final BluetoothAdapter bluetoothAdapter;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                bluetoothAdapter = bluetoothManager.getAdapter();
-            } else {
-                bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            }
-
+            final BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
             if (bluetoothAdapter != null) {
                 return true;
             }
@@ -81,13 +75,7 @@ public class BleUtils {
             return false;
         }
 
-        final BluetoothAdapter bluetoothAdapter;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            bluetoothAdapter = bluetoothManager.getAdapter();
-        } else {
-            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        }
-
+        final BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
         if (bluetoothAdapter == null) {
             return false;
         }

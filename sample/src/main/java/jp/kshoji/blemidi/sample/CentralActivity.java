@@ -90,14 +90,13 @@ public class CentralActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_toggle_scan:
-                if (isScanning) {
-                    bleMidiCentralProvider.stopScanDevice();
-                } else {
-                    startScanDeviceWithRequestingPermission(scanDuration);
-                }
-                return true;
+        if (item.getItemId() == R.id.action_toggle_scan) {
+            if (isScanning) {
+                bleMidiCentralProvider.stopScanDevice();
+            } else {
+                startScanDeviceWithRequestingPermission(scanDuration);
+            }
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -453,6 +452,7 @@ public class CentralActivity extends Activity {
                     case MotionEvent.ACTION_UP:
                         midiOutputDevice.sendMidiNoteOff(0, note, 127);
                         midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "NoteOff to: " + midiOutputDevice.getDeviceName() + ", note: " + note + ", velocity: 127"));
+                        v.performClick();
                         break;
                     default:
                         // do nothing.

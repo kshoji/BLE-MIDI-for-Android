@@ -22,8 +22,8 @@ import jp.kshoji.javax.sound.midi.ble.BleMidiSynthesizer;
  * @author K.Shoji
  */
 public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidiDeviceDetachedListener {
-    private static BleMidiPeripheralProvider peripheralProvider;
-    private static BleMidiCentralProvider centralProvider;
+    private BleMidiPeripheralProvider peripheralProvider;
+    private BleMidiCentralProvider centralProvider;
 
     private final Map<String, BleMidiDevice> midiDeviceMap = new HashMap<>();
     private final Map<String, BleMidiSynthesizer> midiSynthesizerMap = new HashMap<>();
@@ -44,12 +44,15 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
     public void initialize() {
         if (BleUtils.isBleSupported(context)) {
             if (BleUtils.isBlePeripheralSupported(context)) {
-                peripheralProvider = new BleMidiPeripheralProvider(context);
-
+                if (peripheralProvider == null) {
+                    peripheralProvider = new BleMidiPeripheralProvider(context);
+                }
                 peripheralProvider.setOnMidiDeviceAttachedListener(this);
             }
 
-            centralProvider = new BleMidiCentralProvider(context);
+            if (centralProvider == null) {
+                centralProvider = new BleMidiCentralProvider(context);
+            }
             centralProvider.setOnMidiDeviceAttachedListener(this);
         }
     }

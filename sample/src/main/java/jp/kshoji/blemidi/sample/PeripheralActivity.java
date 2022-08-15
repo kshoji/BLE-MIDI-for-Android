@@ -68,18 +68,17 @@ public class PeripheralActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_toggle_advertise:
-                if (isAdvertising) {
-                    bleMidiPeripheralProvider.stopAdvertising();
-                    isAdvertising = false;
-                    toggleAdvertiseMenu.setTitle(R.string.start_advertise);
-                } else {
-                    bleMidiPeripheralProvider.startAdvertising();
-                    isAdvertising = true;
-                    toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
-                }
-                return true;
+        if (item.getItemId() == R.id.action_toggle_advertise) {
+            if (isAdvertising) {
+                bleMidiPeripheralProvider.stopAdvertising();
+                isAdvertising = false;
+                toggleAdvertiseMenu.setTitle(R.string.start_advertise);
+            } else {
+                bleMidiPeripheralProvider.startAdvertising();
+                isAdvertising = true;
+                toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
+            }
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -415,6 +414,7 @@ public class PeripheralActivity extends Activity {
                     case MotionEvent.ACTION_UP:
                         midiOutputDevice.sendMidiNoteOff(0, note, 127);
                         midiOutputEventHandler.sendMessage(Message.obtain(midiOutputEventHandler, 0, "NoteOff to: " + midiOutputDevice.getDeviceName() + ", note: " + note + ", velocity: 127"));
+                        v.performClick();
                         break;
                     default:
                         // do nothing.
