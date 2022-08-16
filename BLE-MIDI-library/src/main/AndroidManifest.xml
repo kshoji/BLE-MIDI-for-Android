@@ -2,9 +2,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="jp.kshoji.blemidi">
 
-    <!-- specify minSdkVersion for lint tools -->
-    <uses-sdk android:minSdkVersion="18" tools:ignore="GradleOverrides" />
-
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
 
