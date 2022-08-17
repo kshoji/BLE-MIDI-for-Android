@@ -46,7 +46,7 @@ public final class BleMidiCentralProvider {
      */
     private final BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
-        public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) {
+        public void onLeScan(final BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord) throws SecurityException {
 
             if (bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_LE && bluetoothDevice.getType() != BluetoothDevice.DEVICE_TYPE_DUAL) {
                 return;
@@ -86,7 +86,7 @@ public final class BleMidiCentralProvider {
      * @param context the context
      */
     @SuppressLint("NewApi")
-    public BleMidiCentralProvider(@NonNull final Context context) throws UnsupportedOperationException {
+    public BleMidiCentralProvider(@NonNull final Context context) throws UnsupportedOperationException, SecurityException {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
@@ -107,7 +107,7 @@ public final class BleMidiCentralProvider {
             scanCallback = new ScanCallback() {
                 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
                 @Override
-                public void onScanResult(int callbackType, ScanResult result) {
+                public void onScanResult(int callbackType, ScanResult result) throws SecurityException {
                     super.onScanResult(callbackType, result);
 
                     if (callbackType == ScanSettings.CALLBACK_TYPE_ALL_MATCHES) {
@@ -121,7 +121,7 @@ public final class BleMidiCentralProvider {
                             if (context instanceof Activity) {
                                 ((Activity) context).runOnUiThread(new Runnable() {
                                     @Override
-                                    public void run() {
+                                    public void run() throws SecurityException {
                                         bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
                                     }
                                 });
@@ -131,7 +131,7 @@ public final class BleMidiCentralProvider {
                                 } else {
                                     handler.post(new Runnable() {
                                         @Override
-                                        public void run() {
+                                        public void run() throws SecurityException {
                                             bluetoothDevice.connectGatt(BleMidiCentralProvider.this.context, true, midiCallback);
                                         }
                                     });
@@ -171,7 +171,7 @@ public final class BleMidiCentralProvider {
      * @param timeoutInMilliSeconds 0 or negative value : no timeout
      */
     @SuppressLint({ "Deprecation", "NewApi" })
-    public void startScanDevice(int timeoutInMilliSeconds) {
+    public void startScanDevice(int timeoutInMilliSeconds) throws SecurityException {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
             List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
@@ -210,7 +210,7 @@ public final class BleMidiCentralProvider {
      * Stops to scan devices
      */
     @SuppressLint({ "Deprecation", "NewApi" })
-    public void stopScanDevice() {
+    public void stopScanDevice() throws SecurityException {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 final BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
