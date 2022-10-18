@@ -89,6 +89,11 @@ public class BleUtils {
     public static final int REQUEST_CODE_BLUETOOTH_ENABLE = 0xb1e;
 
     /**
+     * Request code for BLE MIDI device selection
+     */
+    public static final int SELECT_DEVICE_REQUEST_CODE = 0x5e1ec7;
+
+    /**
      * Enables bluetooth function.<br />
      * the Activity may implement the `onActivityResult` method with the request code `REQUEST_CODE_BLUETOOTH_ENABLE`.
      *

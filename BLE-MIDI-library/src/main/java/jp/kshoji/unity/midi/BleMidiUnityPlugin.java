@@ -3,11 +3,11 @@ package jp.kshoji.unity.midi;
 import java.util.HashMap;
 import java.util.Locale;
 import android.content.Context;
-import android.os.Build;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.unity3d.player.UnityPlayer;
+
 import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
@@ -479,6 +479,7 @@ public class BleMidiUnityPlugin {
 
     public void initialize(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
+        ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
@@ -523,6 +524,7 @@ public class BleMidiUnityPlugin {
         });
 
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
+        ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
         bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
