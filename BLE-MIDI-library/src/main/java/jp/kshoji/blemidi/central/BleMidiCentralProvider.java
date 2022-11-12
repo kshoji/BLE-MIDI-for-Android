@@ -17,6 +17,7 @@ import android.companion.AssociationRequest;
 import android.companion.CompanionDeviceManager;
 import android.content.Context;
 import android.content.IntentSender;
+import android.content.pm.FeatureInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
@@ -45,6 +46,7 @@ public final class BleMidiCentralProvider {
     private final Context context;
     private final Handler handler;
     private final BleMidiCallback midiCallback;
+    private boolean useCompanionDeviceSetup;
 
     /**
      * Callback for BLE device scanning
@@ -106,6 +108,24 @@ public final class BleMidiCentralProvider {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
+
+        try {
+            // Checks `android.software.companion_device_setup` feature specified at AndroidManifest.xml
+            FeatureInfo[] reqFeatures = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_CONFIGURATIONS).reqFeatures;
+            if (reqFeatures != null) {
+                for (FeatureInfo feature : reqFeatures) {
+                    if (feature == null) {
+                        continue;
+                    }
+                    if (PackageManager.FEATURE_COMPANION_DEVICE_SETUP.equals(feature.name)) {
+                        useCompanionDeviceSetup = true;
+                        break;
+                    }
+                }
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+
         bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
         if (bluetoothAdapter == null) {
             throw new UnsupportedOperationException("Bluetooth is not available.");
@@ -119,9 +139,7 @@ public final class BleMidiCentralProvider {
         this.midiCallback = new BleMidiCallback(context);
         this.handler = new Handler(context.getMainLooper());
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            scanCallback = null;
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             scanCallback = new ScanCallback() {
                 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
                 @Override
@@ -190,26 +208,39 @@ public final class BleMidiCentralProvider {
      */
     @SuppressLint({ "Deprecation", "NewApi" })
     public void startScanDevice(int timeoutInMilliSeconds) throws SecurityException {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
             final CompanionDeviceManager deviceManager = context.getSystemService(CompanionDeviceManager.class);
             final AssociationRequest associationRequest = BleMidiDeviceUtils.getBleMidiAssociationRequest(context);
             // TODO: use another associate API when SDK_INT >= VERSION_CODES.TIRAMISU
-            deviceManager.associate(associationRequest,
-                new CompanionDeviceManager.Callback() {
-                    @Override
-                    public void onDeviceFound(final IntentSender intentSender) {
-                        try {
-                            ((Activity)context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
-                        } catch (IntentSender.SendIntentException e) {
-                            Log.e(Constants.TAG, e.getMessage(), e);
-                        }
-                    }
+            try {
+                deviceManager.associate(associationRequest,
+                        new CompanionDeviceManager.Callback() {
+                            @Override
+                            public void onDeviceFound(final IntentSender intentSender) {
+                                try {
+                                    ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                                } catch (IntentSender.SendIntentException e) {
+                                    Log.e(Constants.TAG, e.getMessage(), e);
+                                }
+                            }
 
-                    @Override
-                    public void onFailure(final CharSequence error) {
-                        Log.e(Constants.TAG, "onFailure error: " + error);
-                    }
-                }, null);
+                            @Override
+                            public void onFailure(final CharSequence error) {
+                                Log.e(Constants.TAG, "onFailure error: " + error);
+                            }
+                        }, null);
+            } catch (IllegalStateException ignored) {
+                Log.e(Constants.TAG, ignored.getMessage(), ignored);
+                // Must declare uses-feature android.software.companion_device_setup in manifest to use this API
+                // fallback to use BluetoothLeScanner
+                useCompanionDeviceSetup = false;
+
+                BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
+                ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
+                bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
+                isScanning = true;
+            }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
             List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
@@ -251,7 +282,7 @@ public final class BleMidiCentralProvider {
     @SuppressLint({ "Deprecation", "NewApi" })
     public void stopScanDevice() throws SecurityException {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
                 // using CompanionDeviceManager, do nothing
                 return;
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

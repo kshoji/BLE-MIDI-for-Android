@@ -479,7 +479,9 @@ public class BleMidiUnityPlugin {
 
     public void initialize(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
-        ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+        if (UnityPlayer.currentActivity instanceof  BleMidiUnityPlayerActivity) {
+            ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+        }
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
@@ -524,7 +526,9 @@ public class BleMidiUnityPlugin {
         });
 
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
-        ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+        if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
+            ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+        }
         bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
