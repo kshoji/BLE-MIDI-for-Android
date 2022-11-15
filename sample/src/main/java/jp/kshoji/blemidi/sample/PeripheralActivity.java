@@ -1,13 +1,16 @@
 package jp.kshoji.blemidi.sample;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -66,6 +69,48 @@ public class PeripheralActivity extends Activity {
         return true;
     }
 
+    private static final int PERMISSION_REQUEST_ADVERTISE = 2;
+
+    private void startAdvertisingWithRequestingPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_ADVERTISE) ||
+                    shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT)) {
+                    requestPermissions(new String[]{Manifest.permission.BLUETOOTH_ADVERTISE, Manifest.permission.BLUETOOTH_CONNECT}, PERMISSION_REQUEST_ADVERTISE);
+                }
+                return;
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH)) {
+                    requestPermissions(new String[]{Manifest.permission.BLUETOOTH}, PERMISSION_REQUEST_ADVERTISE);
+                    return;
+                }
+            }
+        }
+
+        // already has permission
+        bleMidiPeripheralProvider.startAdvertising();
+        isAdvertising = true;
+        toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (requestCode == PERMISSION_REQUEST_ADVERTISE) {
+                if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED &&
+                    checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    bleMidiPeripheralProvider.startAdvertising();
+                    isAdvertising = true;
+                    toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
+                }
+            }
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_toggle_advertise) {
@@ -74,9 +119,7 @@ public class PeripheralActivity extends Activity {
                 isAdvertising = false;
                 toggleAdvertiseMenu.setTitle(R.string.start_advertise);
             } else {
-                bleMidiPeripheralProvider.startAdvertising();
-                isAdvertising = true;
-                toggleAdvertiseMenu.setTitle(R.string.stop_advertise);
+                startAdvertisingWithRequestingPermission();
             }
             return true;
         }

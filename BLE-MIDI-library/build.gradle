@@ -1,11 +1,11 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 32
+    compileSdkVersion 33
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 32
+        targetSdkVersion 33
     }
 
     compileOptions {
@@ -40,7 +40,7 @@ group = 'jp.kshoji'
 uploadArchives {
     repositories.mavenDeployer {
         repository url: 'file://' + file('../library/repository').absolutePath
-        pom.version = '0.0.12'
+        pom.version = '0.0.13'
         pom.artifactId = 'ble-midi'
     }
 }

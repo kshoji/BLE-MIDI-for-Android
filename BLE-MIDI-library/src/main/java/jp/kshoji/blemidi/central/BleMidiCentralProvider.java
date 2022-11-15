@@ -1,5 +1,7 @@
 package jp.kshoji.blemidi.central;
 
+import static jp.kshoji.blemidi.util.BleUtils.SELECT_DEVICE_REQUEST_CODE;
+
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -11,7 +13,11 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.companion.AssociationRequest;
+import android.companion.CompanionDeviceManager;
 import android.content.Context;
+import android.content.IntentSender;
+import android.content.pm.FeatureInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
@@ -40,6 +46,7 @@ public final class BleMidiCentralProvider {
     private final Context context;
     private final Handler handler;
     private final BleMidiCallback midiCallback;
+    private boolean useCompanionDeviceSetup;
 
     /**
      * Callback for BLE device scanning
@@ -54,6 +61,7 @@ public final class BleMidiCentralProvider {
 
             if (context instanceof Activity) {
                 ((Activity) context).runOnUiThread(new Runnable() {
+                    @SuppressLint("MissingPermission")
                     @Override
                     public void run() {
                         bluetoothDevice.connectGatt(context, true, midiCallback);
@@ -64,6 +72,7 @@ public final class BleMidiCentralProvider {
                     bluetoothDevice.connectGatt(context, true, midiCallback);
                 } else {
                     handler.post(new Runnable() {
+                        @SuppressLint("MissingPermission")
                         @Override
                         public void run() {
                             bluetoothDevice.connectGatt(context, true, midiCallback);
@@ -73,6 +82,15 @@ public final class BleMidiCentralProvider {
             }
         }
     };
+
+    /**
+     * Connect to Bluetooth LE device
+     * @param bluetoothDevice the BluetoothDevice
+     */
+    @SuppressLint("MissingPermission")
+    public void connectGatt(BluetoothDevice bluetoothDevice) {
+        bluetoothDevice.connectGatt(context, true, midiCallback);
+    }
 
     /**
      * Callback for BLE device scanning (for Lollipop or later)
@@ -90,6 +108,24 @@ public final class BleMidiCentralProvider {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
+
+        try {
+            // Checks `android.software.companion_device_setup` feature specified at AndroidManifest.xml
+            FeatureInfo[] reqFeatures = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_CONFIGURATIONS).reqFeatures;
+            if (reqFeatures != null) {
+                for (FeatureInfo feature : reqFeatures) {
+                    if (feature == null) {
+                        continue;
+                    }
+                    if (PackageManager.FEATURE_COMPANION_DEVICE_SETUP.equals(feature.name)) {
+                        useCompanionDeviceSetup = true;
+                        break;
+                    }
+                }
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+
         bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
         if (bluetoothAdapter == null) {
             throw new UnsupportedOperationException("Bluetooth is not available.");
@@ -172,16 +208,50 @@ public final class BleMidiCentralProvider {
      */
     @SuppressLint({ "Deprecation", "NewApi" })
     public void startScanDevice(int timeoutInMilliSeconds) throws SecurityException {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
+            final CompanionDeviceManager deviceManager = context.getSystemService(CompanionDeviceManager.class);
+            final AssociationRequest associationRequest = BleMidiDeviceUtils.getBleMidiAssociationRequest(context);
+            // TODO: use another associate API when SDK_INT >= VERSION_CODES.TIRAMISU
+            try {
+                deviceManager.associate(associationRequest,
+                        new CompanionDeviceManager.Callback() {
+                            @Override
+                            public void onDeviceFound(final IntentSender intentSender) {
+                                try {
+                                    ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                                } catch (IntentSender.SendIntentException e) {
+                                    Log.e(Constants.TAG, e.getMessage(), e);
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(final CharSequence error) {
+                                Log.e(Constants.TAG, "onFailure error: " + error);
+                            }
+                        }, null);
+            } catch (IllegalStateException ignored) {
+                Log.e(Constants.TAG, ignored.getMessage(), ignored);
+                // Must declare uses-feature android.software.companion_device_setup in manifest to use this API
+                // fallback to use BluetoothLeScanner
+                useCompanionDeviceSetup = false;
+
+                BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
+                ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
+                bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
+                isScanning = true;
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
             List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
             ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
             bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
+            isScanning = true;
         } else {
             bluetoothAdapter.startLeScan(leScanCallback);
+            isScanning = true;
         }
 
-        isScanning = true;
         if (onMidiScanStatusListener != null) {
             onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
         }
@@ -190,7 +260,7 @@ public final class BleMidiCentralProvider {
             handler.removeCallbacks(stopScanRunnable);
         }
 
-        if (timeoutInMilliSeconds > 0) {
+        if (isScanning && timeoutInMilliSeconds > 0) {
             stopScanRunnable = new Runnable() {
                 @Override
                 public void run() {
@@ -212,7 +282,10 @@ public final class BleMidiCentralProvider {
     @SuppressLint({ "Deprecation", "NewApi" })
     public void stopScanDevice() throws SecurityException {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
+                // using CompanionDeviceManager, do nothing
+                return;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 final BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
                 bluetoothLeScanner.flushPendingScanResults(scanCallback);
                 bluetoothLeScanner.stopScan(scanCallback);
