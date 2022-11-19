@@ -23,9 +23,12 @@ public class BleMidiUnityPlayerActivity extends UnityPlayerActivity {
 
         if (requestCode == BleUtils.SELECT_DEVICE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                Log.i(Constants.TAG, "onActivityResult SELECT_DEVICE_REQUEST_CODE && Activity.RESULT_OK");
                 try {
                     ScanResult scanResult = data.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE);
+                    Log.i(Constants.TAG, "get BluetoothDevice from CompanionDeviceManager, device: " + scanResult.getDevice());
                     bleMidiCentralProvider.connectGatt(scanResult.getDevice());
+                    Log.i(Constants.TAG, "scanResult.device connected.");
                 } catch (Throwable t) {
                     Log.d(Constants.TAG, t.getMessage(), t);
                 }

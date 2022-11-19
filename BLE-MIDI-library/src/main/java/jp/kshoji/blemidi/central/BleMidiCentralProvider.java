@@ -192,13 +192,18 @@ public final class BleMidiCentralProvider {
     public void startScanDevice(int timeoutInMilliSeconds) throws SecurityException {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             final CompanionDeviceManager deviceManager = context.getSystemService(CompanionDeviceManager.class);
+            Log.i(Constants.TAG, "CompanionDeviceManager: " + deviceManager);
             final AssociationRequest associationRequest = BleMidiDeviceUtils.getBleMidiAssociationRequest(context);
+            Log.i(Constants.TAG, "AssociationRequest created: " + associationRequest);
+            Log.i(Constants.TAG, "startScanDevice companionDeviceManager.associate calling..");
             // TODO: use another associate API when SDK_INT >= VERSION_CODES.TIRAMISU
             deviceManager.associate(associationRequest,
                 new CompanionDeviceManager.Callback() {
                     @Override
                     public void onDeviceFound(final IntentSender intentSender) {
+                        Log.i(Constants.TAG, "CompanionDeviceManager.onDeviceFound, sender: " + intentSender);
                         try {
+                            Log.i(Constants.TAG, "activity.startIntentSenderForResult calling..");
                             ((Activity)context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
                         } catch (IntentSender.SendIntentException e) {
                             Log.e(Constants.TAG, e.getMessage(), e);
