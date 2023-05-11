@@ -39,6 +39,12 @@ public abstract class MidiOutputDevice {
     @NonNull
     public abstract String getDeviceAddress();
 
+    /**
+     * Obtains buffer size
+     * @return buffer size
+     */
+    public abstract int getBufferSize();
+
     @NonNull
     @Override
     public final String toString() {
@@ -145,14 +151,15 @@ public abstract class MidiOutputDevice {
         // set first byte to timestamp LSB
         timestampAddedSystemExclusive[0] = (byte) (0x80 | (timestamp & 0x7f));
 
-        // split into 20 bytes. BLE can't send more than 20 bytes by default MTU.
-        byte[] writeBuffer = new byte[20];
-        for (int i = 0; i < timestampAddedSystemExclusive.length; i += 19) {
+        // split into bufferSize bytes. BLE can't send more than (bufferSize: MTU - 3) bytes.
+        int bufferSize = getBufferSize();
+        byte[] writeBuffer = new byte[bufferSize];
+        for (int i = 0; i < timestampAddedSystemExclusive.length; i += (bufferSize - 1)) {
             // Don't send 0xF7 timestamp LSB inside of SysEx(MIDI parser will fail) 0x7f -> 0x7e
             timestampAddedSystemExclusive[systemExclusive.length] = (byte) (0x80 | (timestamp & 0x7e));
 
-            if (i + 19 <= timestampAddedSystemExclusive.length) {
-                System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, 19);
+            if (i + (bufferSize - 1) <= timestampAddedSystemExclusive.length) {
+                System.arraycopy(timestampAddedSystemExclusive, i, writeBuffer, 1, (bufferSize - 1));
             } else {
                 // last message
                 writeBuffer = new byte[timestampAddedSystemExclusive.length - i + 1];

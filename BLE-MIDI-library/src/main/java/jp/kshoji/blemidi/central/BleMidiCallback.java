@@ -125,6 +125,12 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         final String gattDeviceAddress = gatt.getDevice().getAddress();
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            // request maximum MTU size
+            boolean result = gatt.requestMtu(517); // GATT_MAX_MTU_SIZE defined at `stack/include/gatt_api.h`
+            Log.d(Constants.TAG, "Central requestMtu address: " + gatt.getDevice().getAddress() + ", succeed: " + result);
+        }
+
         // find MIDI Input device
         synchronized (midiInputDevicesMap) {
             if (midiInputDevicesMap.containsKey(gattDeviceAddress)) {
@@ -240,10 +246,6 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                // default is 23: maximum data length is 20 bytes
-                // max is 512: maximum data length is 509 bytes
-                gatt.requestMtu(23); // default value
-
                 // Set the connection priority to high(for low latency)
                 gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
             }
@@ -263,6 +265,21 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 ((InternalMidiInputDevice)midiInputDevice).incomingData(characteristic.getValue());
             }
         }
+    }
+
+    @Override
+    public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
+        super.onMtuChanged(gatt, mtu, status);
+
+        synchronized (midiOutputDevicesMap) {
+            Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt.getDevice().getAddress());
+            if (midiOutputDevices != null) {
+                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                    ((InternalMidiOutputDevice) midiOutputDevice).setBufferSize(mtu < 23 ? 20 : mtu - 3);
+                }
+            }
+        }
+        Log.d(Constants.TAG, "Central onMtuChanged address: " + gatt.getDevice().getAddress() + ", mtu: " + mtu + ", status: " + status);
     }
 
     /**
@@ -596,6 +613,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     private static final class InternalMidiOutputDevice extends MidiOutputDevice {
         private final BluetoothGatt bluetoothGatt;
         private final BluetoothGattCharacteristic midiOutputCharacteristic;
+        private int bufferSize = 20;
 
         /**
          * Constructor for Central
@@ -656,6 +674,15 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         @NonNull
         public String getDeviceAddress() {
             return bluetoothGatt.getDevice().getAddress();
+        }
+
+        @Override
+        public int getBufferSize() {
+            return bufferSize;
+        }
+
+        public void setBufferSize(int bufferSize) {
+            this.bufferSize = bufferSize;
         }
     }
 }
