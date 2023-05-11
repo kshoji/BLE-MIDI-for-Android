@@ -99,6 +99,7 @@ public class BleUtils {
      *
      * @param activity the activity
      */
+    @SuppressLint("MissingPermission")
     public static void enableBluetooth(@NonNull final Activity activity) {
         activity.startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), REQUEST_CODE_BLUETOOTH_ENABLE);
     }
