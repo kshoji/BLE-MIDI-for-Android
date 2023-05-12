@@ -1,0 +1,136 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "jp.kshoji",
+    "module": "ble-midi",
+    "version": "0.0.13",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "7.3.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "jp.kshoji",
+          "module": "javax-sound-midi",
+          "version": {
+            "requires": "0.0.4"
+          },
+          "excludes": [
+            {
+              "group": "*",
+              "module": "*"
+            }
+          ],
+          "thirdPartyCompatibility": {
+            "artifactSelector": {
+              "name": "javax-sound-midi",
+              "type": "aar",
+              "extension": "aar"
+            }
+          }
+        },
+        {
+          "group": "com.android.support",
+          "module": "support-annotations",
+          "version": {
+            "requires": "28.0.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ble-midi-0.0.13.aar",
+          "url": "ble-midi-0.0.13.aar",
+          "size": 98204,
+          "sha512": "0c2e758098af2a3c73e24a0be140c0ce9134c4844aec622474099d3e65e872e99e505618a41d51efa08f047224d6d22d57ba024c34c5925b7af220f88e94a007",
+          "sha256": "4b4a1c3168da4a7df03850a020de4866fe9a9b8d294344eb924a0ef3d763ce5f",
+          "sha1": "e52c99fca98cd1bee7841d8566c747323de571eb",
+          "md5": "3c72f0ed2d3761d00e8b87f9d0b282c4"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "jp.kshoji",
+          "module": "javax-sound-midi",
+          "version": {
+            "requires": "0.0.4"
+          },
+          "excludes": [
+            {
+              "group": "*",
+              "module": "*"
+            }
+          ],
+          "thirdPartyCompatibility": {
+            "artifactSelector": {
+              "name": "javax-sound-midi",
+              "type": "aar",
+              "extension": "aar"
+            }
+          }
+        },
+        {
+          "group": "com.android.support",
+          "module": "support-annotations",
+          "version": {
+            "requires": "28.0.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ble-midi-0.0.13.aar",
+          "url": "ble-midi-0.0.13.aar",
+          "size": 98204,
+          "sha512": "0c2e758098af2a3c73e24a0be140c0ce9134c4844aec622474099d3e65e872e99e505618a41d51efa08f047224d6d22d57ba024c34c5925b7af220f88e94a007",
+          "sha256": "4b4a1c3168da4a7df03850a020de4866fe9a9b8d294344eb924a0ef3d763ce5f",
+          "sha1": "e52c99fca98cd1bee7841d8566c747323de571eb",
+          "md5": "3c72f0ed2d3761d00e8b87f9d0b282c4"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseSourcePublication",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "ble-midi-0.0.13-sources.jar",
+          "url": "ble-midi-0.0.13-sources.jar",
+          "size": 44128,
+          "sha512": "18ca12ac30d462e49f6b70b9701fa65a922f93c286638894cbcc79d739f444267e2171d1176eca5f28fe205602eef71bb3d1b183438873cf30c64472f1d702b6",
+          "sha256": "be6d61e4b730d49c8f13e38d8ece9dd9c4177dcca855f5b9a0eb9b6d944fed90",
+          "sha1": "290b6c38ad81c780c8e1b1c725d8d2999cb292f8",
+          "md5": "d01c2ca84a3814ac5950b3468211d3f0"
+        }
+      ]
+    }
+  ]
+}

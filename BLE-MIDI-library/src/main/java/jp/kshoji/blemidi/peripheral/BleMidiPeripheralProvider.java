@@ -330,6 +330,19 @@ public final class BleMidiPeripheralProvider {
     final BluetoothGattServerCallback gattServerCallback = new BluetoothGattServerCallback() {
 
         @Override
+        public void onMtuChanged(BluetoothDevice device, int mtu) {
+            super.onMtuChanged(device, mtu);
+
+            synchronized (midiOutputDevicesMap) {
+                MidiOutputDevice midiOutputDevice = midiOutputDevicesMap.get(device.getAddress());
+                if (midiOutputDevice != null) {
+                    ((InternalMidiOutputDevice)midiOutputDevice).setBufferSize(mtu < 23 ? 20 : mtu - 3);
+                }
+            }
+            Log.d(Constants.TAG, "Peripheral onMtuChanged address: " + device.getAddress() + ", mtu: " + mtu);
+        }
+
+        @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             super.onConnectionStateChange(device, status, newState);
 
@@ -618,6 +631,7 @@ public final class BleMidiPeripheralProvider {
         private final BluetoothGattServer bluetoothGattServer;
         private final BluetoothDevice bluetoothDevice;
         private final BluetoothGattCharacteristic midiOutputCharacteristic;
+        private int bufferSize = 20;
 
         /**
          * Constructor for Peripheral
@@ -660,6 +674,15 @@ public final class BleMidiPeripheralProvider {
          */
         public @NonNull String getDeviceAddress() {
             return bluetoothDevice.getAddress();
+        }
+
+        @Override
+        public int getBufferSize() {
+            return bufferSize;
+        }
+
+        public void setBufferSize(int bufferSize) {
+            this.bufferSize = bufferSize;
         }
     }
 }

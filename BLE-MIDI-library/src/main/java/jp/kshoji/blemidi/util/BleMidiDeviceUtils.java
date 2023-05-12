@@ -5,6 +5,8 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.le.ScanFilter;
+import android.companion.AssociationRequest;
+import android.companion.BluetoothLeDeviceFilter;
 import android.content.Context;
 import android.os.Build;
 import android.os.ParcelUuid;
@@ -113,5 +115,28 @@ public final class BleMidiDeviceUtils {
         }
 
         return scanFilters;
+    }
+
+    /**
+     * Obtains AssociationRequest for BLE MIDI
+     *
+     * @param context the context
+     * @return {@link AssociationRequest} for BLE MIDI devices.
+     */
+    @NonNull
+    @TargetApi(Build.VERSION_CODES.O)
+    public static AssociationRequest getBleMidiAssociationRequest(@NonNull final Context context) {
+        final AssociationRequest.Builder associationRequestBuilder = new AssociationRequest.Builder();
+
+        String[] uuidStringArray = context.getResources().getStringArray(R.array.uuidListForService);
+        for (String uuidString : uuidStringArray) {
+            associationRequestBuilder.addDeviceFilter(
+                new BluetoothLeDeviceFilter.Builder().setScanFilter(
+                    new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(uuidString)).build()
+                ).build()
+            );
+        }
+
+        return associationRequestBuilder.build();
     }
 }
