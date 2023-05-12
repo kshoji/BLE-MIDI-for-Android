@@ -49,7 +49,7 @@ publishing {
         release(MavenPublication) {
             group = 'jp.kshoji'
             artifactId = 'ble-midi'
-            version = '0.0.13'
+            version = '0.0.14'
 
             afterEvaluate {
                 from components.release
