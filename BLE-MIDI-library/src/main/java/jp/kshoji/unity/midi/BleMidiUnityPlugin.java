@@ -631,6 +631,52 @@ public class BleMidiUnityPlugin {
         return null;
     }
 
+    /**
+     * Obtains device vendor id for deviceId
+     * @param deviceId the device id
+     * @return device vendor id, or null
+     */
+    public String getVendorId(String deviceId) {
+        MidiOutputDevice outputDevice = midiOutputDeviceMap.get(deviceId);
+        if (outputDevice != null) {
+            if (!TextUtils.isEmpty(outputDevice.getManufacturer())) {
+                return outputDevice.getManufacturer();
+            }
+        }
+
+        MidiInputDevice inputDevice = midiInputDeviceMap.get(deviceId);
+        if (inputDevice != null) {
+            if (!TextUtils.isEmpty(inputDevice.getManufacturer())) {
+                return inputDevice.getManufacturer();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtains device product id for deviceId
+     * @param deviceId the device id
+     * @return device product id, or null
+     */
+    public String getProductId(String deviceId) {
+        MidiOutputDevice outputDevice = midiOutputDeviceMap.get(deviceId);
+        if (outputDevice != null) {
+            if (!TextUtils.isEmpty(outputDevice.getModel())) {
+                return outputDevice.getModel();
+            }
+        }
+
+        MidiInputDevice inputDevice = midiInputDeviceMap.get(deviceId);
+        if (inputDevice != null) {
+            if (!TextUtils.isEmpty(inputDevice.getModel())) {
+                return inputDevice.getModel();
+            }
+        }
+
+        return null;
+    }
+
     public void terminate() {
         if (bleMidiCentralProvider != null) {
             bleMidiCentralProvider.stopScanDevice();

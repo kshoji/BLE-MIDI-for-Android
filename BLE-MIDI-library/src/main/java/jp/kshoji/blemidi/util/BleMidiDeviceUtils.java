@@ -139,4 +139,73 @@ public final class BleMidiDeviceUtils {
 
         return associationRequestBuilder.build();
     }
+
+    /**
+     * Device Information Service Gatt Service
+     */
+    private static final ParcelUuid SERVICE_DEVICE_INFORMATION = BleUuidUtils.parcelFromShortValue(0x180A);
+
+    /**
+     * Obtains BluetoothGattService for Device Information
+     *
+     * @param bluetoothGatt the gatt of device
+     * @return null if no service found
+     */
+    @Nullable
+    public static BluetoothGattService getDeviceInformationService(@NonNull final BluetoothGatt bluetoothGatt) {
+        List<BluetoothGattService> services = bluetoothGatt.getServices();
+
+        for (BluetoothGattService service : services) {
+            if (BleUuidUtils.matches(service.getUuid(), SERVICE_DEVICE_INFORMATION.getUuid())) {
+                return service;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Device Information Service Gatt Characteristics
+     */
+    public static final UUID CHARACTERISTIC_MANUFACTURER_NAME = BleUuidUtils.fromShortValue(0x2A29);
+
+    public static final UUID CHARACTERISTIC_MODEL_NUMBER = BleUuidUtils.fromShortValue(0x2A24);
+
+    /**
+     * Obtains BluetoothGattCharacteristic for Device Information
+     *
+     * @param bluetoothGattService the gatt service of device
+     * @return null if no characteristic found
+     */
+    @Nullable
+    public static BluetoothGattCharacteristic getManufacturerCharacteristic(@NonNull final BluetoothGattService bluetoothGattService) {
+        List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
+
+        for (BluetoothGattCharacteristic characteristic : characteristics) {
+            if (BleUuidUtils.matches(characteristic.getUuid(), CHARACTERISTIC_MANUFACTURER_NAME)) {
+                return characteristic;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtains BluetoothGattCharacteristic for Device Information
+     *
+     * @param bluetoothGattService the gatt service of device
+     * @return null if no characteristic found
+     */
+    @Nullable
+    public static BluetoothGattCharacteristic getModelCharacteristic(@NonNull final BluetoothGattService bluetoothGattService) {
+        List<BluetoothGattCharacteristic> characteristics = bluetoothGattService.getCharacteristics();
+
+        for (BluetoothGattCharacteristic characteristic : characteristics) {
+            if (BleUuidUtils.matches(characteristic.getUuid(), CHARACTERISTIC_MODEL_NUMBER)) {
+                return characteristic;
+            }
+        }
+
+        return null;
+    }
 }

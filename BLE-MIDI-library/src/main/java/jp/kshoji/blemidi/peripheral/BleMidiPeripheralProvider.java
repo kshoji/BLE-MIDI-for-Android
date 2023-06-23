@@ -607,6 +607,20 @@ public final class BleMidiPeripheralProvider {
             return bluetoothDevice.getName();
         }
 
+        @NonNull
+        @Override
+        public String getManufacturer() {
+            // the manufacturer of running device
+            return Build.MANUFACTURER;
+        }
+
+        @NonNull
+        @Override
+        public String getModel() {
+            // the model of running device
+            return Build.MODEL;
+        }
+
         private void incomingData(@NonNull byte[] data) {
             midiParser.parse(data);
         }
@@ -654,6 +668,20 @@ public final class BleMidiPeripheralProvider {
                 return bluetoothDevice.getAddress();
             }
             return bluetoothDevice.getName();
+        }
+
+        @NonNull
+        @Override
+        public String getManufacturer() {
+            // the manufacturer of running device
+            return Build.MANUFACTURER;
+        }
+
+        @NonNull
+        @Override
+        public String getModel() {
+            // the model of running device
+            return Build.MODEL;
         }
 
         @Override

@@ -28,6 +28,22 @@ public abstract class MidiInputDevice {
     public abstract String getDeviceName();
 
     /**
+     * Obtains the manufacturer name
+     *
+     * @return manufacturer name
+     */
+    @NonNull
+    public abstract String getManufacturer();
+
+    /**
+     * Obtains the model name
+     *
+     * @return model name
+     */
+    @NonNull
+    public abstract String getModel();
+
+    /**
      * Obtains the device address
      *
      * @return device address
