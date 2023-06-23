@@ -466,6 +466,7 @@ public class BleMidiUnityPlugin {
     private BleMidiPeripheralProvider bleMidiPeripheralProvider;
     private BleMidiCentralProvider bleMidiCentralProvider;
     HashMap<String, MidiOutputDevice> midiOutputDeviceMap = new HashMap<>();
+    HashMap<String, MidiInputDevice> midiInputDeviceMap = new HashMap<>();
 
     OnBleMidiDeviceConnectionListener onMidiDeviceConnectionListener;
     OnBleMidiInputEventListener onMidiInputEventListener;
@@ -485,6 +486,7 @@ public class BleMidiUnityPlugin {
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.put(midiInputDevice.getDeviceAddress(), midiInputDevice);
                 midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceAttached(midiInputDevice.getDeviceAddress());
@@ -507,6 +509,7 @@ public class BleMidiUnityPlugin {
         bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener() {
             @Override
             public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.remove(midiInputDevice.getDeviceAddress());
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceDetached(midiInputDevice.getDeviceAddress());
                     return;
@@ -532,6 +535,7 @@ public class BleMidiUnityPlugin {
         bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.put(midiInputDevice.getDeviceAddress(), midiInputDevice);
                 midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceAttached(midiInputDevice.getDeviceAddress());
@@ -553,6 +557,7 @@ public class BleMidiUnityPlugin {
         bleMidiPeripheralProvider.setOnMidiDeviceDetachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener() {
             @Override
             public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.remove(midiInputDevice.getDeviceAddress());
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceDetached(midiInputDevice.getDeviceAddress());
                     return;
@@ -609,12 +614,20 @@ public class BleMidiUnityPlugin {
      * @return device name, product name, or null
      */
     public String getDeviceName(String deviceId) {
-        MidiOutputDevice device = midiOutputDeviceMap.get(deviceId);
-        if (device != null) {
-            if (!TextUtils.isEmpty(device.getDeviceName())) {
-                return device.getDeviceName();
+        MidiOutputDevice outputDevice = midiOutputDeviceMap.get(deviceId);
+        if (outputDevice != null) {
+            if (!TextUtils.isEmpty(outputDevice.getDeviceName())) {
+                return outputDevice.getDeviceName();
             }
         }
+
+        MidiInputDevice inputDevice = midiInputDeviceMap.get(deviceId);
+        if (inputDevice != null) {
+            if (!TextUtils.isEmpty(inputDevice.getDeviceName())) {
+                return inputDevice.getDeviceName();
+            }
+        }
+
         return null;
     }
 
