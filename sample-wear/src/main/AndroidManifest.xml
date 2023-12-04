@@ -1,6 +1,4 @@
-<manifest
-    package="jp.kshoji.blemidi.sample"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature android:name="android.hardware.type.watch"/>
     <uses-feature android:name="android.software.companion_device_setup" />
