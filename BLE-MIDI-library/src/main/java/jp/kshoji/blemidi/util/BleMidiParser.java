@@ -74,6 +74,9 @@ public final class BleMidiParser {
     private final EventDequeueRunnable eventDequeueRunnable;
     private final Thread eventDequeueThread;
 
+    private volatile boolean isRunning = false;
+    private volatile boolean isTerminated = false;
+
     /**
      * Constructor
      *
@@ -104,9 +107,40 @@ public final class BleMidiParser {
     /**
      * Stops the internal Thread
      */
-    public void stop() {
+    public void start() {
+        if (isTerminated) {
+            return;
+        }
+        isRunning = true;
         if (eventDequeueRunnable != null) {
-            eventDequeueRunnable.isRunning = false;
+            eventDequeueThread.interrupt();
+        }
+    }
+
+    /**
+     * Stops the internal Thread
+     */
+    public void stop() {
+        if (isTerminated) {
+            return;
+        }
+        isRunning = false;
+        if (eventDequeueRunnable != null) {
+            eventDequeueThread.interrupt();
+        }
+    }
+
+    /**
+     * Stops the internal Thread
+     */
+    public void terminate() {
+        if (isTerminated) {
+            return;
+        }
+        isTerminated = true;
+        isRunning = false;
+        if (eventDequeueRunnable != null) {
+            eventDequeueThread.interrupt();
         }
     }
 

@@ -41,6 +41,7 @@ public final class BleMidiCentralService extends AbstractBleMidiService {
     @Override
     protected void onStart() {
         midiProvider = new BleMidiCentralProvider(this);
+        midiProvider.setAutoStartInputDevice(true);
         midiProvider.setOnMidiDeviceAttachedListener(serviceMidiDeviceAttachedListener);
         midiProvider.setOnMidiDeviceDetachedListener(serviceMidiDeviceDetachedListener);
         midiProvider.startScanDevice(0);

@@ -480,6 +480,7 @@ public class BleMidiUnityPlugin {
 
     public void initialize(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
+        bleMidiCentralProvider.setAutoStartInputDevice(true);
         if (UnityPlayer.currentActivity instanceof  BleMidiUnityPlayerActivity) {
             ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
         }
@@ -529,6 +530,7 @@ public class BleMidiUnityPlugin {
         });
 
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
+        bleMidiPeripheralProvider.setAutoStartDevice(true);
         if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
             ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
         }

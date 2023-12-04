@@ -58,6 +58,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     private OnMidiDeviceDetachedListener midiDeviceDetachedListener;
 
     private boolean needsBonding = false;
+    private boolean autoStartDevice = true;
 
     /**
      * Constructor
@@ -175,8 +176,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     if (midiInputDevicesMap.containsKey(gattDeviceAddress)) {
                         Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gattDeviceAddress);
                         if (midiInputDevices != null) {
+                            // Already registered, stop and remove previous instances
                             for (MidiInputDevice midiInputDevice : midiInputDevices) {
-                                ((InternalMidiInputDevice) midiInputDevice).stop();
+                                midiInputDevice.terminate();
                                 midiInputDevice.setOnMidiInputEventListener(null);
                             }
                         }
@@ -208,14 +210,19 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                             midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
                         }
                     }
+
+                    if (autoStartDevice) {
+                        midiInputDevice.start();
+                    }
                 }
 
                 // find MIDI Output device
                 synchronized (midiOutputDevicesMap) {
                     Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gattDeviceAddress);
                     if (midiOutputDevices != null) {
+                        // Already registered, stop and remove previous instances
                         for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                            midiOutputDevice.stop();
+                            midiOutputDevice.terminate();
                         }
                     }
                     midiOutputDevicesMap.remove(gattDeviceAddress);
@@ -243,6 +250,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                         if (midiDeviceAttachedListener != null) {
                             midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
                         }
+                    }
+
+                    if (autoStartDevice) {
+                        midiOutputDevice.start();
                     }
                 }
 
@@ -407,7 +418,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 midiInputDevicesMap.remove(deviceAddress);
 
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
-                    ((InternalMidiInputDevice) midiInputDevice).stop();
+                    midiInputDevice.terminate();
                     midiInputDevice.setOnMidiInputEventListener(null);
 
                     if (midiDeviceDetachedListener != null) {
@@ -425,7 +436,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 midiOutputDevicesMap.remove(deviceAddress);
 
                 for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                    midiOutputDevice.stop();
+                    midiOutputDevice.terminate();
                     if (midiDeviceDetachedListener != null) {
                         midiDeviceDetachedListener.onMidiOutputDeviceDetached(midiOutputDevice);
                     }
@@ -454,7 +465,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         synchronized (midiInputDevicesMap) {
             for (Set<MidiInputDevice> midiInputDevices : midiInputDevicesMap.values()) {
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
-                    ((InternalMidiInputDevice) midiInputDevice).stop();
+                    midiInputDevice.terminate();
                     midiInputDevice.setOnMidiInputEventListener(null);
                 }
 
@@ -466,7 +477,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         synchronized (midiOutputDevicesMap) {
             for (Set<MidiOutputDevice> midiOutputDevices : midiOutputDevicesMap.values()) {
                 for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                    midiOutputDevice.stop();
+                    midiOutputDevice.terminate();
                 }
 
                 midiOutputDevices.clear();
@@ -490,6 +501,14 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public void setNeedsBonding(boolean needsBonding) {
         this.needsBonding = needsBonding;
+    }
+
+    /**
+     * Sets MidiInputDevice / MidiOutputDevice to start automatically at being connected
+     * @param enable true to enable, default: true
+     */
+    public void setAutoStartDevice(boolean enable) {
+        autoStartDevice = enable;
     }
 
     /**
@@ -630,11 +649,25 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
         }
 
+        @Override
+        public void start() {
+            midiParser.start();
+        }
+
         /**
          * Stops parser's thread
          */
-        void stop() {
+        @Override
+        public void stop() {
             midiParser.stop();
+        }
+
+        /**
+         * Terminates parser's thread
+         */
+        @Override
+        public void terminate() {
+            midiParser.terminate();
         }
 
         /**

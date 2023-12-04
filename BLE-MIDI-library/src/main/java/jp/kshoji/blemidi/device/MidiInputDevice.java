@@ -20,6 +20,21 @@ public abstract class MidiInputDevice {
     public abstract void setOnMidiInputEventListener(@Nullable OnMidiInputEventListener midiInputEventListener);
 
     /**
+     * Starts using the device
+     */
+    public abstract void start();
+
+    /**
+     * Stops using the device
+     */
+    public abstract void stop();
+
+    /**
+     * Terminates the device instance
+     */
+    public abstract void terminate();
+
+    /**
      * Obtains the device name
      *
      * @return device name

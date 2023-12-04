@@ -44,6 +44,7 @@ public final class BleMidiPeripheralService extends AbstractBleMidiService {
     @Override
     protected void onStart() {
         midiProvider = new BleMidiPeripheralProvider(this);
+        midiProvider.setAutoStartDevice(true);
         midiProvider.setOnMidiDeviceAttachedListener(serviceMidiDeviceAttachedListener);
         midiProvider.setOnMidiDeviceDetachedListener(serviceMidiDeviceDetachedListener);
     }

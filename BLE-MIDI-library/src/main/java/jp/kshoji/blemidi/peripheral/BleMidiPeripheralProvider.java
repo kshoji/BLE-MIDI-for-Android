@@ -87,6 +87,7 @@ public final class BleMidiPeripheralProvider {
 
     private OnMidiDeviceAttachedListener midiDeviceAttachedListener;
     private OnMidiDeviceDetachedListener midiDeviceDetachedListener;
+    private boolean autoStartDevice = true;
 
     private String manufacturer = "kshoji.jp";
     private String deviceName = "BLE MIDI";
@@ -487,6 +488,11 @@ public final class BleMidiPeripheralProvider {
             midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
             midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
         }
+
+        if (autoStartDevice) {
+            midiInputDevice.start();
+            midiOutputDevice.start();
+        }
     }
 
     /**
@@ -566,6 +572,14 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
+     * Sets MidiInputDevice to start automatically at being connected
+     * @param enable true to enable, default: true
+     */
+    public void setAutoStartDevice(boolean enable) {
+        autoStartDevice = enable;
+    }
+
+    /**
      * {@link jp.kshoji.blemidi.device.MidiInputDevice} for Peripheral
      *
      * @author K.Shoji
@@ -587,10 +601,27 @@ public final class BleMidiPeripheralProvider {
         }
 
         /**
+         * Starts parser's thread
+         */
+        @Override
+        public void start() {
+            midiParser.start();
+        }
+
+        /**
          * Stops parser's thread
          */
-        void stop() {
+        @Override
+        public void stop() {
             midiParser.stop();
+        }
+
+        /**
+         * Terminates parser's thread
+         */
+        @Override
+        public void terminate() {
+            midiParser.terminate();
         }
 
         @Override

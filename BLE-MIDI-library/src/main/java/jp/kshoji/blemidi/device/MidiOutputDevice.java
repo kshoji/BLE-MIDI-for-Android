@@ -68,23 +68,44 @@ public abstract class MidiOutputDevice {
     }
 
     volatile boolean transferDataThreadAlive;
+    volatile boolean isRunning;
     final Thread transferDataThread = new Thread(new Runnable() {
         @Override
         public void run() {
             transferDataThreadAlive = true;
 
-            while (transferDataThreadAlive) {
-                synchronized (transferDataStream) {
-                    if (writtenDataCount > 0) {
-                        transferData(transferDataStream.toByteArray());
-                        transferDataStream.reset();
-                        writtenDataCount = 0;
+            while (true) {
+                // running
+                while (!transferDataThreadAlive && isRunning) {
+                    synchronized (transferDataStream) {
+                        if (writtenDataCount > 0) {
+                            transferData(transferDataStream.toByteArray());
+                            transferDataStream.reset();
+                            writtenDataCount = 0;
+                        }
+                    }
+
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
                     }
                 }
 
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException ignored) {
+                if (!transferDataThreadAlive) {
+                    break;
+                }
+
+                // stopping
+                while (!transferDataThreadAlive && !isRunning) {
+                    // sleep until interrupt
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+
+                if (!transferDataThreadAlive) {
+                    break;
                 }
             }
         }
@@ -95,14 +116,42 @@ public abstract class MidiOutputDevice {
     }
 
     /**
-     * Stops transfer thread
+     * Starts using the device
      */
-    public void stop() {
+    public final void start() {
+        if (!transferDataThreadAlive) {
+            return;
+        }
+        isRunning = true;
+        transferDataThread.interrupt();
+    }
+
+    /**
+     * Stops using the device
+     */
+    public final void stop() {
+        if (!transferDataThreadAlive) {
+            return;
+        }
+        isRunning = false;
+        transferDataThread.interrupt();
+    }
+
+    /**
+     * Terminates the device instance
+     */
+    public final void terminate() {
         transferDataThreadAlive = false;
+        isRunning = false;
+        transferDataThread.interrupt();
     }
 
     transient int writtenDataCount;
     private void storeTransferData(byte[] data) {
+        if (!transferDataThreadAlive || !isRunning) {
+            return;
+        }
+
         synchronized (transferDataStream) {
             long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
             if (writtenDataCount == 0) {
