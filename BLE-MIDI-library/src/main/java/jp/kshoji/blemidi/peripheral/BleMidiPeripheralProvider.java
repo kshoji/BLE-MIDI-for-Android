@@ -21,7 +21,6 @@ import android.os.Build;
 import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 import android.util.Log;
 
 import java.nio.charset.StandardCharsets;
@@ -398,10 +397,12 @@ public final class BleMidiPeripheralProvider {
             } else {
                 switch (BleUuidUtils.toShortValue(characteristicUuid)) {
                     case MODEL_NUMBER:
-                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, deviceName.getBytes(StandardCharsets.UTF_8));
+                        // the running device's MODEL
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, Build.MODEL.substring(0, Math.min(Build.MODEL.length(), 20)).getBytes(StandardCharsets.UTF_8));
                         break;
                     case MANUFACTURER_NAME:
-                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, manufacturer.getBytes(StandardCharsets.UTF_8));
+                        // the running device's MANUFACTURER
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, Build.MANUFACTURER.substring(0, Math.min(Build.MANUFACTURER.length(), 20)).getBytes(StandardCharsets.UTF_8));
                         break;
                     default:
                         // send empty
@@ -632,24 +633,21 @@ public final class BleMidiPeripheralProvider {
         @NonNull
         @Override
         public String getDeviceName() throws SecurityException {
-            if (TextUtils.isEmpty(bluetoothDevice.getName())) {
-                return bluetoothDevice.getAddress();
-            }
-            return bluetoothDevice.getName();
+            return "";
         }
 
         @NonNull
         @Override
         public String getManufacturer() {
             // the manufacturer of running device
-            return Build.MANUFACTURER;
+            return "";
         }
 
         @NonNull
         @Override
         public String getModel() {
             // the model of running device
-            return Build.MODEL;
+            return "";
         }
 
         private void incomingData(@NonNull byte[] data) {
@@ -695,24 +693,21 @@ public final class BleMidiPeripheralProvider {
         @NonNull
         @Override
         public String getDeviceName() throws SecurityException {
-            if (TextUtils.isEmpty(bluetoothDevice.getName())) {
-                return bluetoothDevice.getAddress();
-            }
-            return bluetoothDevice.getName();
+            return "";
         }
 
         @NonNull
         @Override
         public String getManufacturer() {
             // the manufacturer of running device
-            return Build.MANUFACTURER;
+            return "";
         }
 
         @NonNull
         @Override
         public String getModel() {
             // the model of running device
-            return Build.MODEL;
+            return "";
         }
 
         @Override

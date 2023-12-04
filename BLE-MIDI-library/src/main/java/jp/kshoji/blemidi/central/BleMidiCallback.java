@@ -412,6 +412,14 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
         }
 
+        synchronized (deviceAddressManufacturerMap) {
+            deviceAddressManufacturerMap.remove(deviceAddress);
+        }
+
+        synchronized (deviceAddressModelMap) {
+            deviceAddressModelMap.remove(deviceAddress);
+        }
+
         synchronized (midiInputDevicesMap) {
             Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(deviceAddress);
             if (midiInputDevices != null) {
