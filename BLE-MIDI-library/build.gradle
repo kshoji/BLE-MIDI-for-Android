@@ -28,6 +28,7 @@ android {
             withSourcesJar()
         }
     }
+    namespace 'jp.kshoji.blemidi'
 }
 
 repositories {
