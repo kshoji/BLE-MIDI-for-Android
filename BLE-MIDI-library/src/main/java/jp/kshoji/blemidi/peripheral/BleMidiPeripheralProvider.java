@@ -360,7 +360,7 @@ public final class BleMidiPeripheralProvider {
                         if (midiInputDevice != null) {
                             midiInputDevicesMap.remove(deviceAddress);
 
-                            ((InternalMidiInputDevice) midiInputDevice).stop();
+                            midiInputDevice.terminate();
                             midiInputDevice.setOnMidiInputEventListener(null);
                             if (midiDeviceDetachedListener != null) {
                                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
