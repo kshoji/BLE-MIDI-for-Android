@@ -466,6 +466,7 @@ public class BleMidiUnityPlugin {
     private BleMidiPeripheralProvider bleMidiPeripheralProvider;
     private BleMidiCentralProvider bleMidiCentralProvider;
     HashMap<String, MidiOutputDevice> midiOutputDeviceMap = new HashMap<>();
+    HashMap<String, MidiInputDevice> midiInputDeviceMap = new HashMap<>();
 
     OnBleMidiDeviceConnectionListener onMidiDeviceConnectionListener;
     OnBleMidiInputEventListener onMidiInputEventListener;
@@ -479,12 +480,14 @@ public class BleMidiUnityPlugin {
 
     public void initialize(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
+        bleMidiCentralProvider.setAutoStartInputDevice(true);
         if (UnityPlayer.currentActivity instanceof  BleMidiUnityPlayerActivity) {
             ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
         }
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.put(midiInputDevice.getDeviceAddress(), midiInputDevice);
                 midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceAttached(midiInputDevice.getDeviceAddress());
@@ -507,6 +510,7 @@ public class BleMidiUnityPlugin {
         bleMidiCentralProvider.setOnMidiDeviceDetachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener() {
             @Override
             public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.remove(midiInputDevice.getDeviceAddress());
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceDetached(midiInputDevice.getDeviceAddress());
                     return;
@@ -526,12 +530,14 @@ public class BleMidiUnityPlugin {
         });
 
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
+        bleMidiPeripheralProvider.setAutoStartDevice(true);
         if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
             ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
         }
         bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.put(midiInputDevice.getDeviceAddress(), midiInputDevice);
                 midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceAttached(midiInputDevice.getDeviceAddress());
@@ -553,6 +559,7 @@ public class BleMidiUnityPlugin {
         bleMidiPeripheralProvider.setOnMidiDeviceDetachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener() {
             @Override
             public void onMidiInputDeviceDetached(@NonNull MidiInputDevice midiInputDevice) {
+                midiInputDeviceMap.remove(midiInputDevice.getDeviceAddress());
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceDetached(midiInputDevice.getDeviceAddress());
                     return;
@@ -609,12 +616,66 @@ public class BleMidiUnityPlugin {
      * @return device name, product name, or null
      */
     public String getDeviceName(String deviceId) {
-        MidiOutputDevice device = midiOutputDeviceMap.get(deviceId);
-        if (device != null) {
-            if (!TextUtils.isEmpty(device.getDeviceName())) {
-                return device.getDeviceName();
+        MidiOutputDevice outputDevice = midiOutputDeviceMap.get(deviceId);
+        if (outputDevice != null) {
+            if (!TextUtils.isEmpty(outputDevice.getDeviceName())) {
+                return outputDevice.getDeviceName();
             }
         }
+
+        MidiInputDevice inputDevice = midiInputDeviceMap.get(deviceId);
+        if (inputDevice != null) {
+            if (!TextUtils.isEmpty(inputDevice.getDeviceName())) {
+                return inputDevice.getDeviceName();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtains device vendor id for deviceId
+     * @param deviceId the device id
+     * @return device vendor id, or null
+     */
+    public String getVendorId(String deviceId) {
+        MidiOutputDevice outputDevice = midiOutputDeviceMap.get(deviceId);
+        if (outputDevice != null) {
+            if (!TextUtils.isEmpty(outputDevice.getManufacturer())) {
+                return outputDevice.getManufacturer();
+            }
+        }
+
+        MidiInputDevice inputDevice = midiInputDeviceMap.get(deviceId);
+        if (inputDevice != null) {
+            if (!TextUtils.isEmpty(inputDevice.getManufacturer())) {
+                return inputDevice.getManufacturer();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtains device product id for deviceId
+     * @param deviceId the device id
+     * @return device product id, or null
+     */
+    public String getProductId(String deviceId) {
+        MidiOutputDevice outputDevice = midiOutputDeviceMap.get(deviceId);
+        if (outputDevice != null) {
+            if (!TextUtils.isEmpty(outputDevice.getModel())) {
+                return outputDevice.getModel();
+            }
+        }
+
+        MidiInputDevice inputDevice = midiInputDeviceMap.get(deviceId);
+        if (inputDevice != null) {
+            if (!TextUtils.isEmpty(inputDevice.getModel())) {
+                return inputDevice.getModel();
+            }
+        }
+
         return null;
     }
 

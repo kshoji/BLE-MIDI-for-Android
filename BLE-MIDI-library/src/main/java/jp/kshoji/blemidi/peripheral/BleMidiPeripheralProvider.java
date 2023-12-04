@@ -21,7 +21,6 @@ import android.os.Build;
 import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 import android.util.Log;
 
 import java.nio.charset.StandardCharsets;
@@ -87,6 +86,7 @@ public final class BleMidiPeripheralProvider {
 
     private OnMidiDeviceAttachedListener midiDeviceAttachedListener;
     private OnMidiDeviceDetachedListener midiDeviceDetachedListener;
+    private boolean autoStartDevice = true;
 
     private String manufacturer = "kshoji.jp";
     private String deviceName = "BLE MIDI";
@@ -359,7 +359,7 @@ public final class BleMidiPeripheralProvider {
                         if (midiInputDevice != null) {
                             midiInputDevicesMap.remove(deviceAddress);
 
-                            ((InternalMidiInputDevice) midiInputDevice).stop();
+                            midiInputDevice.terminate();
                             midiInputDevice.setOnMidiInputEventListener(null);
                             if (midiDeviceDetachedListener != null) {
                                 midiDeviceDetachedListener.onMidiInputDeviceDetached(midiInputDevice);
@@ -397,10 +397,12 @@ public final class BleMidiPeripheralProvider {
             } else {
                 switch (BleUuidUtils.toShortValue(characteristicUuid)) {
                     case MODEL_NUMBER:
-                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, deviceName.getBytes(StandardCharsets.UTF_8));
+                        // the running device's MODEL
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, Build.MODEL.substring(0, Math.min(Build.MODEL.length(), 20)).getBytes(StandardCharsets.UTF_8));
                         break;
                     case MANUFACTURER_NAME:
-                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, manufacturer.getBytes(StandardCharsets.UTF_8));
+                        // the running device's MANUFACTURER
+                        gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, Build.MANUFACTURER.substring(0, Math.min(Build.MANUFACTURER.length(), 20)).getBytes(StandardCharsets.UTF_8));
                         break;
                     default:
                         // send empty
@@ -487,6 +489,11 @@ public final class BleMidiPeripheralProvider {
             midiDeviceAttachedListener.onMidiInputDeviceAttached(midiInputDevice);
             midiDeviceAttachedListener.onMidiOutputDeviceAttached(midiOutputDevice);
         }
+
+        if (autoStartDevice) {
+            midiInputDevice.start();
+            midiOutputDevice.start();
+        }
     }
 
     /**
@@ -566,6 +573,14 @@ public final class BleMidiPeripheralProvider {
     }
 
     /**
+     * Sets MidiInputDevice to start automatically at being connected
+     * @param enable true to enable, default: true
+     */
+    public void setAutoStartDevice(boolean enable) {
+        autoStartDevice = enable;
+    }
+
+    /**
      * {@link jp.kshoji.blemidi.device.MidiInputDevice} for Peripheral
      *
      * @author K.Shoji
@@ -587,10 +602,27 @@ public final class BleMidiPeripheralProvider {
         }
 
         /**
+         * Starts parser's thread
+         */
+        @Override
+        public void start() {
+            midiParser.start();
+        }
+
+        /**
          * Stops parser's thread
          */
-        void stop() {
+        @Override
+        public void stop() {
             midiParser.stop();
+        }
+
+        /**
+         * Terminates parser's thread
+         */
+        @Override
+        public void terminate() {
+            midiParser.terminate();
         }
 
         @Override
@@ -601,10 +633,19 @@ public final class BleMidiPeripheralProvider {
         @NonNull
         @Override
         public String getDeviceName() throws SecurityException {
-            if (TextUtils.isEmpty(bluetoothDevice.getName())) {
-                return bluetoothDevice.getAddress();
-            }
-            return bluetoothDevice.getName();
+            return "";
+        }
+
+        @NonNull
+        @Override
+        public String getManufacturer() {
+            return "";
+        }
+
+        @NonNull
+        @Override
+        public String getModel() {
+            return "";
         }
 
         private void incomingData(@NonNull byte[] data) {
@@ -650,10 +691,19 @@ public final class BleMidiPeripheralProvider {
         @NonNull
         @Override
         public String getDeviceName() throws SecurityException {
-            if (TextUtils.isEmpty(bluetoothDevice.getName())) {
-                return bluetoothDevice.getAddress();
-            }
-            return bluetoothDevice.getName();
+            return "";
+        }
+
+        @NonNull
+        @Override
+        public String getManufacturer() {
+            return "";
+        }
+
+        @NonNull
+        @Override
+        public String getModel() {
+            return "";
         }
 
         @Override

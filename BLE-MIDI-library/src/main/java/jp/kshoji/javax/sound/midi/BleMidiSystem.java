@@ -47,12 +47,14 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
                 if (peripheralProvider == null) {
                     peripheralProvider = new BleMidiPeripheralProvider(context);
                 }
+                peripheralProvider.setAutoStartDevice(true);
                 peripheralProvider.setOnMidiDeviceAttachedListener(this);
             }
 
             if (centralProvider == null) {
                 centralProvider = new BleMidiCentralProvider(context);
             }
+            centralProvider.setAutoStartInputDevice(true);
             centralProvider.setOnMidiDeviceAttachedListener(this);
         }
     }

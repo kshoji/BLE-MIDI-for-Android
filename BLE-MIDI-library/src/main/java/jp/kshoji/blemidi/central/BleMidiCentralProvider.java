@@ -185,6 +185,14 @@ public final class BleMidiCentralProvider {
     private volatile boolean isScanning = false;
 
     /**
+     * Sets MidiInputDevice to start automatically at being connected
+     * @param enable true to enable, default: true
+     */
+    public void setAutoStartInputDevice(boolean enable) {
+        midiCallback.setAutoStartDevice(enable);
+    }
+
+    /**
      * Set if the Bluetooth LE device need `Pairing` <br />
      * Pairing feature can be used on Android KitKat (API Level 19) or later.
      *

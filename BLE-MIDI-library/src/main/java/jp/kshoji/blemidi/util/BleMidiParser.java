@@ -74,6 +74,9 @@ public final class BleMidiParser {
     private final EventDequeueRunnable eventDequeueRunnable;
     private final Thread eventDequeueThread;
 
+    private volatile boolean isRunning = false;
+    private volatile boolean isTerminated = false;
+
     /**
      * Constructor
      *
@@ -104,9 +107,40 @@ public final class BleMidiParser {
     /**
      * Stops the internal Thread
      */
-    public void stop() {
+    public void start() {
+        if (isTerminated) {
+            return;
+        }
+        isRunning = true;
         if (eventDequeueRunnable != null) {
-            eventDequeueRunnable.isRunning = false;
+            eventDequeueThread.interrupt();
+        }
+    }
+
+    /**
+     * Stops the internal Thread
+     */
+    public void stop() {
+        if (isTerminated) {
+            return;
+        }
+        isRunning = false;
+        if (eventDequeueRunnable != null) {
+            eventDequeueThread.interrupt();
+        }
+    }
+
+    /**
+     * Stops the internal Thread
+     */
+    public void terminate() {
+        if (isTerminated) {
+            return;
+        }
+        isTerminated = true;
+        isRunning = false;
+        if (eventDequeueRunnable != null) {
+            eventDequeueThread.interrupt();
         }
     }
 
@@ -789,10 +823,12 @@ public final class BleMidiParser {
      * @param data incoming data
      */
     public synchronized void parse(@NonNull byte[] data) {
-        if (data.length > 1) {
-            int header = data[0] & 0xff;
-            for (int i = 1; i < data.length; i++) {
-                parseMidiEvent(header, data[i]);
+        if (!isTerminated && isRunning) {
+            if (data.length > 1) {
+                int header = data[0] & 0xff;
+                for (int i = 1; i < data.length; i++) {
+                    parseMidiEvent(header, data[i]);
+                }
             }
         }
     }
@@ -814,7 +850,6 @@ public final class BleMidiParser {
      * Runnable for MIDI event queueing
      */
     private class EventDequeueRunnable implements Runnable {
-        private volatile boolean isRunning = true;
         private final List<MidiEventWithTiming> dequeuedEvents = new ArrayList<>();
 
         private final Comparator<MidiEventWithTiming> midiTimerTaskComparator = new Comparator<MidiEventWithTiming>() {
@@ -871,42 +906,70 @@ public final class BleMidiParser {
 
         @Override
         public void run() {
-            while (isRunning) {
-                // deque events
-                dequeuedEvents.clear();
-                final long currentTime = System.currentTimeMillis();
-                synchronized (queuedEventList) {
-                    for (MidiEventWithTiming event : queuedEventList) {
-                        if (event.getTiming() <= currentTime) {
-                            // collect past events
-                            dequeuedEvents.add(event);
+            while (true) {
+                // running
+                while (!isTerminated && isRunning) {
+                    // deque events
+                    dequeuedEvents.clear();
+                    final long currentTime = System.currentTimeMillis();
+                    synchronized (queuedEventList) {
+                        for (MidiEventWithTiming event : queuedEventList) {
+                            if (event.getTiming() <= currentTime) {
+                                // collect past events
+                                dequeuedEvents.add(event);
+                            }
+                        }
+                        queuedEventList.removeAll(dequeuedEvents);
+                    }
+
+                    if (!dequeuedEvents.isEmpty()) {
+                        // sort event order
+                        Collections.sort(dequeuedEvents, midiTimerTaskComparator);
+
+                        // fire events
+                        for (MidiEventWithTiming event : dequeuedEvents) {
+                            event.run();
                         }
                     }
-                    queuedEventList.removeAll(dequeuedEvents);
-                }
 
-                if (!dequeuedEvents.isEmpty()) {
-                    // sort event order
-                    Collections.sort(dequeuedEvents, midiTimerTaskComparator);
-
-                    // fire events
-                    for (MidiEventWithTiming event : dequeuedEvents) {
-                        event.run();
+                    // sleep until interrupt
+                    try {
+                        boolean isEmpty;
+                        synchronized (queuedEventList) {
+                            isEmpty = queuedEventList.isEmpty();
+                        }
+                        if (isEmpty) {
+                            Thread.sleep(1000);
+                        } else {
+                            Thread.sleep(1);
+                        }
+                    } catch (InterruptedException ignored) {
                     }
                 }
 
-                // sleep until interrupt
-                try {
-                    boolean isEmpty;
-                    synchronized (queuedEventList) {
-                        isEmpty = queuedEventList.isEmpty();
+                if (isTerminated) {
+                    break;
+                }
+
+                // stopping
+                while (!isTerminated && !isRunning) {
+                    // sleep until interrupt
+                    try {
+                        boolean isEmpty;
+                        synchronized (queuedEventList) {
+                            isEmpty = queuedEventList.isEmpty();
+                        }
+                        if (isEmpty) {
+                            Thread.sleep(1000);
+                        } else {
+                            Thread.sleep(1);
+                        }
+                    } catch (InterruptedException ignored) {
                     }
-                    if (isEmpty) {
-                        Thread.sleep(1000);
-                    } else {
-                        Thread.sleep(1);
-                    }
-                } catch (InterruptedException ignored) {
+                }
+
+                if (isTerminated) {
+                    break;
                 }
             }
         }
