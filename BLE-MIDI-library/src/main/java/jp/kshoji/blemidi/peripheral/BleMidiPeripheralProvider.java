@@ -639,14 +639,12 @@ public final class BleMidiPeripheralProvider {
         @NonNull
         @Override
         public String getManufacturer() {
-            // the manufacturer of running device
             return "";
         }
 
         @NonNull
         @Override
         public String getModel() {
-            // the model of running device
             return "";
         }
 
@@ -699,14 +697,12 @@ public final class BleMidiPeripheralProvider {
         @NonNull
         @Override
         public String getManufacturer() {
-            // the manufacturer of running device
             return "";
         }
 
         @NonNull
         @Override
         public String getModel() {
-            // the model of running device
             return "";
         }
 
