@@ -10,7 +10,7 @@
   },
   "createdBy": {
     "gradle": {
-      "version": "7.3.3"
+      "version": "8.2"
     }
   },
   "variants": [
@@ -55,11 +55,11 @@
         {
           "name": "ble-midi-0.0.14.aar",
           "url": "ble-midi-0.0.14.aar",
-          "size": 104226,
-          "sha512": "fc192d15337894128a677d9bb4dd32f4e58bf4fbc3df0de8703c5b927ce0a2fb8f3e5186a8976c5096cf0bd040b8acf3c376a406ecfdc07182a18903a9f4ea81",
-          "sha256": "c23753274ce6b7c2cfaa594e6be3bb127582f80d50d2e03dccd416ab6f6aca90",
-          "sha1": "7c1b1a158f0772deebe2caeb17d131e03b01785f",
-          "md5": "32ca5b334d80debd927e8825e3e31d3b"
+          "size": 104758,
+          "sha512": "ae4045c277520c836d449e1dd73b287931796ee1ce481663a3bd085f7d86ad3f3a5dff217c791f96703667f06290ac50c5f39ff1e58cbaa495a28c695ac96205",
+          "sha256": "cf05262d602a9254d8a92df68076264dde25190a050aab2a32761bf38a9b7069",
+          "sha1": "0ee4344efdb755698fc25c22e05131eb146c74a5",
+          "md5": "4e723646c7560b1f83fd6d3ec6bd43f7"
         }
       ]
     },
@@ -104,11 +104,11 @@
         {
           "name": "ble-midi-0.0.14.aar",
           "url": "ble-midi-0.0.14.aar",
-          "size": 104226,
-          "sha512": "fc192d15337894128a677d9bb4dd32f4e58bf4fbc3df0de8703c5b927ce0a2fb8f3e5186a8976c5096cf0bd040b8acf3c376a406ecfdc07182a18903a9f4ea81",
-          "sha256": "c23753274ce6b7c2cfaa594e6be3bb127582f80d50d2e03dccd416ab6f6aca90",
-          "sha1": "7c1b1a158f0772deebe2caeb17d131e03b01785f",
-          "md5": "32ca5b334d80debd927e8825e3e31d3b"
+          "size": 104758,
+          "sha512": "ae4045c277520c836d449e1dd73b287931796ee1ce481663a3bd085f7d86ad3f3a5dff217c791f96703667f06290ac50c5f39ff1e58cbaa495a28c695ac96205",
+          "sha256": "cf05262d602a9254d8a92df68076264dde25190a050aab2a32761bf38a9b7069",
+          "sha1": "0ee4344efdb755698fc25c22e05131eb146c74a5",
+          "md5": "4e723646c7560b1f83fd6d3ec6bd43f7"
         }
       ]
     },
@@ -124,11 +124,11 @@
         {
           "name": "ble-midi-0.0.14-sources.jar",
           "url": "ble-midi-0.0.14-sources.jar",
-          "size": 45252,
-          "sha512": "3f80142da75865142117ac0608b8dd6b5e261f3fb630b35dac671bfdadedeaf65f1cfd5223670409f8144d35aa9e0fde8b77f695f2f1278aa8b018af080d328c",
-          "sha256": "d2135c0f57e016e4647fd9af37118f200cfe6e0e695d1eb5524d31588d2cdea3",
-          "sha1": "06e65dec5c79424b3dae7605751b63464e1c6aa7",
-          "md5": "98aba911b0723de853fd470e48633ff2"
+          "size": 45681,
+          "sha512": "ea5799213d37d5c8817ee77188a7432feceb5aa16b3d399662ff2ae96553a2b0029c5122371b4a3e2de1fa3715f5b4f02957e312d66af15c8b520a2fb2385f30",
+          "sha256": "a1bf7b7b81731312fd987c1bf27763b45e92d5a565ac23cd82c0d8da2f4809df",
+          "sha1": "81c6906577f48d4b90a351838814513affe83e7e",
+          "md5": "fa2e6f1ba919cc33d24db0ad9be45dbb"
         }
       ]
     }
