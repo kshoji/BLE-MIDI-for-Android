@@ -789,10 +789,13 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         @Override
         public void transferData(@NonNull byte[] writeBuffer) throws SecurityException {
-            midiOutputCharacteristic.setValue(writeBuffer);
-
             try {
-                bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic, writeBuffer, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+                } else {
+                    midiOutputCharacteristic.setValue(writeBuffer);
+                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
+                }
             } catch (Throwable ignored) {
                 // android.os.DeadObjectException will be thrown
                 // ignore it
