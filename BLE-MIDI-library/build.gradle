@@ -16,9 +16,17 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    defaultConfig {
+        consumerProguardFiles 'proguard-rules.pro'
+    }
+
     buildTypes {
-        release {
+        debug {
             minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
