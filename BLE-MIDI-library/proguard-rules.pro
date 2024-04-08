@@ -1,17 +1,29 @@
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in /Applications/Android Studio 0.8.app/sdk/tools/proguard/proguard-android.txt
-# You can edit the include path and order by changing the proguardFiles
-# directive in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+-keep public class jp.kshoji.blemidi.** {
+    public protected *;
+}
+-keep public class jp.kshoji.javax.sound.midi.** {
+    public protected *;
+}
+-keep public class jp.kshoji.unity.midi.** {
+    public protected *;
+}
 
-# Add any project specific keep options here:
+-keepparameternames
+-renamesourcefileattribute SourceFile
+-keepattributes Signature,Exceptions,*Annotation*,
+                InnerClasses,PermittedSubclasses,EnclosingMethod,
+                Deprecated,SourceFile,LineNumberTable
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+-keepclassmembers,allowoptimization enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
