@@ -76,7 +76,7 @@ public abstract class MidiOutputDevice {
 
             while (true) {
                 // running
-                while (!transferDataThreadAlive && isRunning) {
+                while (transferDataThreadAlive && isRunning) {
                     synchronized (transferDataStream) {
                         if (writtenDataCount > 0) {
                             transferData(transferDataStream.toByteArray());
@@ -167,6 +167,8 @@ public abstract class MidiOutputDevice {
                 writtenDataCount += data.length;
             } catch (IOException ignored) {
             }
+
+            transferDataThread.interrupt();
         }
     }
 
