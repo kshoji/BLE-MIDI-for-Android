@@ -12,6 +12,7 @@ import android.bluetooth.BluetoothGattServerCallback;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothStatusCodes;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
@@ -707,13 +708,18 @@ public final class BleMidiPeripheralProvider {
         }
 
         @Override
-        public void transferData(@NonNull byte[] writeBuffer) throws SecurityException {
-            midiOutputCharacteristic.setValue(writeBuffer);
-
+        public boolean transferData(@NonNull byte[] writeBuffer) throws SecurityException {
             try {
-                bluetoothGattServer.notifyCharacteristicChanged(bluetoothDevice, midiOutputCharacteristic, false);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    int result = bluetoothGattServer.notifyCharacteristicChanged(bluetoothDevice, midiOutputCharacteristic, false, writeBuffer);
+                    return result == BluetoothStatusCodes.SUCCESS;
+                } else {
+                    midiOutputCharacteristic.setValue(writeBuffer);
+                    return bluetoothGattServer.notifyCharacteristicChanged(bluetoothDevice, midiOutputCharacteristic, false);
+                }
             } catch (Throwable ignored) {
                 // ignore it
+                return false;
             }
         }
 
