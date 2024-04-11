@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothStatusCodes;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -806,17 +807,19 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         }
 
         @Override
-        public void transferData(@NonNull byte[] writeBuffer) throws SecurityException {
+        public boolean transferData(@NonNull byte[] writeBuffer) throws SecurityException {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic, writeBuffer, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+                    int result = bluetoothGatt.writeCharacteristic(midiOutputCharacteristic, writeBuffer, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+                    return result == BluetoothStatusCodes.SUCCESS;
                 } else {
                     midiOutputCharacteristic.setValue(writeBuffer);
-                    bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
+                    return bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
                 }
             } catch (Throwable ignored) {
                 // android.os.DeadObjectException will be thrown
                 // ignore it
+                return false;
             }
         }
 
