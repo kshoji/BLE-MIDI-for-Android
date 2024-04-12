@@ -20,8 +20,9 @@ public abstract class MidiOutputDevice {
      * Transfer data
      *
      * @param writeBuffer byte array to write
+     * @return true if transfer succeed
      */
-    protected abstract void transferData(@NonNull byte[] writeBuffer);
+    protected abstract boolean transferData(@NonNull byte[] writeBuffer);
 
     /**
      * Obtains the device name
@@ -79,14 +80,16 @@ public abstract class MidiOutputDevice {
                 while (transferDataThreadAlive && isRunning) {
                     synchronized (transferDataStream) {
                         if (writtenDataCount > 0) {
-                            transferData(transferDataStream.toByteArray());
-                            transferDataStream.reset();
-                            writtenDataCount = 0;
+                            if (transferData(transferDataStream.toByteArray())) {
+                                // reset the stream if transfer succeed
+                                transferDataStream.reset();
+                                writtenDataCount = 0;
+                            }
                         }
                     }
 
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(10); // BluetoothGatt.WRITE_CHARACTERISTIC_TIME_TO_WAIT
                     } catch (InterruptedException ignored) {
                     }
                 }
@@ -238,7 +241,16 @@ public abstract class MidiOutputDevice {
             writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
 
             // immediately transfer data
-            transferData(writeBuffer);
+            while (true) {
+                if (transferData(writeBuffer)) {
+                    break;
+                }
+
+                try {
+                    Thread.sleep(10); // BluetoothGatt.WRITE_CHARACTERISTIC_TIME_TO_WAIT
+                } catch (InterruptedException ignored) {
+                }
+            }
 
             timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
         }
