@@ -479,6 +479,18 @@ public class BleMidiUnityPlugin {
     }
 
     public void initialize(Context context) {
+        try {
+            initializeCentralProvider(context);
+        } catch (Exception ignored) {
+        }
+
+        try {
+            initializePeripheralProvider(context);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void initializeCentralProvider(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
         bleMidiCentralProvider.setAutoStartInputDevice(true);
         if (UnityPlayer.currentActivity instanceof  BleMidiUnityPlayerActivity) {
@@ -528,7 +540,9 @@ public class BleMidiUnityPlugin {
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "OnMidiOutputDeviceDetached", midiOutputDevice.getDeviceAddress());
             }
         });
+    }
 
+    private void initializePeripheralProvider(Context context) {
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
         bleMidiPeripheralProvider.setAutoStartDevice(true);
         if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
@@ -584,14 +598,18 @@ public class BleMidiUnityPlugin {
      * @param timeoutInMilliSeconds timeout in msec, 0 : no timeout
      */
     public void startScanDevice(int timeoutInMilliSeconds) {
-        bleMidiCentralProvider.startScanDevice(timeoutInMilliSeconds);
+        if (bleMidiCentralProvider != null) {
+            bleMidiCentralProvider.startScanDevice(timeoutInMilliSeconds);
+        }
     }
 
     /**
      * Stops scan device
      */
     public void stopScanDevice() {
-        bleMidiCentralProvider.stopScanDevice();
+        if (bleMidiCentralProvider != null) {
+            bleMidiCentralProvider.stopScanDevice();
+        }
     }
 
     /**
@@ -599,7 +617,9 @@ public class BleMidiUnityPlugin {
      */
     public void startAdvertising()
     {
-        bleMidiPeripheralProvider.startAdvertising();
+        if (bleMidiPeripheralProvider != null) {
+            bleMidiPeripheralProvider.startAdvertising();
+        }
     }
 
     /**
@@ -607,7 +627,9 @@ public class BleMidiUnityPlugin {
      */
     public void stopAdvertising()
     {
-        bleMidiPeripheralProvider.stopAdvertising();
+        if (bleMidiPeripheralProvider != null) {
+            bleMidiPeripheralProvider.stopAdvertising();
+        }
     }
 
     /**
