@@ -27,6 +27,7 @@ import android.util.Log;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
@@ -222,36 +223,49 @@ public final class BleMidiCentralProvider {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
             final CompanionDeviceManager deviceManager = context.getSystemService(CompanionDeviceManager.class);
             final AssociationRequest associationRequest = BleMidiDeviceUtils.getBleMidiAssociationRequest(context);
+            final CompanionDeviceManager.Callback associationCallback = new CompanionDeviceManager.Callback() {
+                @Override
+                public void onAssociationPending(@NonNull IntentSender intentSender) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        try {
+                            ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                        } catch (IntentSender.SendIntentException e) {
+                            Log.e(Constants.TAG, e.getMessage(), e);
+                        }
+                    } else {
+                        // calls onDeviceFound
+                        super.onAssociationPending(intentSender);
+                    }
+                }
+
+                @Override
+                public void onDeviceFound(final IntentSender intentSender) {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                        try {
+                            ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                        } catch (IntentSender.SendIntentException e) {
+                            Log.e(Constants.TAG, e.getMessage(), e);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(final CharSequence error) {
+                    Log.e(Constants.TAG, "onFailure error: " + error);
+                }
+            };
+
             try {
-                deviceManager.associate(associationRequest,
-                        new CompanionDeviceManager.Callback() {
-                            @Override
-                            public void onAssociationPending(@NonNull IntentSender intentSender) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    try {
-                                        ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
-                                    } catch (IntentSender.SendIntentException e) {
-                                        Log.e(Constants.TAG, e.getMessage(), e);
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public void onDeviceFound(final IntentSender intentSender) {
-                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                                    try {
-                                        ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
-                                    } catch (IntentSender.SendIntentException e) {
-                                        Log.e(Constants.TAG, e.getMessage(), e);
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public void onFailure(final CharSequence error) {
-                                Log.e(Constants.TAG, "onFailure error: " + error);
-                            }
-                        }, null);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    deviceManager.associate(associationRequest, new Executor() {
+                        @Override
+                        public void execute(Runnable command) {
+                            command.run();
+                        }
+                    }, associationCallback);
+                } else {
+                    deviceManager.associate(associationRequest, associationCallback, null);
+                }
             } catch (IllegalStateException ignored) {
                 Log.e(Constants.TAG, ignored.getMessage(), ignored);
                 // Must declare uses-feature android.software.companion_device_setup in manifest to use this API
