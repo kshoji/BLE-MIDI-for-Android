@@ -141,6 +141,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     public void run() {
                         // this calls onCharacteristicRead after completed
                         gatt.readCharacteristic(manufacturerCharacteristic);
+                        if (gattRequestQueue.size() > 0) {
+                            gattRequestQueue.remove(0).run();
+                        }
                     }
                 });
             }
@@ -152,6 +155,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     public void run() {
                         // this calls onCharacteristicRead after completed
                         gatt.readCharacteristic(modelCharacteristic);
+                        if (gattRequestQueue.size() > 0) {
+                            gattRequestQueue.remove(0).run();
+                        }
                     }
                 });
             }
@@ -161,7 +167,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             gattRequestQueue.add(new Runnable() {
                 @Override
                 public void run() {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // if the app is running on Meta/Oculus, don't set the mtu
+                    boolean isOculusDevices = "miramar".equals(Build.DEVICE) || "hollywood".equals(Build.DEVICE) || "eureka".equals(Build.DEVICE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isOculusDevices) {
                         // Android 14: the default MTU size set to 517
                         // https://developer.android.com/about/versions/14/behavior-changes-all#mtu-set-to-517
                         final int mtu = 517;
@@ -180,6 +188,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     } else {
                         // request maximum MTU size
                         // this calls onMtuChanged after completed
+                        // NOTE: Some devices already have MTU set to 517, so the `onMtuChanged` method is not called.
                         boolean result = gatt.requestMtu(517); // GATT_MAX_MTU_SIZE defined at `stack/include/gatt_api.h`
                         Log.d(Constants.TAG, "Central requestMtu address: " + gatt.getDevice().getAddress() + ", succeed: " + result);
                     }
