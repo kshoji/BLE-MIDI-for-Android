@@ -109,21 +109,24 @@ public final class BleMidiCentralProvider {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
 
-        try {
-            // Checks `android.software.companion_device_setup` feature specified at AndroidManifest.xml
-            FeatureInfo[] reqFeatures = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_CONFIGURATIONS).reqFeatures;
-            if (reqFeatures != null) {
-                for (FeatureInfo feature : reqFeatures) {
-                    if (feature == null) {
-                        continue;
-                    }
-                    if (PackageManager.FEATURE_COMPANION_DEVICE_SETUP.equals(feature.name)) {
-                        useCompanionDeviceSetup = true;
-                        break;
+        // if the context is not Activity, it can't use CompanionDeviceManager
+        if (context instanceof Activity) {
+            try {
+                // Checks `android.software.companion_device_setup` feature specified at AndroidManifest.xml
+                FeatureInfo[] reqFeatures = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_CONFIGURATIONS).reqFeatures;
+                if (reqFeatures != null) {
+                    for (FeatureInfo feature : reqFeatures) {
+                        if (feature == null) {
+                            continue;
+                        }
+                        if (PackageManager.FEATURE_COMPANION_DEVICE_SETUP.equals(feature.name)) {
+                            useCompanionDeviceSetup = true;
+                            break;
+                        }
                     }
                 }
+            } catch (PackageManager.NameNotFoundException ignored) {
             }
-        } catch (PackageManager.NameNotFoundException ignored) {
         }
 
         bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
@@ -219,16 +222,28 @@ public final class BleMidiCentralProvider {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
             final CompanionDeviceManager deviceManager = context.getSystemService(CompanionDeviceManager.class);
             final AssociationRequest associationRequest = BleMidiDeviceUtils.getBleMidiAssociationRequest(context);
-            // TODO: use another associate API when SDK_INT >= VERSION_CODES.TIRAMISU
             try {
                 deviceManager.associate(associationRequest,
                         new CompanionDeviceManager.Callback() {
                             @Override
+                            public void onAssociationPending(@NonNull IntentSender intentSender) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    try {
+                                        ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                                    } catch (IntentSender.SendIntentException e) {
+                                        Log.e(Constants.TAG, e.getMessage(), e);
+                                    }
+                                }
+                            }
+
+                            @Override
                             public void onDeviceFound(final IntentSender intentSender) {
-                                try {
-                                    ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
-                                } catch (IntentSender.SendIntentException e) {
-                                    Log.e(Constants.TAG, e.getMessage(), e);
+                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                                    try {
+                                        ((Activity) context).startIntentSenderForResult(intentSender, SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                                    } catch (IntentSender.SendIntentException e) {
+                                        Log.e(Constants.TAG, e.getMessage(), e);
+                                    }
                                 }
                             }
 

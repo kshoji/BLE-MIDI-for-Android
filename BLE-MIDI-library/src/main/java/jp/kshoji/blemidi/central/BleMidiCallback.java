@@ -329,13 +329,25 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     }
 
     @Override
-    public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-        super.onCharacteristicChanged(gatt, characteristic);
+    public void onCharacteristicChanged(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
+            if (midiInputDevices != null) {
+                for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                    ((InternalMidiInputDevice) midiInputDevice).incomingData(value);
+                }
+            }
+        }
+    }
 
-        Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
-        if (midiInputDevices != null) {
-            for (MidiInputDevice midiInputDevice : midiInputDevices) {
-                ((InternalMidiInputDevice)midiInputDevice).incomingData(characteristic.getValue());
+    @Override
+    public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
+            if (midiInputDevices != null) {
+                for (MidiInputDevice midiInputDevice : midiInputDevices) {
+                    ((InternalMidiInputDevice) midiInputDevice).incomingData(characteristic.getValue());
+                }
             }
         }
     }
@@ -706,8 +718,12 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             List<BluetoothGattDescriptor> descriptors = midiInputCharacteristic.getDescriptors();
             for (BluetoothGattDescriptor descriptor : descriptors) {
                 if (BleUuidUtils.matches(BleUuidUtils.fromShortValue(0x2902), descriptor.getUuid())) {
-                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                    bluetoothGatt.writeDescriptor(descriptor);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        bluetoothGatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    } else {
+                        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                        bluetoothGatt.writeDescriptor(descriptor);
+                    }
                 }
             }
 

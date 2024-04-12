@@ -91,7 +91,7 @@ public class BleUtils {
     /**
      * Request code for BLE MIDI device selection
      */
-    public static final int SELECT_DEVICE_REQUEST_CODE = 0x5e1ec7;
+    public static final int SELECT_DEVICE_REQUEST_CODE = 0x5e1e;
 
     /**
      * Enables bluetooth function.<br />
