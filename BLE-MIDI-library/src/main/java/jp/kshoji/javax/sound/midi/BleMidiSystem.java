@@ -184,6 +184,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
                 try {
                     existingSynthesizer.setReceiver(addedDevice.getReceiver());
                 } catch (final MidiUnavailableException ignored) {
+                    existingSynthesizer.setReceiver(null);
                 }
             }
         }
