@@ -1,4 +1,7 @@
 jdk:
   - openjdk11
 install:
+  - ls -la $HOME/.m2/repository/
+  - cp -Rf ./BLE-MIDI-library/library/repository/ $HOME/.m2/
+  - ls -la $HOME/.m2/repository/
   - ./gradlew -Pgroup=com.github.kshoji BLE-MIDI-library:publishToMavenLocal
