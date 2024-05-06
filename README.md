@@ -1,6 +1,5 @@
 BLE MIDI for Android
 ====================
-[![Build Status](https://travis-ci.com/kshoji/BLE-MIDI-for-Android.svg?branch=develop)](https://travis-ci.com/kshoji/BLE-MIDI-for-Android)
 
 MIDI over Bluetooth LE library for Android `API Level 18`(4.3, JellyBean) or later
 

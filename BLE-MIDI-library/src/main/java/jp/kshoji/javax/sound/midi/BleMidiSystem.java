@@ -17,7 +17,7 @@ import jp.kshoji.javax.sound.midi.ble.BleMidiDevice;
 import jp.kshoji.javax.sound.midi.ble.BleMidiSynthesizer;
 
 /**
- * {@link jp.kshoji.javax.sound.midi.MidiSystem} initializer for BLE MIDI
+ * {@link jp.kshoji.javax.sound.midi.MidiSystem} for BLE MIDI
  *
  * @author K.Shoji
  */
@@ -35,7 +35,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
      * @param context the context
      */
     public BleMidiSystem(@NonNull final Context context) {
-        this.context = context.getApplicationContext();
+        this.context = context;
     }
 
     /**
@@ -79,9 +79,18 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
         synchronized (midiDeviceMap) {
             for (final BleMidiDevice bleMidiDevice : midiDeviceMap.values()) {
                 bleMidiDevice.close();
+                MidiSystem.removeMidiDevice(bleMidiDevice);
             }
 
             midiDeviceMap.clear();
+        }
+
+        synchronized (midiSynthesizerMap) {
+            for (final BleMidiSynthesizer bleMidiSynthesizer : midiSynthesizerMap.values()) {
+                bleMidiSynthesizer.close();
+                MidiSystem.removeSynthesizer(bleMidiSynthesizer);
+            }
+            midiSynthesizerMap.clear();
         }
     }
 
@@ -175,6 +184,7 @@ public final class BleMidiSystem implements OnMidiDeviceAttachedListener, OnMidi
                 try {
                     existingSynthesizer.setReceiver(addedDevice.getReceiver());
                 } catch (final MidiUnavailableException ignored) {
+                    existingSynthesizer.setReceiver(null);
                 }
             }
         }
