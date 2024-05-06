@@ -1,4 +1,5 @@
 jdk:
   - openjdk8
-before_install:
+install:
   - cd BLE-MIDI-library
+  - ../gradlew -Pgroup=com.github.kshoji -Pversion=feature~jitpack-20240506-v0.0.17-gcce0f37-4 publishToMavenLocal
