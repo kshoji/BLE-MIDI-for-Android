@@ -47,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    api 'jp.kshoji:javax-sound-midi:0.0.5:@aar'
+    api 'jp.kshoji:javax-sound-midi:0.0.6:@aar'
     api 'com.android.support:support-annotations:28.0.0'
     compileOnly project(':UnityPlayerMock')
     api fileTree(dir: 'libs', include: ['*.jar'])
@@ -58,7 +58,7 @@ publishing {
         release(MavenPublication) {
             group = 'jp.kshoji'
             artifactId = 'ble-midi'
-            version = '0.0.17'
+            version = '0.0.18'
 
             afterEvaluate {
                 from components.release
