@@ -1,5 +1,6 @@
 BLE MIDI for Android
 ====================
+[![Build Status](https://jitpack.io/v/kshoji/BLE-MIDI-for-Android.svg)](https://jitpack.io/#kshoji/BLE-MIDI-for-Android)
 
 MIDI over Bluetooth LE library for Android `API Level 18`(4.3, JellyBean) or later
 
