@@ -1,6 +1,8 @@
 jdk:
   - openjdk8
 install:
+  - pwd
+  - ls -la
   - cd BLE-MIDI-library
   - ../gradlew tasks --all
   - ../gradlew -Pgroup=com.github.kshoji publishToMavenLocal
