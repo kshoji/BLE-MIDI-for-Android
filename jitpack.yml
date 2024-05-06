@@ -1,7 +1,7 @@
 jdk:
-  - openjdk11
+  - openjdk17
+before_install:
+  - sdk install java 17.0.2-open
+  - sdk use java 17.0.2-open
 install:
-  - ls -la $HOME/.m2/repository/
-  - cp -Rf ./BLE-MIDI-library/library/repository/ $HOME/.m2/
-  - ls -la $HOME/.m2/repository/
   - ./gradlew -Pgroup=com.github.kshoji BLE-MIDI-library:publishToMavenLocal
