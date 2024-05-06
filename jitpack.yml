@@ -1,4 +1,4 @@
 jdk:
-  - openjdk8
+  - openjdk11
 install:
   - ./gradlew -Pgroup=com.github.kshoji BLE-MIDI-library:publishToMavenLocal
