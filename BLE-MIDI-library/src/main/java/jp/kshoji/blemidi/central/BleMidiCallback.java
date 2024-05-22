@@ -141,9 +141,6 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     public void run() {
                         // this calls onCharacteristicRead after completed
                         gatt.readCharacteristic(manufacturerCharacteristic);
-                        if (gattRequestQueue.size() > 0) {
-                            gattRequestQueue.remove(0).run();
-                        }
                     }
                 });
             }
@@ -155,9 +152,6 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     public void run() {
                         // this calls onCharacteristicRead after completed
                         gatt.readCharacteristic(modelCharacteristic);
-                        if (gattRequestQueue.size() > 0) {
-                            gattRequestQueue.remove(0).run();
-                        }
                     }
                 });
             }
