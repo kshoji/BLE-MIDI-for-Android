@@ -106,7 +106,7 @@ public final class BleMidiCentralProvider {
      */
     @SuppressLint("NewApi")
     public BleMidiCentralProvider(@NonNull final Context context) throws UnsupportedOperationException, SecurityException {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) == false) {
+        if (!context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             throw new UnsupportedOperationException("Bluetooth LE not supported on this device.");
         }
 
@@ -130,12 +130,16 @@ public final class BleMidiCentralProvider {
             }
         }
 
-        bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
+        final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        if (bluetoothManager == null) {
+            throw new UnsupportedOperationException("Bluetooth is not available.");
+        }
+        bluetoothAdapter = bluetoothManager.getAdapter();
         if (bluetoothAdapter == null) {
             throw new UnsupportedOperationException("Bluetooth is not available.");
         }
 
-        if (bluetoothAdapter.isEnabled() == false) {
+        if (!bluetoothAdapter.isEnabled()) {
             throw new UnsupportedOperationException("Bluetooth is disabled.");
         }
 
@@ -222,6 +226,12 @@ public final class BleMidiCentralProvider {
     public void startScanDevice(int timeoutInMilliSeconds) throws SecurityException {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && useCompanionDeviceSetup) {
             final CompanionDeviceManager deviceManager = context.getSystemService(CompanionDeviceManager.class);
+            if (deviceManager == null) {
+                // CompanionDeviceManager is not available, fallback to BluetoothLeScanner
+                useCompanionDeviceSetup = false;
+                startScanDevice(timeoutInMilliSeconds);
+                return;
+            }
             final AssociationRequest associationRequest = BleMidiDeviceUtils.getBleMidiAssociationRequest(context);
             final CompanionDeviceManager.Callback associationCallback = new CompanionDeviceManager.Callback() {
                 @Override
@@ -273,6 +283,13 @@ public final class BleMidiCentralProvider {
                 useCompanionDeviceSetup = false;
 
                 BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                if (bluetoothLeScanner == null) {
+                    isScanning = false;
+                    if (onMidiScanStatusListener != null) {
+                        onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+                    }
+                    return;
+                }
                 List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
                 ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
                 bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
@@ -280,6 +297,13 @@ public final class BleMidiCentralProvider {
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+            if (bluetoothLeScanner == null) {
+                isScanning = false;
+                if (onMidiScanStatusListener != null) {
+                    onMidiScanStatusListener.onMidiScanStatusChanged(isScanning);
+                }
+                return;
+            }
             List<ScanFilter> scanFilters = BleMidiDeviceUtils.getBleMidiScanFilters(context);
             ScanSettings scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
             bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback);
@@ -324,13 +348,15 @@ public final class BleMidiCentralProvider {
                 return;
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 final BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-                bluetoothLeScanner.flushPendingScanResults(scanCallback);
-                bluetoothLeScanner.stopScan(scanCallback);
+                if (bluetoothLeScanner != null) {
+                    bluetoothLeScanner.flushPendingScanResults(scanCallback);
+                    bluetoothLeScanner.stopScan(scanCallback);
+                }
             } else {
                 bluetoothAdapter.stopLeScan(leScanCallback);
             }
         } catch (Throwable ignored) {
-            // NullPointerException on Bluetooth is OFF
+            // Exceptions on Bluetooth is OFF are ignored
         }
 
         if (stopScanRunnable != null) {

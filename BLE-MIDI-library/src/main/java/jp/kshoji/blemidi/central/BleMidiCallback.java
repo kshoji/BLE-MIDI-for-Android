@@ -91,6 +91,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         // so, look `newState` parameter only.
 
         if (newState == BluetoothProfile.STATE_CONNECTED) {
+            if (gatt.getDevice() == null) {
+                return;
+            }
+
             if (deviceAddressGattMap.containsKey(gatt.getDevice().getAddress())) {
                 return;
             }
@@ -101,6 +105,11 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 } catch (InterruptedException ignored) {
                 }
             }
+
+            if (gatt.getDevice() == null) {
+                return;
+            }
+
             if (deviceAddressGattMap.containsKey(gatt.getDevice().getAddress())) {
                 // same device has already registered
                 return;
@@ -114,7 +123,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 gattDiscoverServicesLock = null;
             }
         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-            disconnectByDeviceAddress(gatt.getDevice().getAddress());
+            if (gatt.getDevice() != null) {
+                disconnectByDeviceAddress(gatt.getDevice().getAddress());
+            }
             gattDiscoverServicesLock = null;
         }
     }
@@ -126,6 +137,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         if (status != BluetoothGatt.GATT_SUCCESS) {
             gattDiscoverServicesLock = null;
+            return;
+        }
+
+        if (gatt.getDevice() == null) {
             return;
         }
 
@@ -168,10 +183,12 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                         // https://developer.android.com/about/versions/14/behavior-changes-all#mtu-set-to-517
                         final int mtu = 517;
                         synchronized (midiOutputDevicesMap) {
-                            Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt.getDevice().getAddress());
-                            if (midiOutputDevices != null) {
-                                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                                    ((InternalMidiOutputDevice) midiOutputDevice).setBufferSize(mtu - 3);
+                            if (gatt.getDevice() != null) {
+                                Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt.getDevice().getAddress());
+                                if (midiOutputDevices != null) {
+                                    for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                                        ((InternalMidiOutputDevice) midiOutputDevice).setBufferSize(mtu - 3);
+                                    }
                                 }
                             }
                         }
@@ -184,7 +201,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                         // this calls onMtuChanged after completed
                         // NOTE: Some devices already have MTU set to 517, so the `onMtuChanged` method is not called.
                         boolean result = gatt.requestMtu(517); // GATT_MAX_MTU_SIZE defined at `stack/include/gatt_api.h`
-                        Log.d(Constants.TAG, "Central requestMtu address: " + gatt.getDevice().getAddress() + ", succeed: " + result);
+                        if (gatt.getDevice() != null) {
+                            Log.d(Constants.TAG, "Central requestMtu address: " + gatt.getDevice().getAddress() + ", succeed: " + result);
+                        }
                     }
                 }
             });
@@ -328,12 +347,20 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             }
         });
 
-        gattRequestQueue.remove(0).run();
+        synchronized (gattRequestQueue) {
+            if (gattRequestQueue.size() > 0) {
+                gattRequestQueue.remove(0).run();
+            }
+        }
     }
 
     @Override
     public void onCharacteristicChanged(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (gatt.getDevice() == null) {
+                return;
+            }
+
             Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
             if (midiInputDevices != null) {
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
@@ -346,6 +373,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            if (gatt.getDevice() == null) {
+                return;
+            }
+
             Set<MidiInputDevice> midiInputDevices = midiInputDevicesMap.get(gatt.getDevice().getAddress());
             if (midiInputDevices != null) {
                 for (MidiInputDevice midiInputDevice : midiInputDevices) {
@@ -358,6 +389,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     @Override
     public void onCharacteristicRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value, int status) {
         super.onCharacteristicRead(gatt, characteristic, value, status);
+
+        if (gatt.getDevice() == null || characteristic.getUuid() == null) {
+            return;
+        }
 
         if (BleUuidUtils.matches(characteristic.getUuid(), BleMidiDeviceUtils.CHARACTERISTIC_MANUFACTURER_NAME) && value != null && value.length > 0) {
             String manufacturer = new String(value);
@@ -383,6 +418,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     @Override
     public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
         super.onMtuChanged(gatt, mtu, status);
+
+        if (gatt.getDevice() == null) {
+            return;
+        }
 
         synchronized (midiOutputDevicesMap) {
             Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt.getDevice().getAddress());
@@ -682,7 +721,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 for (BluetoothGattService service : bluetoothGatt.getServices()) {
                     uuidList.add(service.getUuid());
                 }
-                throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
+                throw new IllegalArgumentException("MIDI GattService not found from '" + (bluetoothGatt.getDevice() != null ? bluetoothGatt.getDevice().getName() : "") + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
             }
 
             midiInputCharacteristic = BleMidiDeviceUtils.getMidiInputCharacteristic(context, midiService);
@@ -741,6 +780,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         @NonNull
         @Override
         public String getDeviceName() throws SecurityException {
+            if (bluetoothGatt.getDevice() == null) {
+                return "";
+            }
             return bluetoothGatt.getDevice().getName();
         }
 
@@ -763,6 +805,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          */
         @NonNull
         public String getDeviceAddress() {
+            if (bluetoothGatt.getDevice() == null) {
+                return "";
+            }
             return bluetoothGatt.getDevice().getAddress();
         }
 
@@ -809,7 +854,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 for (BluetoothGattService service : bluetoothGatt.getServices()) {
                     uuidList.add(service.getUuid());
                 }
-                throw new IllegalArgumentException("MIDI GattService not found from '" + bluetoothGatt.getDevice().getName() + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
+                throw new IllegalArgumentException("MIDI GattService not found from '" + (bluetoothGatt.getDevice() != null ? bluetoothGatt.getDevice().getName() : "") + "'. Service UUIDs:" + Arrays.toString(uuidList.toArray()));
             }
 
             midiOutputCharacteristic = BleMidiDeviceUtils.getMidiOutputCharacteristic(context, midiService);
@@ -845,6 +890,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         @NonNull
         @Override
         public String getDeviceName() throws SecurityException {
+            if (bluetoothGatt.getDevice() == null) {
+                return "";
+            }
             return bluetoothGatt.getDevice().getName();
         }
 
@@ -867,6 +915,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          */
         @NonNull
         public String getDeviceAddress() {
+            if (bluetoothGatt.getDevice() == null) {
+                return "";
+            }
             return bluetoothGatt.getDevice().getAddress();
         }
 
