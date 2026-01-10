@@ -362,6 +362,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     @Override
     public void onCharacteristicChanged(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            super.onCharacteristicChanged(gatt, characteristic, value);
             if (gatt.getDevice() == null) {
                 return;
             }
@@ -378,6 +379,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            super.onCharacteristicChanged(gatt, characteristic);
             if (gatt.getDevice() == null) {
                 return;
             }
@@ -793,6 +795,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         /**
          * Configure the device as BLE Central
          */
+        @SuppressLint("MissingPermission")
         public void configureAsCentralDevice() throws SecurityException {
             bluetoothGatt.setCharacteristicNotification(midiInputCharacteristic, true);
 
@@ -885,6 +888,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
          * @param model the model name
          * @throws IllegalArgumentException if specified gatt doesn't contain BLE MIDI service
          */
+        @SuppressLint("MissingPermission")
         public InternalMidiOutputDevice(@NonNull final Context context, @NonNull final BluetoothGatt bluetoothGatt, final String manufacturer, final String model) throws IllegalArgumentException, SecurityException {
             super();
             this.bluetoothGatt = bluetoothGatt;
@@ -914,6 +918,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         }
 
         @Override
+        @SuppressLint("MissingPermission")
         public boolean transferData(@NonNull byte[] writeBuffer) throws SecurityException {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
