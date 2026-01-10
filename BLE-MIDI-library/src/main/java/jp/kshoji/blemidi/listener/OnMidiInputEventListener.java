@@ -1,6 +1,6 @@
 package jp.kshoji.blemidi.listener;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
 

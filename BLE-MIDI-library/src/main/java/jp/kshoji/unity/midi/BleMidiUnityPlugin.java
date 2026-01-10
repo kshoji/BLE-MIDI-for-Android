@@ -1,12 +1,14 @@
 package jp.kshoji.unity.midi;
 
-import java.util.HashMap;
-import java.util.Locale;
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
+
 import com.unity3d.player.UnityPlayer;
+
+import java.util.HashMap;
+import java.util.Locale;
 
 import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 import jp.kshoji.blemidi.device.MidiInputDevice;
