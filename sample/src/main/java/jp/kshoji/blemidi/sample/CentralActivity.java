@@ -24,6 +24,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
@@ -84,6 +85,8 @@ public class CentralActivity extends Activity {
                 if (shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_SCAN) ||
                     shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT)) {
                     requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, PERMISSION_REQUEST_FINE_LOCATION);
+                } else {
+                    Toast.makeText(this, "Bluetooth permissions are denied. Please open app settings and grant permissions.", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
@@ -94,6 +97,8 @@ public class CentralActivity extends Activity {
                 if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) ||
                     shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_ADMIN)) {
                     requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH_ADMIN}, PERMISSION_REQUEST_FINE_LOCATION);
+                } else {
+                    Toast.makeText(this, "Bluetooth permissions are denied. Please open app settings and grant permissions.", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
