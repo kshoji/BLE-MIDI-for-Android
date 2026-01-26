@@ -1,14 +1,17 @@
 package jp.kshoji.blemidi.sample;
 
+import android.app.Activity;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.wearable.activity.WearableActivity;
-import android.support.wearable.view.WatchViewStub;
 import android.view.View;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentActivity;
+import androidx.wear.ambient.AmbientLifecycleObserver;
+import androidx.wear.ambient.AmbientLifecycleObserverImpl;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,7 +28,7 @@ import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.sample.util.SoundMaker;
 import jp.kshoji.blemidi.sample.util.Tone;
 
-public class SynthesizerActivity extends WearableActivity implements OnMidiInputEventListener {
+public class SynthesizerActivity extends FragmentActivity implements OnMidiInputEventListener {
 
     private TextView textView;
     private TextView noteView;
@@ -48,22 +51,33 @@ public class SynthesizerActivity extends WearableActivity implements OnMidiInput
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_synthesizer);
 
-        final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
-        stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
+        textView = (TextView) findViewById(R.id.text);
+        titleView = (TextView) findViewById(R.id.title);
+        background = findViewById(R.id.background);
+        noteView = (TextView) findViewById(R.id.note);
+
+        AmbientLifecycleObserver ambientObserver = new AmbientLifecycleObserverImpl(this, new AmbientLifecycleObserver.AmbientLifecycleCallback() {
             @Override
-            public void onLayoutInflated(WatchViewStub stub) {
-                textView = (TextView) stub.findViewById(R.id.text);
-                titleView = (TextView) stub.findViewById(R.id.title);
-                background = stub.findViewById(R.id.background);
-                noteView = (TextView) stub.findViewById(R.id.note);
+            public void onEnterAmbient(@NonNull AmbientLifecycleObserver.AmbientDetails ambientDetails) {
+                textView.getPaint().setAntiAlias(false);
+                titleView.getPaint().setAntiAlias(false);
+                noteView.getPaint().setAntiAlias(false);
+                background.setBackgroundColor(0);
+            }
+
+            @Override
+            public void onExitAmbient() {
+                textView.getPaint().setAntiAlias(true);
+                titleView.getPaint().setAntiAlias(true);
+                noteView.getPaint().setAntiAlias(true);
+                background.setBackgroundColor(0xff80a0f0);
             }
         });
+        getLifecycle().addObserver(ambientObserver);
 
         bleMidiCentralProvider = new BleMidiCentralProvider(this);
 
         notenames = getResources().getStringArray(R.array.notenames);
-
-        setAmbientEnabled();
     }
 
     @Override
@@ -158,26 +172,6 @@ public class SynthesizerActivity extends WearableActivity implements OnMidiInput
             }
         };
         timer.scheduleAtFixedRate(timerTask, 10, timerRate);
-    }
-
-    @Override
-    public void onEnterAmbient(Bundle ambientDetails) {
-        super.onEnterAmbient(ambientDetails);
-
-        textView.getPaint().setAntiAlias(false);
-        titleView.getPaint().setAntiAlias(false);
-        noteView.getPaint().setAntiAlias(false);
-        background.setBackgroundColor(0);
-    }
-
-    @Override
-    public void onExitAmbient() {
-        super.onExitAmbient();
-
-        textView.getPaint().setAntiAlias(true);
-        titleView.getPaint().setAntiAlias(true);
-        noteView.getPaint().setAntiAlias(true);
-        background.setBackgroundColor(0xff80a0f0);
     }
 
     /**
