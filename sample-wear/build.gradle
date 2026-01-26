@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdk 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId "jp.kshoji.blemidi.sample"
@@ -37,7 +37,6 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':BLE-MIDI-library')
     implementation 'androidx.wear:wear:1.3.0'
-    implementation 'androidx.wear:wear-ambient:1.0.0'
     implementation 'com.google.android.gms:play-services-wearable:19.0.0'
     implementation 'androidx.fragment:fragment:1.8.9'
     implementation 'androidx.lifecycle:lifecycle-common-java8:2.10.0'
