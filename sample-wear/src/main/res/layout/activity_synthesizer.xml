@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.wearable.view.WatchViewStub
+<androidx.wear.widget.BoxInsetLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/watch_view_stub"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:rectLayout="@layout/rect_activity_synthesizer"
-    app:roundLayout="@layout/round_activity_synthesizer"
-    tools:context=".MainActivity"
-    tools:deviceIds="wear">
-</android.support.wearable.view.WatchViewStub>
+    tools:context=".SynthesizerActivity"
+    tools:deviceIds="wear"
+    app:layout_boxedEdges="all">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="15dp"
+        app:layout_boxedEdges="all">
+
+        <include layout="@layout/rect_activity_synthesizer" />
+
+    </FrameLayout>
+
+</androidx.wear.widget.BoxInsetLayout>

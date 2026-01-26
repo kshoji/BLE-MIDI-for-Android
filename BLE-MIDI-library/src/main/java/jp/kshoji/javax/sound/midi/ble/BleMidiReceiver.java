@@ -1,6 +1,6 @@
 package jp.kshoji.javax.sound.midi.ble;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.javax.sound.midi.MetaMessage;

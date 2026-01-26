@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    compileSdk 34
+    compileSdk = 36
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 34
+        targetSdkVersion 36
     }
 
     compileOptions {
@@ -48,7 +48,7 @@ repositories {
 
 dependencies {
     api 'jp.kshoji:javax-sound-midi:0.0.6:@aar'
-    api 'com.android.support:support-annotations:28.0.0'
+    api 'androidx.annotation:annotation:1.9.1'
     compileOnly project(':UnityPlayerMock')
     api fileTree(dir: 'libs', include: ['*.jar'])
 }

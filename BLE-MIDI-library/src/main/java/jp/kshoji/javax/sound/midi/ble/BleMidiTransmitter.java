@@ -1,7 +1,8 @@
 package jp.kshoji.javax.sound.midi.ble;
 
-import android.support.annotation.NonNull;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;

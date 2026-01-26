@@ -1,8 +1,9 @@
 package jp.kshoji.blemidi.util;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.SparseIntArray;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -83,6 +84,9 @@ public final class BleMidiParser {
      * @param sender the sender
      */
     public BleMidiParser(@NonNull final MidiInputDevice sender) {
+        if (sender == null) {
+            throw new IllegalArgumentException("sender must not be null");
+        }
         this.sender = sender;
 
         midiState = MIDI_STATE_TIMESTAMP;
@@ -824,7 +828,7 @@ public final class BleMidiParser {
      */
     public synchronized void parse(@NonNull byte[] data) {
         if (!isTerminated && isRunning) {
-            if (data.length > 1) {
+            if (data != null && data.length > 1) {
                 int header = data[0] & 0xff;
                 for (int i = 1; i < data.length; i++) {
                     parseMidiEvent(header, data[i]);
