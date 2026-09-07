@@ -61,13 +61,8 @@ public final class BleMidiParser {
     private int midiState;
 
     // for Timestamp
-    private static final int MAX_TIMESTAMP = 8192;
-    private static final int BUFFER_LENGTH_MILLIS = 50;
     private int timestamp = 0;
-    private int lastTimestamp;
-    private long lastTimestampRecorded = 0;
-    private int zeroTimestampCount = 0;
-    private Boolean isTimestampAlwaysZero = null;
+    private final BleMidiTimestampCoordinator timestampCoordinator = new BleMidiTimestampCoordinator();
 
     private OnMidiInputEventListener midiInputEventListener = null;
     private final MidiInputDevice sender;
@@ -161,81 +156,13 @@ public final class BleMidiParser {
         private final byte[] array;
 
         /**
-         * Calculate `time to wait` for the event's timestamp
+         * Calculates the absolute fire time for the event's BLE MIDI timestamp.
          *
-         * @param timestamp the event's timestamp
-         * @return time to wait
+         * @param timestamp the event's 13-bit timestamp
+         * @return absolute fire time in milliseconds
          */
         private long calculateEventFireTime(final int timestamp) {
-            final long currentTimeMillis = System.currentTimeMillis();
-
-            // checks timestamp value is always zero
-            if (isTimestampAlwaysZero != null) {
-                if (isTimestampAlwaysZero) {
-                    if (timestamp != 0) {
-                        // timestamp comes with non-zero. prevent misdetection
-                        isTimestampAlwaysZero = false;
-                        zeroTimestampCount = 0;
-                        lastTimestampRecorded = 0;
-                    } else {
-                        // event fires immediately
-                        return currentTimeMillis;
-                    }
-                } else {
-                    if (timestamp == 0) {
-                        // recheck timestamp value on next time
-                        isTimestampAlwaysZero = null;
-                        zeroTimestampCount = 0;
-                        // event fires immediately
-                        return currentTimeMillis;
-                    }
-                }
-            } else {
-                if (timestamp == 0) {
-                    if (zeroTimestampCount >= 3) {
-                        // decides timestamp is always zero
-                        isTimestampAlwaysZero = true;
-                    } else {
-                        zeroTimestampCount++;
-                    }
-                    // event fires immediately
-                    return currentTimeMillis;
-                } else {
-                    isTimestampAlwaysZero = false;
-                    zeroTimestampCount = 0;
-                    lastTimestampRecorded = 0;
-                }
-            }
-
-            if (lastTimestampRecorded == 0) {
-                // first time: event fires immediately
-                lastTimestamp = timestamp;
-                lastTimestampRecorded = currentTimeMillis;
-                return currentTimeMillis;
-            }
-
-            if (currentTimeMillis - lastTimestampRecorded >= MAX_TIMESTAMP) {
-                // the event comes after long pause
-                lastTimestamp = timestamp;
-                lastTimestampRecorded = currentTimeMillis;
-                return currentTimeMillis;
-            }
-
-            final long elapsedRealtime = currentTimeMillis - lastTimestampRecorded;
-            // realTimestampPeriod: how many times MAX_TIMESTAMP passed
-            long realTimestampPeriod = (lastTimestamp + elapsedRealtime) / MAX_TIMESTAMP;
-            if (realTimestampPeriod > 0 && timestamp > 7000) {
-                realTimestampPeriod--;
-            }
-            final long lastTimestampStarted = lastTimestampRecorded - lastTimestamp;
-            // result: time to wait
-            final long result = BUFFER_LENGTH_MILLIS // buffer
-                    + lastTimestampStarted + realTimestampPeriod * MAX_TIMESTAMP + timestamp // time to fire event
-                    - currentTimeMillis; // current time
-
-            lastTimestamp = timestamp;
-            lastTimestampRecorded = currentTimeMillis;
-            return result;
+            return timestampCoordinator.calculateEventFireTime(timestamp, System.currentTimeMillis());
         }
 
         private MidiEventWithTiming(int arg1, int arg2, int arg3, byte[] array, int timestamp) {
