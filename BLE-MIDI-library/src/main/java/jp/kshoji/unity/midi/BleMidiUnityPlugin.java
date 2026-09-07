@@ -495,8 +495,17 @@ public class BleMidiUnityPlugin {
     private void initializeCentralProvider(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
         bleMidiCentralProvider.setAutoStartInputDevice(true);
-        if (UnityPlayer.currentActivity instanceof  BleMidiUnityPlayerActivity) {
-            ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
+                ((BleMidiUnityPlayerActivity) UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
+        }
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityGamePlayerActivity) {
+                ((BleMidiUnityGamePlayerActivity) UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
         }
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
@@ -547,8 +556,17 @@ public class BleMidiUnityPlugin {
     private void initializePeripheralProvider(Context context) {
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
         bleMidiPeripheralProvider.setAutoStartDevice(true);
-        if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
-            ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
+                ((BleMidiUnityPlayerActivity) UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
+        }
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityGamePlayerActivity) {
+                ((BleMidiUnityGamePlayerActivity) UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
         }
         bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
