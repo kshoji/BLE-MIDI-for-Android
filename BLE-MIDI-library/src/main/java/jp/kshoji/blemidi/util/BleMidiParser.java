@@ -510,10 +510,25 @@ public final class BleMidiParser {
                     break;
                 default:
                     // 0x00 - 0x70: running status
-                    if ((midiEventKind & 0xf0) != 0xf0) {
-                        // previous event kind is multi-bytes pattern
-                        midiEventNote = midiEvent;
-                        midiState = MIDI_STATE_SIGNAL_3BYTES_3;
+                    // Reuse the previous channel message status; this byte is the first data byte.
+                    // Re-enter parseMidiEvent so 2-byte / 3-byte handlers consume it correctly.
+                    // See: https://github.com/kshoji/BLE-MIDI-for-Android/issues/41
+                    switch (midiEventKind & 0xf0) {
+                        case 0xc0: // program change
+                        case 0xd0: // channel after-touch
+                            midiState = MIDI_STATE_SIGNAL_2BYTES_2;
+                            parseMidiEvent(header, event);
+                            break;
+                        case 0x80:
+                        case 0x90:
+                        case 0xa0:
+                        case 0xb0:
+                        case 0xe0:
+                            midiState = MIDI_STATE_SIGNAL_3BYTES_2;
+                            parseMidiEvent(header, event);
+                            break;
+                        default:
+                            break;
                     }
                     break;
             }
