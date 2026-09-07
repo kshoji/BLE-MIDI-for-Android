@@ -1,0 +1,150 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "jp.kshoji",
+    "module": "ble-midi",
+    "version": "0.0.21",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.6.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "jp.kshoji",
+          "module": "javax-sound-midi",
+          "version": {
+            "requires": "0.0.6"
+          },
+          "excludes": [
+            {
+              "group": "*",
+              "module": "*"
+            }
+          ],
+          "thirdPartyCompatibility": {
+            "artifactSelector": {
+              "name": "javax-sound-midi",
+              "type": "aar",
+              "extension": "aar"
+            }
+          }
+        },
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.9.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ble-midi-0.0.21.aar",
+          "url": "ble-midi-0.0.21.aar",
+          "size": 121871,
+          "sha512": "f8af357b27f8b914c7e763e36bd08339768ba82116bede779638cc49fec4d8e7e17422571180186b66f4359d885ab472ad87c5081bcc13605b58311bc5772a6a",
+          "sha256": "039a891b558500282bdc683d8b402b65abfb6fd0f90570fd3988604f482c0bb2",
+          "sha1": "5e25cd4f90a8a7784953300fbf2538cddaad9a62",
+          "md5": "1dc8b87adf42c77480e5fc90f5cbdb9f"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.games",
+          "module": "games-activity",
+          "version": {
+            "requires": "4.0.0"
+          }
+        },
+        {
+          "group": "androidx.appcompat",
+          "module": "appcompat",
+          "version": {
+            "requires": "1.1.0"
+          }
+        },
+        {
+          "group": "jp.kshoji",
+          "module": "javax-sound-midi",
+          "version": {
+            "requires": "0.0.6"
+          },
+          "excludes": [
+            {
+              "group": "*",
+              "module": "*"
+            }
+          ],
+          "thirdPartyCompatibility": {
+            "artifactSelector": {
+              "name": "javax-sound-midi",
+              "type": "aar",
+              "extension": "aar"
+            }
+          }
+        },
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.9.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ble-midi-0.0.21.aar",
+          "url": "ble-midi-0.0.21.aar",
+          "size": 121871,
+          "sha512": "f8af357b27f8b914c7e763e36bd08339768ba82116bede779638cc49fec4d8e7e17422571180186b66f4359d885ab472ad87c5081bcc13605b58311bc5772a6a",
+          "sha256": "039a891b558500282bdc683d8b402b65abfb6fd0f90570fd3988604f482c0bb2",
+          "sha1": "5e25cd4f90a8a7784953300fbf2538cddaad9a62",
+          "md5": "1dc8b87adf42c77480e5fc90f5cbdb9f"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseSourcePublication",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "ble-midi-0.0.21-sources.jar",
+          "url": "ble-midi-0.0.21-sources.jar",
+          "size": 47298,
+          "sha512": "149b4d4c97d185f7dda17d6514f7fde5733eddcbe3541e5b7b08cfb623530042c852a84e05228b326a379025c103294142292fe05943edd168b42c583d7c0713",
+          "sha256": "c4ffc06757c7d18fd9d5415abbed045864068c2ce368f864603ee1a7fd362919",
+          "sha1": "54e9307b38741fbddc28422c31cf244279580b44",
+          "md5": "6e4258d19258cc21c5adced786c9dc0e"
+        }
+      ]
+    }
+  ]
+}
