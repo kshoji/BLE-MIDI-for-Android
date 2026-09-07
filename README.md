@@ -35,6 +35,17 @@ Usage of the library
 
 For the detail, see the [wiki](https://github.com/kshoji/BLE-MIDI-for-Android/wiki).
 
+High-density MIDI transfer
+--------------------------
+
+When the send queue is congested, packing every pending message into one GATT write tends to drop packets. This library therefore:
+
+- Packs at most **6 MIDI messages** per BLE packet (and never exceeds the negotiated MTU / `getBufferSize()`)
+- Sends **SysEx in its own packets** (never mixed with channel messages)
+- Retries Android 13+ writes that fail with `BluetoothStatusCodes.ERROR_GATT_WRITE_REQUEST_BUSY` (201)
+
+The tradeoff is a small increase in latency under load, in exchange for fewer lost notes / CCs. Tune with `MidiOutputDevice.setMaxMessagesPerPacket(int)` (smaller = more reliable, more latency).
+
 LICENSE
 =======
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)

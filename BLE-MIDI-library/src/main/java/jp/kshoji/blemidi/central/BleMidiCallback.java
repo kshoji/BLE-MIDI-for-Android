@@ -9,7 +9,6 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.BluetoothStatusCodes;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -37,6 +36,7 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
+import jp.kshoji.blemidi.util.BleMidiGattWriter;
 import jp.kshoji.blemidi.util.BleMidiParser;
 import jp.kshoji.blemidi.util.BleUuidUtils;
 import jp.kshoji.blemidi.util.Constants;
@@ -975,8 +975,12 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         public boolean transferData(@NonNull byte[] writeBuffer) throws SecurityException {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    int result = bluetoothGatt.writeCharacteristic(midiOutputCharacteristic, writeBuffer, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-                    return result == BluetoothStatusCodes.SUCCESS;
+                    return BleMidiGattWriter.writeWithCongestionRetry(new BleMidiGattWriter.GattWrite() {
+                        @Override
+                        public int execute() {
+                            return bluetoothGatt.writeCharacteristic(midiOutputCharacteristic, writeBuffer, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+                        }
+                    });
                 } else {
                     midiOutputCharacteristic.setValue(writeBuffer);
                     return bluetoothGatt.writeCharacteristic(midiOutputCharacteristic);
