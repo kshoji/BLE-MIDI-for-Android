@@ -447,7 +447,6 @@ public class CentralActivity extends Activity {
 
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
         midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
-        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventListView.setAdapter(midiInputEventAdapter);
 
         ListView midiOutputEventListView = (ListView) findViewById(R.id.midiOutputEventListView);
