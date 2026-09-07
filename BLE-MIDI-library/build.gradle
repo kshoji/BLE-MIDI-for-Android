@@ -8,7 +8,6 @@ android {
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 36
     }
 
     compileOptions {
@@ -17,17 +16,17 @@ android {
     }
 
     defaultConfig {
-        consumerProguardFiles 'proguard-rules.pro'
+        consumerProguardFiles 'consumer-rules.pro'
     }
 
     buildTypes {
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -37,6 +36,12 @@ android {
         }
     }
     namespace 'jp.kshoji.blemidi'
+    lint {
+        targetSdk 36
+    }
+    testOptions {
+        targetSdk 36
+    }
 }
 
 repositories {

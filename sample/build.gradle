@@ -19,7 +19,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     namespace 'jp.kshoji.blemidi.sample'
@@ -34,7 +34,6 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    wearApp project(':sample-wear')
     implementation project(':BLE-MIDI-library')
     api 'androidx.annotation:annotation:1.9.1'
 }

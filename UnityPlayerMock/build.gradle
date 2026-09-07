@@ -5,7 +5,6 @@ android {
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 36
     }
 
     compileOptions {
@@ -21,8 +20,14 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     namespace 'jp.kshoji.blemidi.unityplayermock'
+    lint {
+        targetSdk 36
+    }
+    testOptions {
+        targetSdk 36
+    }
 }
