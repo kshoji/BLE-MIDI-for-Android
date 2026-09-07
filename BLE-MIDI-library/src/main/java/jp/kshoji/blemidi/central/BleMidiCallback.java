@@ -52,6 +52,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     private final Map<String, List<BluetoothGatt>> deviceAddressGattMap = new HashMap<>();
     private final Map<String, String> deviceAddressManufacturerMap = new HashMap<>();
     private final Map<String, String> deviceAddressModelMap = new HashMap<>();
+    // Negotiated ATT MTU per device address; applied to MidiOutputDevice after it is created.
+    // See: https://github.com/kshoji/BLE-MIDI-for-Android/issues/38
+    private final Map<String, Integer> deviceAddressMtuMap = new HashMap<>();
 
     final List<Runnable> gattRequestQueue = new ArrayList<>();
     private final Context context;
@@ -182,20 +185,16 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isOculusDevices) {
                         // Android 14: the default MTU size set to 517
                         // https://developer.android.com/about/versions/14/behavior-changes-all#mtu-set-to-517
+                        // Store MTU here; MidiOutputDevice is created later in this queue (#38).
                         final int mtu = 517;
-                        synchronized (midiOutputDevicesMap) {
-                            if (gatt.getDevice() != null) {
-                                Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt.getDevice().getAddress());
-                                if (midiOutputDevices != null) {
-                                    for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                                        ((InternalMidiOutputDevice) midiOutputDevice).setBufferSize(mtu - 3);
-                                    }
-                                }
-                            }
+                        if (gatt.getDevice() != null) {
+                            storeDeviceMtu(gatt.getDevice().getAddress(), mtu);
                         }
 
-                        if (gattRequestQueue.size() > 0) {
-                            gattRequestQueue.remove(0).run();
+                        synchronized (gattRequestQueue) {
+                            if (gattRequestQueue.size() > 0) {
+                                gattRequestQueue.remove(0).run();
+                            }
                         }
                     } else {
                         // request maximum MTU size
@@ -204,6 +203,14 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                         boolean result = gatt.requestMtu(517); // GATT_MAX_MTU_SIZE defined at `stack/include/gatt_api.h`
                         if (gatt.getDevice() != null) {
                             Log.d(Constants.TAG, "Central requestMtu address: " + gatt.getDevice().getAddress() + ", succeed: " + result);
+                        }
+                        if (!result) {
+                            // requestMtu failed; continue the queue so device creation is not skipped
+                            synchronized (gattRequestQueue) {
+                                if (gattRequestQueue.size() > 0) {
+                                    gattRequestQueue.remove(0).run();
+                                }
+                            }
                         }
                     }
                 }
@@ -286,6 +293,9 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
                         midiOutputDevices.add(midiOutputDevice);
                     }
+
+                    // Apply MTU negotiated earlier in the GATT request queue (#38)
+                    applyStoredMtuToOutputDevices(gattDeviceAddress);
 
                     // don't notify if the same device already connected
                     if (!deviceAddressGattMap.containsKey(gattDeviceAddress)) {
@@ -464,15 +474,11 @@ public final class BleMidiCallback extends BluetoothGattCallback {
             return;
         }
 
-        synchronized (midiOutputDevicesMap) {
-            Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(gatt.getDevice().getAddress());
-            if (midiOutputDevices != null) {
-                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
-                    ((InternalMidiOutputDevice) midiOutputDevice).setBufferSize(mtu < 23 ? 20 : mtu - 3);
-                }
-            }
-        }
-        Log.d(Constants.TAG, "Central onMtuChanged address: " + gatt.getDevice().getAddress() + ", mtu: " + mtu + ", status: " + status);
+        final String deviceAddress = gatt.getDevice().getAddress();
+        // Store MTU first; MidiOutputDevice may not exist yet when this runs from the request queue (#38).
+        storeDeviceMtu(deviceAddress, mtu);
+        applyStoredMtuToOutputDevices(deviceAddress);
+        Log.d(Constants.TAG, "Central onMtuChanged address: " + deviceAddress + ", mtu: " + mtu + ", status: " + status);
 
         synchronized (gattRequestQueue) {
             if (gattRequestQueue.size() > 0) {
@@ -508,6 +514,45 @@ public final class BleMidiCallback extends BluetoothGattCallback {
     }
 
     /**
+     * Stores the negotiated ATT MTU for a device address.
+     *
+     * @param deviceAddress the device address
+     * @param mtu the ATT MTU
+     */
+    private void storeDeviceMtu(@NonNull String deviceAddress, int mtu) {
+        synchronized (deviceAddressMtuMap) {
+            deviceAddressMtuMap.put(deviceAddress, mtu);
+        }
+        Log.d(Constants.TAG, "Central determined MTU address: " + deviceAddress + ", mtu: " + mtu);
+    }
+
+    /**
+     * Applies a previously stored MTU as the MIDI output buffer size (MTU - 3).
+     * No-op when MTU is unknown or the output device has not been created yet.
+     *
+     * @param deviceAddress the device address
+     */
+    private void applyStoredMtuToOutputDevices(@NonNull String deviceAddress) {
+        final Integer mtu;
+        synchronized (deviceAddressMtuMap) {
+            mtu = deviceAddressMtuMap.get(deviceAddress);
+        }
+        if (mtu == null) {
+            return;
+        }
+
+        final int bufferSize = mtu < 23 ? 20 : mtu - 3;
+        synchronized (midiOutputDevicesMap) {
+            Set<MidiOutputDevice> midiOutputDevices = midiOutputDevicesMap.get(deviceAddress);
+            if (midiOutputDevices != null) {
+                for (MidiOutputDevice midiOutputDevice : midiOutputDevices) {
+                    ((InternalMidiOutputDevice) midiOutputDevice).setBufferSize(bufferSize);
+                }
+            }
+        }
+    }
+
+    /**
      * Disconnects the device by its address
      *
      * @param deviceAddress the device address from {@link android.bluetooth.BluetoothGatt}
@@ -532,6 +577,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
 
         synchronized (deviceAddressModelMap) {
             deviceAddressModelMap.remove(deviceAddress);
+        }
+
+        synchronized (deviceAddressMtuMap) {
+            deviceAddressMtuMap.remove(deviceAddress);
         }
 
         synchronized (midiInputDevicesMap) {
@@ -605,6 +654,10 @@ public final class BleMidiCallback extends BluetoothGattCallback {
                 midiOutputDevices.clear();
             }
             midiOutputDevicesMap.clear();
+        }
+
+        synchronized (deviceAddressMtuMap) {
+            deviceAddressMtuMap.clear();
         }
 
         if (bondingBroadcastReceiver != null) {
