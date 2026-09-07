@@ -523,6 +523,7 @@ public final class BleMidiCallback extends BluetoothGattCallback {
         synchronized (deviceAddressMtuMap) {
             deviceAddressMtuMap.put(deviceAddress, mtu);
         }
+        Log.d(Constants.TAG, "Central determined MTU address: " + deviceAddress + ", mtu: " + mtu);
     }
 
     /**
