@@ -46,6 +46,11 @@ When the send queue is congested, packing every pending message into one GATT wr
 
 The tradeoff is a small increase in latency under load, in exchange for fewer lost notes / CCs. Tune with `MidiOutputDevice.setMaxMessagesPerPacket(int)` (smaller = more reliable, more latency).
 
+RPN / NRPN value width
+----------------------
+
+`onRPNMessage` / `onNRPNMessage` expose a combined `value` that may be 7-bit or 14-bit. The parser also delivers every RPN/NRPN controller through `onMidiControlChange` (`CC 101/100/6/38` or `CC 99/98/6/38`). To rebuild MIDI bytes, emit those CCs as-is. To tell 7-bit from 14-bit Data Entry, feed each `onMidiControlChange` into `RpnNrpnValueWidthTracker` and read `getValueWidth(channel)` when the controller is CC 6 or CC 38.
+
 LICENSE
 =======
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
