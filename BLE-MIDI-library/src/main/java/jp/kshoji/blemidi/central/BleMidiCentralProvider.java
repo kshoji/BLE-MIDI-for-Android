@@ -13,6 +13,7 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.companion.AssociationInfo;
 import android.companion.AssociationRequest;
 import android.companion.CompanionDeviceManager;
 import android.content.Context;
@@ -36,6 +37,7 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener;
 import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiScanStatusListener;
 import jp.kshoji.blemidi.util.BleMidiDeviceUtils;
+import jp.kshoji.blemidi.util.BleUtils;
 import jp.kshoji.blemidi.util.Constants;
 
 /**
@@ -90,7 +92,16 @@ public final class BleMidiCentralProvider {
      * @param bluetoothDevice the BluetoothDevice
      */
     @SuppressLint("MissingPermission")
-    public void connectGatt(BluetoothDevice bluetoothDevice) {
+    public void connectGatt(@Nullable BluetoothDevice bluetoothDevice) {
+        if (bluetoothDevice == null) {
+            Log.e(Constants.TAG, "connectGatt: bluetoothDevice is null");
+            return;
+        }
+        if (midiCallback.isConnected(bluetoothDevice)) {
+            Log.d(Constants.TAG, "connectGatt: already connected to " + bluetoothDevice.getAddress());
+            return;
+        }
+        Log.d(Constants.TAG, "connectGatt: connecting to " + bluetoothDevice.getAddress());
         bluetoothDevice.connectGatt(context, true, midiCallback);
     }
 
@@ -258,6 +269,17 @@ public final class BleMidiCentralProvider {
                             Log.e(Constants.TAG, e.getMessage(), e);
                         }
                     }
+                }
+
+                @Override
+                public void onAssociationCreated(@NonNull AssociationInfo associationInfo) {
+                    final BluetoothDevice device =
+                            BleUtils.getBluetoothDeviceFromAssociationInfo(context, associationInfo);
+                    if (device == null) {
+                        Log.e(Constants.TAG, "onAssociationCreated: failed to resolve BluetoothDevice");
+                        return;
+                    }
+                    connectGatt(device);
                 }
 
                 @Override
