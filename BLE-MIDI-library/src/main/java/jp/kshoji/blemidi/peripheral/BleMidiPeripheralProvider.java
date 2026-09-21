@@ -39,6 +39,7 @@ import jp.kshoji.blemidi.listener.OnMidiDeviceDetachedListener;
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
 import jp.kshoji.blemidi.util.BleMidiGattWriter;
 import jp.kshoji.blemidi.util.BleMidiParser;
+import jp.kshoji.blemidi.util.BleMidiTimestampCoordinator;
 import jp.kshoji.blemidi.util.BleUuidUtils;
 import jp.kshoji.blemidi.util.Constants;
 
@@ -630,6 +631,27 @@ public final class BleMidiPeripheralProvider {
         @Override
         public void setOnMidiInputEventListener(OnMidiInputEventListener midiInputEventListener) {
             midiParser.setMidiInputEventListener(midiInputEventListener);
+        }
+
+        @Override
+        public void setTimestampSchedulingMode(@NonNull BleMidiTimestampCoordinator.SchedulingMode schedulingMode) {
+            midiParser.setTimestampSchedulingMode(schedulingMode);
+        }
+
+        @NonNull
+        @Override
+        public BleMidiTimestampCoordinator.SchedulingMode getTimestampSchedulingMode() {
+            return midiParser.getTimestampSchedulingMode();
+        }
+
+        @Override
+        public void setMaxScheduleAheadMs(int maxScheduleAheadMs) {
+            midiParser.setMaxScheduleAheadMs(maxScheduleAheadMs);
+        }
+
+        @Override
+        public int getMaxScheduleAheadMs() {
+            return midiParser.getMaxScheduleAheadMs();
         }
 
         @NonNull

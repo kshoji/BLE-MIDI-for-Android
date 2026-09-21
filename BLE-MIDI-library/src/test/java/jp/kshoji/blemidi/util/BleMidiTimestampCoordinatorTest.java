@@ -89,4 +89,140 @@ public class BleMidiTimestampCoordinatorTest {
         assertEquals(firstNonZero + 50, secondNonZero);
         assertTrue(secondNonZero > firstNonZero);
     }
+
+    @Test
+    public void immediateModeNeverSchedulesIntoTheFuture() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.IMMEDIATE);
+        long t0 = 1_000_000L;
+
+        long first = coordinator.calculateEventFireTime(100, t0);
+        long second = coordinator.calculateEventFireTime(250, t0); // same arrival, +150 ms timestamp
+        long third = coordinator.calculateEventFireTime(5000, t0 + 50); // large jump / wrap-ish
+
+        assertEquals(t0, first);
+        assertEquals(t0, second);
+        assertEquals(t0 + 50, third);
+        assertTrue(second <= t0);
+        assertTrue(third <= t0 + 50);
+    }
+
+    @Test
+    public void immediateModeOrderKeyPreservesWrapOrder() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.IMMEDIATE);
+        long t0 = 1_000_000L;
+
+        long firstFire = coordinator.calculateEventFireTime(8000, t0);
+        long firstOrder = coordinator.getLastOrderKey();
+        long secondFire = coordinator.calculateEventFireTime(5000, t0 + 100);
+        long secondOrder = coordinator.getLastOrderKey();
+
+        assertEquals(t0, firstFire);
+        assertEquals(t0 + 100, secondFire);
+        assertEquals(firstOrder + 5192, secondOrder);
+        assertTrue(secondOrder > firstOrder);
+    }
+
+    @Test
+    public void immediateModeBatchKeepsRelativeOrderKeys() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.IMMEDIATE);
+        long t0 = 1_000_000L;
+
+        coordinator.calculateEventFireTime(100, t0);
+        long o1 = coordinator.getLastOrderKey();
+        coordinator.calculateEventFireTime(110, t0);
+        long o2 = coordinator.getLastOrderKey();
+        coordinator.calculateEventFireTime(130, t0);
+        long o3 = coordinator.getLastOrderKey();
+
+        assertEquals(o1 + 10, o2);
+        assertEquals(o2 + 20, o3);
+    }
+
+    @Test
+    public void lowLatencyClampsLargeTimestampJump() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY);
+        coordinator.setMaxScheduleAheadMs(40);
+        long t0 = 1_000_000L;
+
+        long first = coordinator.calculateEventFireTime(100, t0);
+        // +500 ms on timestamp in the same arrival would be ~1s lag under SCHEDULED wrap cases;
+        // LOW_LATENCY must stay within now + 40.
+        long second = coordinator.calculateEventFireTime(600, t0);
+
+        assertEquals(t0, first);
+        assertEquals(t0 + 40, second);
+        assertTrue(second - t0 <= 40);
+    }
+
+    @Test
+    public void lowLatencyClampsWrapBunchedArrival() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY);
+        coordinator.setMaxScheduleAheadMs(40);
+        long t0 = 1_000_000L;
+
+        long first = coordinator.calculateEventFireTime(8000, t0);
+        long second = coordinator.calculateEventFireTime(5000, t0 + 100);
+
+        assertEquals(t0, first);
+        // SCHEDULED would schedule +5192 ms; LOW_LATENCY clamps to now + 40
+        assertEquals(t0 + 100 + 40, second);
+        assertTrue(second - (t0 + 100) <= 40);
+    }
+
+    @Test
+    public void lowLatencySnapsBacklogThenContinues() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY);
+        coordinator.setMaxScheduleAheadMs(40);
+        long t0 = 1_000_000L;
+
+        coordinator.calculateEventFireTime(100, t0);
+        // Build uncapped pressure then clamp
+        coordinator.calculateEventFireTime(300, t0); // would be +200, clamps to t0+40, timeline = t0+40
+        // Next packet arrives later; lastFireTime was snapped so delay stays bounded
+        long third = coordinator.calculateEventFireTime(320, t0 + 50);
+
+        assertTrue(third <= t0 + 50 + 40);
+        assertTrue(third >= t0 + 50);
+    }
+
+    @Test
+    public void lowLatencyPreservesOrderKeysWhenClamped() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY);
+        coordinator.setMaxScheduleAheadMs(40);
+        long t0 = 1_000_000L;
+
+        coordinator.calculateEventFireTime(100, t0);
+        long o1 = coordinator.getLastOrderKey();
+        long fire2 = coordinator.calculateEventFireTime(200, t0);
+        long o2 = coordinator.getLastOrderKey();
+        long fire3 = coordinator.calculateEventFireTime(300, t0);
+        long o3 = coordinator.getLastOrderKey();
+
+        assertEquals(t0 + 40, fire2);
+        assertEquals(t0 + 40, fire3);
+        assertEquals(o1 + 100, o2);
+        assertEquals(o2 + 100, o3);
+        assertTrue(o3 > o2);
+    }
+
+    @Test
+    public void lowLatencySmallDeltasMatchScheduled() {
+        BleMidiTimestampCoordinator coordinator = new BleMidiTimestampCoordinator();
+        coordinator.setSchedulingMode(BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY);
+        coordinator.setMaxScheduleAheadMs(40);
+        long t0 = 1_000_000L;
+
+        long first = coordinator.calculateEventFireTime(100, t0);
+        long second = coordinator.calculateEventFireTime(120, t0 + 20);
+
+        assertEquals(t0, first);
+        assertEquals(first + 20, second);
+    }
 }

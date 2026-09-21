@@ -51,6 +51,33 @@ RPN / NRPN value width
 
 `onRPNMessage` / `onNRPNMessage` expose a combined `value` that may be 7-bit or 14-bit. The parser also delivers every RPN/NRPN controller through `onMidiControlChange` (`CC 101/100/6/38` or `CC 99/98/6/38`). To rebuild MIDI bytes, emit those CCs as-is. To tell 7-bit from 14-bit Data Entry, feed each `onMidiControlChange` into `RpnNrpnValueWidthTracker` and read `getValueWidth(channel)` when the controller is CC 6 or CC 38.
 
+Input timestamp scheduling
+--------------------------
+
+BLE MIDI packets carry 13-bit timestamps. By default the library **schedules** callbacks to those timestamps (`MidiInputDevice` / `BleMidiTimestampCoordinator.SchedulingMode.SCHEDULED`), which can add latency when packets arrive in bursts (backlog can grow without a ceiling).
+
+For live / low-latency use (including the Unity plugin), prefer:
+
+```java
+midiInputDevice.setTimestampSchedulingMode(
+    BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY);
+```
+
+`LOW_LATENCY` still recovers relative timing, but:
+
+- Clamps fire time to at most `now + 40ms` (change with `midiInputDevice.setMaxScheduleAheadMs`, typical 20–50)
+- Snaps the timeline back to wall-clock when backlog exceeds that ceiling
+
+`IMMEDIATE` fires as soon as the packet is received; timestamps are used only to keep relative order within a batch.
+
+The Unity plugin applies `LOW_LATENCY` automatically when an input device attaches.
+From Unity (before connect), you can change the default for subsequent attachments:
+
+```csharp
+plugin.Call("setTimestampSchedulingMode", "LOW_LATENCY"); // or SCHEDULED / IMMEDIATE
+plugin.Call("setMaxScheduleAheadMs", 40);
+```
+
 LICENSE
 =======
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
