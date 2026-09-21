@@ -55,11 +55,11 @@
         {
           "name": "ble-midi-0.0.21.aar",
           "url": "ble-midi-0.0.21.aar",
-          "size": 131131,
-          "sha512": "4c25ed1862da0f322d05900aed03b06b60dd854ea3111fecb4c0d8383d9971f58b49cd21424a490aa21e2bb93cf4423da48e7da460d05e6190d2968709c98886",
-          "sha256": "a01e1bab62ac8a05bfd3f6c1bae91dcd47463b79cd897f6263625fccbbce09b7",
-          "sha1": "2684299814ec8d40da8459230fb2a03d4319d1b3",
-          "md5": "ec9e3f3a23dd10101337d57b80f3bd78"
+          "size": 131130,
+          "sha512": "490ad3b0015da9d60bcb812af0e43d44106d76e6e68cec45feae9d3ee68de02ae558fd49184e9e423457d8223838cd86a4625f2fff8493807681383884c338ce",
+          "sha256": "303f9cd968e0a49fa401360c0d6d38661747db908c7896eabb406893df0dc9ce",
+          "sha1": "80c082df8f3bae5a14ddc4c79472c3f08250058d",
+          "md5": "c40bd66e559e42129b7e063c9fba027f"
         }
       ]
     },
@@ -118,11 +118,11 @@
         {
           "name": "ble-midi-0.0.21.aar",
           "url": "ble-midi-0.0.21.aar",
-          "size": 131131,
-          "sha512": "4c25ed1862da0f322d05900aed03b06b60dd854ea3111fecb4c0d8383d9971f58b49cd21424a490aa21e2bb93cf4423da48e7da460d05e6190d2968709c98886",
-          "sha256": "a01e1bab62ac8a05bfd3f6c1bae91dcd47463b79cd897f6263625fccbbce09b7",
-          "sha1": "2684299814ec8d40da8459230fb2a03d4319d1b3",
-          "md5": "ec9e3f3a23dd10101337d57b80f3bd78"
+          "size": 131130,
+          "sha512": "490ad3b0015da9d60bcb812af0e43d44106d76e6e68cec45feae9d3ee68de02ae558fd49184e9e423457d8223838cd86a4625f2fff8493807681383884c338ce",
+          "sha256": "303f9cd968e0a49fa401360c0d6d38661747db908c7896eabb406893df0dc9ce",
+          "sha1": "80c082df8f3bae5a14ddc4c79472c3f08250058d",
+          "md5": "c40bd66e559e42129b7e063c9fba027f"
         }
       ]
     },
