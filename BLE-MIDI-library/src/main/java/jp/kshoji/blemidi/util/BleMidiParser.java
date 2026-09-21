@@ -104,6 +104,45 @@ public final class BleMidiParser {
     }
 
     /**
+     * Sets how BLE MIDI timestamps affect callback delivery.
+     *
+     * @param schedulingMode {@link BleMidiTimestampCoordinator.SchedulingMode#IMMEDIATE} fires
+     *                       as soon as received (timestamps only order events);
+     *                       {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY}
+     *                       schedules with a small latency ceiling;
+     *                       {@link BleMidiTimestampCoordinator.SchedulingMode#SCHEDULED} delays
+     *                       to match timestamps without a ceiling
+     */
+    public void setTimestampSchedulingMode(@NonNull BleMidiTimestampCoordinator.SchedulingMode schedulingMode) {
+        timestampCoordinator.setSchedulingMode(schedulingMode);
+    }
+
+    /**
+     * @return the current timestamp scheduling mode
+     */
+    @NonNull
+    public BleMidiTimestampCoordinator.SchedulingMode getTimestampSchedulingMode() {
+        return timestampCoordinator.getSchedulingMode();
+    }
+
+    /**
+     * Sets the schedule-ahead ceiling used by
+     * {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY}.
+     *
+     * @param maxScheduleAheadMs milliseconds (typical 20–50); values below 0 become 0
+     */
+    public void setMaxScheduleAheadMs(int maxScheduleAheadMs) {
+        timestampCoordinator.setMaxScheduleAheadMs(maxScheduleAheadMs);
+    }
+
+    /**
+     * @return the LOW_LATENCY schedule-ahead ceiling in milliseconds
+     */
+    public int getMaxScheduleAheadMs() {
+        return timestampCoordinator.getMaxScheduleAheadMs();
+    }
+
+    /**
      * Stops the internal Thread
      */
     public void start() {
@@ -150,6 +189,7 @@ public final class BleMidiParser {
         private static final int INVALID = -1;
 
         private final long timing;
+        private final long orderKey;
         private final int arg1;
         private final int arg2;
         private final int arg3;
@@ -171,6 +211,7 @@ public final class BleMidiParser {
             this.arg3 = arg3;
             this.array = array;
             timing = calculateEventFireTime(timestamp);
+            orderKey = timestampCoordinator.getLastOrderKey();
         }
 
         /**
@@ -227,6 +268,10 @@ public final class BleMidiParser {
 
         public long getTiming() {
             return timing;
+        }
+
+        public long getOrderKey() {
+            return orderKey;
         }
 
         public int getArg1() {
@@ -801,10 +846,16 @@ public final class BleMidiParser {
         private final Comparator<MidiEventWithTiming> midiTimerTaskComparator = new Comparator<MidiEventWithTiming>() {
             @Override
             public int compare(final MidiEventWithTiming lhs, final MidiEventWithTiming rhs) {
-                // sort by tick
-                int tickDifference = (int) (lhs.getTiming() - rhs.getTiming());
+                // sort by fire time
+                int tickDifference = Long.compare(lhs.getTiming(), rhs.getTiming());
                 if (tickDifference != 0) {
-                    return tickDifference * 256;
+                    return tickDifference;
+                }
+
+                // same fire time: preserve BLE MIDI timestamp order (IMMEDIATE / LOW_LATENCY)
+                int orderDifference = Long.compare(lhs.getOrderKey(), rhs.getOrderKey());
+                if (orderDifference != 0) {
+                    return orderDifference;
                 }
 
                 int lhsMessage = lhs.getArg1();

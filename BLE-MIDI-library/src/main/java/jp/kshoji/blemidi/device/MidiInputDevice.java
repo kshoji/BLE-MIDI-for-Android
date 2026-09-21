@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import jp.kshoji.blemidi.listener.OnMidiInputEventListener;
+import jp.kshoji.blemidi.util.BleMidiTimestampCoordinator;
 
 /**
  * Represents BLE MIDI Input Device
@@ -18,6 +19,36 @@ public abstract class MidiInputDevice {
      * @param midiInputEventListener the listener
      */
     public abstract void setOnMidiInputEventListener(@Nullable OnMidiInputEventListener midiInputEventListener);
+
+    /**
+     * Sets how BLE MIDI timestamps affect input callback delivery.
+     * <p>
+     * Default is {@link BleMidiTimestampCoordinator.SchedulingMode#SCHEDULED}.
+     * Unity uses {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY} by default.
+     *
+     * @param schedulingMode the scheduling mode
+     */
+    public abstract void setTimestampSchedulingMode(@NonNull BleMidiTimestampCoordinator.SchedulingMode schedulingMode);
+
+    /**
+     * @return the current timestamp scheduling mode
+     */
+    @NonNull
+    public abstract BleMidiTimestampCoordinator.SchedulingMode getTimestampSchedulingMode();
+
+    /**
+     * Sets the schedule-ahead ceiling for
+     * {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY}.
+     * Default is {@link BleMidiTimestampCoordinator#DEFAULT_MAX_SCHEDULE_AHEAD_MS} (40).
+     *
+     * @param maxScheduleAheadMs milliseconds (typical 20–50)
+     */
+    public abstract void setMaxScheduleAheadMs(int maxScheduleAheadMs);
+
+    /**
+     * @return the LOW_LATENCY schedule-ahead ceiling in milliseconds
+     */
+    public abstract int getMaxScheduleAheadMs();
 
     /**
      * Starts using the device
