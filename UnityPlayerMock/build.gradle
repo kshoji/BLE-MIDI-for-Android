@@ -1,7 +1,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdk = 36
+    //noinspection GradleDependency
+    compileSdk = 34
 
     defaultConfig {
         minSdkVersion 19
@@ -25,9 +26,9 @@ android {
     }
     namespace 'jp.kshoji.blemidi.unityplayermock'
     lint {
-        targetSdk 36
+        targetSdk 34
     }
     testOptions {
-        targetSdk 36
+        targetSdk 34
     }
 }

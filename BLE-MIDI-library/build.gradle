@@ -4,7 +4,9 @@ plugins {
 }
 
 android {
-    compileSdk = 36
+    // AAR minCompileSdk follows compileSdk; keep 34 for Meta Quest / compileSdk 34 apps.
+    //noinspection GradleDependency
+    compileSdk = 34
 
     defaultConfig {
         minSdkVersion 19
@@ -37,10 +39,10 @@ android {
     }
     namespace 'jp.kshoji.blemidi'
     lint {
-        targetSdk 36
+        targetSdk 34
     }
     testOptions {
-        targetSdk 36
+        targetSdk 34
     }
 }
 
