@@ -3,8 +3,7 @@ package jp.kshoji.blemidi.sample;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.bluetooth.le.ScanResult;
-import android.companion.CompanionDeviceManager;
+import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -447,7 +446,6 @@ public class CentralActivity extends Activity {
 
         ListView midiInputEventListView = (ListView) findViewById(R.id.midiInputEventListView);
         midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
-        midiInputEventAdapter = new ArrayAdapter<>(this, R.layout.midi_event, R.id.midiEventDescriptionTextView);
         midiInputEventListView.setAdapter(midiInputEventAdapter);
 
         ListView midiOutputEventListView = (ListView) findViewById(R.id.midiOutputEventListView);
@@ -671,9 +669,12 @@ public class CentralActivity extends Activity {
                 setupCentralProvider();
             }
         } else if (requestCode == BleUtils.SELECT_DEVICE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ScanResult scanResult = data.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE);
-                bleMidiCentralProvider.connectGatt(scanResult.getDevice());
+            if (bleMidiCentralProvider == null) {
+                return;
+            }
+            BluetoothDevice device = BleUtils.getBluetoothDeviceFromCompanionDeviceResult(this, data);
+            if (device != null) {
+                bleMidiCentralProvider.connectGatt(device);
             }
         }
     }

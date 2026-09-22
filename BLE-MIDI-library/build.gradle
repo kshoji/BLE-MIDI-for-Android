@@ -4,11 +4,12 @@ plugins {
 }
 
 android {
-    compileSdk = 36
+    // AAR minCompileSdk follows compileSdk; keep 34 for Meta Quest / compileSdk 34 apps.
+    //noinspection GradleDependency
+    compileSdk = 34
 
     defaultConfig {
-        minSdkVersion 18
-        targetSdkVersion 36
+        minSdkVersion 19
     }
 
     compileOptions {
@@ -17,17 +18,17 @@ android {
     }
 
     defaultConfig {
-        consumerProguardFiles 'proguard-rules.pro'
+        consumerProguardFiles 'consumer-rules.pro'
     }
 
     buildTypes {
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -37,6 +38,12 @@ android {
         }
     }
     namespace 'jp.kshoji.blemidi'
+    lint {
+        targetSdk 34
+    }
+    testOptions {
+        targetSdk 34
+    }
 }
 
 repositories {
@@ -50,7 +57,10 @@ dependencies {
     api 'jp.kshoji:javax-sound-midi:0.0.6:@aar'
     api 'androidx.annotation:annotation:1.9.1'
     compileOnly project(':UnityPlayerMock')
+    implementation 'androidx.games:games-activity:4.0.0'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
     api fileTree(dir: 'libs', include: ['*.jar'])
+    testImplementation 'junit:junit:4.13.2'
 }
 
 publishing {
@@ -58,7 +68,7 @@ publishing {
         release(MavenPublication) {
             group = 'jp.kshoji'
             artifactId = 'ble-midi'
-            version = '0.0.20'
+            version = '0.0.21'
 
             afterEvaluate {
                 from components.release

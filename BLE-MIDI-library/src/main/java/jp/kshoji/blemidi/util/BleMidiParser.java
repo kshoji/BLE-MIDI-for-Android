@@ -61,13 +61,8 @@ public final class BleMidiParser {
     private int midiState;
 
     // for Timestamp
-    private static final int MAX_TIMESTAMP = 8192;
-    private static final int BUFFER_LENGTH_MILLIS = 50;
     private int timestamp = 0;
-    private int lastTimestamp;
-    private long lastTimestampRecorded = 0;
-    private int zeroTimestampCount = 0;
-    private Boolean isTimestampAlwaysZero = null;
+    private final BleMidiTimestampCoordinator timestampCoordinator = new BleMidiTimestampCoordinator();
 
     private OnMidiInputEventListener midiInputEventListener = null;
     private final MidiInputDevice sender;
@@ -106,6 +101,45 @@ public final class BleMidiParser {
      */
     public void setMidiInputEventListener(@Nullable OnMidiInputEventListener midiInputEventListener) {
         this.midiInputEventListener = midiInputEventListener;
+    }
+
+    /**
+     * Sets how BLE MIDI timestamps affect callback delivery.
+     *
+     * @param schedulingMode {@link BleMidiTimestampCoordinator.SchedulingMode#IMMEDIATE} fires
+     *                       as soon as received (timestamps only order events);
+     *                       {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY}
+     *                       schedules with a small latency ceiling;
+     *                       {@link BleMidiTimestampCoordinator.SchedulingMode#SCHEDULED} delays
+     *                       to match timestamps without a ceiling
+     */
+    public void setTimestampSchedulingMode(@NonNull BleMidiTimestampCoordinator.SchedulingMode schedulingMode) {
+        timestampCoordinator.setSchedulingMode(schedulingMode);
+    }
+
+    /**
+     * @return the current timestamp scheduling mode
+     */
+    @NonNull
+    public BleMidiTimestampCoordinator.SchedulingMode getTimestampSchedulingMode() {
+        return timestampCoordinator.getSchedulingMode();
+    }
+
+    /**
+     * Sets the schedule-ahead ceiling used by
+     * {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY}.
+     *
+     * @param maxScheduleAheadMs milliseconds (typical 20–50); values below 0 become 0
+     */
+    public void setMaxScheduleAheadMs(int maxScheduleAheadMs) {
+        timestampCoordinator.setMaxScheduleAheadMs(maxScheduleAheadMs);
+    }
+
+    /**
+     * @return the LOW_LATENCY schedule-ahead ceiling in milliseconds
+     */
+    public int getMaxScheduleAheadMs() {
+        return timestampCoordinator.getMaxScheduleAheadMs();
     }
 
     /**
@@ -155,87 +189,20 @@ public final class BleMidiParser {
         private static final int INVALID = -1;
 
         private final long timing;
+        private final long orderKey;
         private final int arg1;
         private final int arg2;
         private final int arg3;
         private final byte[] array;
 
         /**
-         * Calculate `time to wait` for the event's timestamp
+         * Calculates the absolute fire time for the event's BLE MIDI timestamp.
          *
-         * @param timestamp the event's timestamp
-         * @return time to wait
+         * @param timestamp the event's 13-bit timestamp
+         * @return absolute fire time in milliseconds
          */
         private long calculateEventFireTime(final int timestamp) {
-            final long currentTimeMillis = System.currentTimeMillis();
-
-            // checks timestamp value is always zero
-            if (isTimestampAlwaysZero != null) {
-                if (isTimestampAlwaysZero) {
-                    if (timestamp != 0) {
-                        // timestamp comes with non-zero. prevent misdetection
-                        isTimestampAlwaysZero = false;
-                        zeroTimestampCount = 0;
-                        lastTimestampRecorded = 0;
-                    } else {
-                        // event fires immediately
-                        return currentTimeMillis;
-                    }
-                } else {
-                    if (timestamp == 0) {
-                        // recheck timestamp value on next time
-                        isTimestampAlwaysZero = null;
-                        zeroTimestampCount = 0;
-                        // event fires immediately
-                        return currentTimeMillis;
-                    }
-                }
-            } else {
-                if (timestamp == 0) {
-                    if (zeroTimestampCount >= 3) {
-                        // decides timestamp is always zero
-                        isTimestampAlwaysZero = true;
-                    } else {
-                        zeroTimestampCount++;
-                    }
-                    // event fires immediately
-                    return currentTimeMillis;
-                } else {
-                    isTimestampAlwaysZero = false;
-                    zeroTimestampCount = 0;
-                    lastTimestampRecorded = 0;
-                }
-            }
-
-            if (lastTimestampRecorded == 0) {
-                // first time: event fires immediately
-                lastTimestamp = timestamp;
-                lastTimestampRecorded = currentTimeMillis;
-                return currentTimeMillis;
-            }
-
-            if (currentTimeMillis - lastTimestampRecorded >= MAX_TIMESTAMP) {
-                // the event comes after long pause
-                lastTimestamp = timestamp;
-                lastTimestampRecorded = currentTimeMillis;
-                return currentTimeMillis;
-            }
-
-            final long elapsedRealtime = currentTimeMillis - lastTimestampRecorded;
-            // realTimestampPeriod: how many times MAX_TIMESTAMP passed
-            long realTimestampPeriod = (lastTimestamp + elapsedRealtime) / MAX_TIMESTAMP;
-            if (realTimestampPeriod > 0 && timestamp > 7000) {
-                realTimestampPeriod--;
-            }
-            final long lastTimestampStarted = lastTimestampRecorded - lastTimestamp;
-            // result: time to wait
-            final long result = BUFFER_LENGTH_MILLIS // buffer
-                    + lastTimestampStarted + realTimestampPeriod * MAX_TIMESTAMP + timestamp // time to fire event
-                    - currentTimeMillis; // current time
-
-            lastTimestamp = timestamp;
-            lastTimestampRecorded = currentTimeMillis;
-            return result;
+            return timestampCoordinator.calculateEventFireTime(timestamp, System.currentTimeMillis());
         }
 
         private MidiEventWithTiming(int arg1, int arg2, int arg3, byte[] array, int timestamp) {
@@ -244,6 +211,7 @@ public final class BleMidiParser {
             this.arg3 = arg3;
             this.array = array;
             timing = calculateEventFireTime(timestamp);
+            orderKey = timestampCoordinator.getLastOrderKey();
         }
 
         /**
@@ -300,6 +268,10 @@ public final class BleMidiParser {
 
         public long getTiming() {
             return timing;
+        }
+
+        public long getOrderKey() {
+            return orderKey;
         }
 
         public int getArg1() {
@@ -510,10 +482,25 @@ public final class BleMidiParser {
                     break;
                 default:
                     // 0x00 - 0x70: running status
-                    if ((midiEventKind & 0xf0) != 0xf0) {
-                        // previous event kind is multi-bytes pattern
-                        midiEventNote = midiEvent;
-                        midiState = MIDI_STATE_SIGNAL_3BYTES_3;
+                    // Reuse the previous channel message status; this byte is the first data byte.
+                    // Re-enter parseMidiEvent so 2-byte / 3-byte handlers consume it correctly.
+                    // See: https://github.com/kshoji/BLE-MIDI-for-Android/issues/41
+                    switch (midiEventKind & 0xf0) {
+                        case 0xc0: // program change
+                        case 0xd0: // channel after-touch
+                            midiState = MIDI_STATE_SIGNAL_2BYTES_2;
+                            parseMidiEvent(header, event);
+                            break;
+                        case 0x80:
+                        case 0x90:
+                        case 0xa0:
+                        case 0xb0:
+                        case 0xe0:
+                            midiState = MIDI_STATE_SIGNAL_3BYTES_2;
+                            parseMidiEvent(header, event);
+                            break;
+                        default:
+                            break;
                     }
                     break;
             }
@@ -859,10 +846,16 @@ public final class BleMidiParser {
         private final Comparator<MidiEventWithTiming> midiTimerTaskComparator = new Comparator<MidiEventWithTiming>() {
             @Override
             public int compare(final MidiEventWithTiming lhs, final MidiEventWithTiming rhs) {
-                // sort by tick
-                int tickDifference = (int) (lhs.getTiming() - rhs.getTiming());
+                // sort by fire time
+                int tickDifference = Long.compare(lhs.getTiming(), rhs.getTiming());
                 if (tickDifference != 0) {
-                    return tickDifference * 256;
+                    return tickDifference;
+                }
+
+                // same fire time: preserve BLE MIDI timestamp order (IMMEDIATE / LOW_LATENCY)
+                int orderDifference = Long.compare(lhs.getOrderKey(), rhs.getOrderKey());
+                if (orderDifference != 0) {
+                    return orderDifference;
                 }
 
                 int lhsMessage = lhs.getArg1();

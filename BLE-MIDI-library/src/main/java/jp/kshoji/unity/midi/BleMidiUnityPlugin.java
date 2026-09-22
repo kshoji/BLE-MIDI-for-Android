@@ -14,6 +14,7 @@ import jp.kshoji.blemidi.central.BleMidiCentralProvider;
 import jp.kshoji.blemidi.device.MidiInputDevice;
 import jp.kshoji.blemidi.device.MidiOutputDevice;
 import jp.kshoji.blemidi.peripheral.BleMidiPeripheralProvider;
+import jp.kshoji.blemidi.util.BleMidiTimestampCoordinator;
 
 /**
  * BLE MIDI Plugin for Unity
@@ -473,6 +474,69 @@ public class BleMidiUnityPlugin {
     OnBleMidiDeviceConnectionListener onMidiDeviceConnectionListener;
     OnBleMidiInputEventListener onMidiInputEventListener;
 
+    /**
+     * Default for newly attached input devices. Does not update already-connected devices.
+     * Unity default: {@link BleMidiTimestampCoordinator.SchedulingMode#LOW_LATENCY}.
+     */
+    private volatile BleMidiTimestampCoordinator.SchedulingMode timestampSchedulingMode =
+            BleMidiTimestampCoordinator.SchedulingMode.LOW_LATENCY;
+
+    /**
+     * Schedule-ahead ceiling applied with {@link #timestampSchedulingMode} on attach.
+     */
+    private volatile int maxScheduleAheadMs =
+            BleMidiTimestampCoordinator.DEFAULT_MAX_SCHEDULE_AHEAD_MS;
+
+    /**
+     * Sets the timestamp scheduling mode for devices attached after this call.
+     * Already-connected devices are not changed.
+     * <p>
+     * Unity example: {@code plugin.Call("setTimestampSchedulingMode", "LOW_LATENCY");}
+     * Accepted values (case-insensitive): {@code SCHEDULED}, {@code LOW_LATENCY}, {@code IMMEDIATE}.
+     *
+     * @param modeName scheduling mode name
+     */
+    public void setTimestampSchedulingMode(String modeName) {
+        if (TextUtils.isEmpty(modeName)) {
+            return;
+        }
+        try {
+            timestampSchedulingMode = BleMidiTimestampCoordinator.SchedulingMode.valueOf(
+                    modeName.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            // leave previous mode
+        }
+    }
+
+    /**
+     * @return current default scheduling mode name (for newly attached devices)
+     */
+    public String getTimestampSchedulingMode() {
+        return timestampSchedulingMode.name();
+    }
+
+    /**
+     * Sets the LOW_LATENCY schedule-ahead ceiling (ms) for devices attached after this call.
+     * Already-connected devices are not changed. Typical values: 20–50.
+     *
+     * @param maxScheduleAheadMs ceiling in milliseconds; values below 0 become 0
+     */
+    public void setMaxScheduleAheadMs(int maxScheduleAheadMs) {
+        this.maxScheduleAheadMs = Math.max(0, maxScheduleAheadMs);
+    }
+
+    /**
+     * @return current default schedule-ahead ceiling in milliseconds
+     */
+    public int getMaxScheduleAheadMs() {
+        return maxScheduleAheadMs;
+    }
+
+    private void applyTimestampSchedulingDefaults(@NonNull MidiInputDevice midiInputDevice) {
+        midiInputDevice.setTimestampSchedulingMode(timestampSchedulingMode);
+        midiInputDevice.setMaxScheduleAheadMs(maxScheduleAheadMs);
+    }
+
     public void initialize(Context context, OnBleMidiDeviceConnectionListener onMidiDeviceConnectionListener, OnBleMidiInputEventListener onMidiInputEventListener)
     {
         this.onMidiDeviceConnectionListener = onMidiDeviceConnectionListener;
@@ -495,13 +559,23 @@ public class BleMidiUnityPlugin {
     private void initializeCentralProvider(Context context) {
         bleMidiCentralProvider = new BleMidiCentralProvider(context);
         bleMidiCentralProvider.setAutoStartInputDevice(true);
-        if (UnityPlayer.currentActivity instanceof  BleMidiUnityPlayerActivity) {
-            ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
+                ((BleMidiUnityPlayerActivity) UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
+        }
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityGamePlayerActivity) {
+                ((BleMidiUnityGamePlayerActivity) UnityPlayer.currentActivity).bleMidiCentralProvider = bleMidiCentralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
         }
         bleMidiCentralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
                 midiInputDeviceMap.put(midiInputDevice.getDeviceAddress(), midiInputDevice);
+                applyTimestampSchedulingDefaults(midiInputDevice);
                 midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceAttached(midiInputDevice.getDeviceAddress());
@@ -547,13 +621,23 @@ public class BleMidiUnityPlugin {
     private void initializePeripheralProvider(Context context) {
         bleMidiPeripheralProvider = new BleMidiPeripheralProvider(context);
         bleMidiPeripheralProvider.setAutoStartDevice(true);
-        if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
-            ((BleMidiUnityPlayerActivity)UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityPlayerActivity) {
+                ((BleMidiUnityPlayerActivity) UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
+        }
+        try {
+            if (UnityPlayer.currentActivity instanceof BleMidiUnityGamePlayerActivity) {
+                ((BleMidiUnityGamePlayerActivity) UnityPlayer.currentActivity).bleMidiPeripheralProvider = bleMidiPeripheralProvider;
+            }
+        } catch (NoClassDefFoundError ignored) {
         }
         bleMidiPeripheralProvider.setOnMidiDeviceAttachedListener(new jp.kshoji.blemidi.listener.OnMidiDeviceAttachedListener() {
             @Override
             public void onMidiInputDeviceAttached(@NonNull MidiInputDevice midiInputDevice) {
                 midiInputDeviceMap.put(midiInputDevice.getDeviceAddress(), midiInputDevice);
+                applyTimestampSchedulingDefaults(midiInputDevice);
                 midiInputDevice.setOnMidiInputEventListener(midiInputEventListener);
                 if (onMidiDeviceConnectionListener != null) {
                     onMidiDeviceConnectionListener.onMidiInputDeviceAttached(midiInputDevice.getDeviceAddress());

@@ -2,8 +2,10 @@ package jp.kshoji.blemidi.device;
 
 import androidx.annotation.NonNull;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedList;
+
+import jp.kshoji.blemidi.util.BleMidiPacketEncoder;
 
 /**
  * Represents BLE MIDI Output Device
@@ -14,7 +16,15 @@ public abstract class MidiOutputDevice {
 
     public static final int MAX_TIMESTAMP = 8192;
 
-    final ByteArrayOutputStream transferDataStream = new ByteArrayOutputStream();
+    /**
+     * Default maximum MIDI messages packed into one BLE write.
+     *
+     * @see #setMaxMessagesPerPacket(int)
+     */
+    public static final int DEFAULT_MAX_MESSAGES_PER_PACKET = BleMidiPacketEncoder.DEFAULT_MAX_MESSAGES_PER_PACKET;
+
+    private final LinkedList<BleMidiPacketEncoder.PendingMidiMessage> pendingMessages = new LinkedList<>();
+    private volatile int maxMessagesPerPacket = DEFAULT_MAX_MESSAGES_PER_PACKET;
 
     /**
      * Transfer data
@@ -62,6 +72,28 @@ public abstract class MidiOutputDevice {
      */
     public abstract int getBufferSize();
 
+    /**
+     * Obtains the maximum number of MIDI messages packed into one BLE write.
+     *
+     * @return max messages per packet
+     */
+    public final int getMaxMessagesPerPacket() {
+        return maxMessagesPerPacket;
+    }
+
+    /**
+     * Sets the maximum number of MIDI messages packed into one BLE write.
+     * Smaller values reduce loss under congestion and increase latency.
+     *
+     * @param maxMessagesPerPacket must be at least 1
+     */
+    public final void setMaxMessagesPerPacket(int maxMessagesPerPacket) {
+        if (maxMessagesPerPacket < 1) {
+            throw new IllegalArgumentException("maxMessagesPerPacket must be >= 1");
+        }
+        this.maxMessagesPerPacket = maxMessagesPerPacket;
+    }
+
     @NonNull
     @Override
     public final String toString() {
@@ -74,17 +106,32 @@ public abstract class MidiOutputDevice {
         @Override
         public void run() {
             transferDataThreadAlive = true;
+            byte[] pendingPacket = null;
+            byte[] pendingSysEx = null;
 
             while (true) {
                 // running
                 while (transferDataThreadAlive && isRunning) {
-                    synchronized (transferDataStream) {
-                        if (writtenDataCount > 0) {
-                            if (transferData(transferDataStream.toByteArray())) {
-                                // reset the stream if transfer succeed
-                                transferDataStream.reset();
-                                writtenDataCount = 0;
+                    synchronized (pendingMessages) {
+                        if (pendingPacket == null && pendingSysEx == null && !pendingMessages.isEmpty()) {
+                            if (pendingMessages.getFirst().isSystemExclusive()) {
+                                pendingSysEx = pendingMessages.removeFirst().data;
+                            } else {
+                                byte[] packed = BleMidiPacketEncoder.packChannelMessages(
+                                        pendingMessages, getBufferSize(), maxMessagesPerPacket);
+                                if (packed.length > 0) {
+                                    pendingPacket = packed;
+                                }
                             }
+                        }
+                    }
+
+                    if (pendingSysEx != null) {
+                        transferSystemExclusive(pendingSysEx);
+                        pendingSysEx = null;
+                    } else if (pendingPacket != null) {
+                        if (transferData(pendingPacket)) {
+                            pendingPacket = null;
                         }
                     }
 
@@ -146,33 +193,23 @@ public abstract class MidiOutputDevice {
     public final void terminate() {
         transferDataThreadAlive = false;
         isRunning = false;
+        synchronized (pendingMessages) {
+            pendingMessages.clear();
+        }
         transferDataThread.interrupt();
     }
 
-    transient int writtenDataCount;
     private void storeTransferData(byte[] data) {
         if (!transferDataThreadAlive || !isRunning) {
             return;
         }
 
-        synchronized (transferDataStream) {
-            long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
-            if (writtenDataCount == 0) {
-                // Store timestamp high
-                transferDataStream.write((byte) (0x80 | ((timestamp >> 7) & 0x3f)));
-                writtenDataCount++;
-            }
-            // timestamp low
-            transferDataStream.write((byte) (0x80 | (timestamp & 0x7f)));
-            writtenDataCount++;
-            try {
-                transferDataStream.write(data);
-                writtenDataCount += data.length;
-            } catch (IOException ignored) {
-            }
-
-            transferDataThread.interrupt();
+        long timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;
+        byte[] copy = Arrays.copyOf(data, data.length);
+        synchronized (pendingMessages) {
+            pendingMessages.add(new BleMidiPacketEncoder.PendingMidiMessage(copy, timestamp));
         }
+        transferDataThread.interrupt();
     }
 
     /**
@@ -211,6 +248,19 @@ public abstract class MidiOutputDevice {
      * @param systemExclusive : start with 'F0', and end with 'F7'
      */
     public final void sendMidiSystemExclusive(@NonNull byte[] systemExclusive) {
+        storeTransferData(systemExclusive);
+    }
+
+    /**
+     * Encodes and writes a SysEx message as its own BLE packets (never mixed with channel messages).
+     *
+     * @param systemExclusive start with 'F0', and end with 'F7'
+     */
+    private void transferSystemExclusive(@NonNull byte[] systemExclusive) {
+        if (systemExclusive.length == 0) {
+            return;
+        }
+
         byte[] timestampAddedSystemExclusive = new byte[systemExclusive.length + 2];
         System.arraycopy(systemExclusive, 0, timestampAddedSystemExclusive, 1, systemExclusive.length);
 
@@ -223,6 +273,9 @@ public abstract class MidiOutputDevice {
 
         // split into bufferSize bytes. BLE can't send more than (bufferSize: MTU - 3) bytes.
         int bufferSize = getBufferSize();
+        if (bufferSize <= 1) {
+            return;
+        }
         byte[] writeBuffer = new byte[bufferSize];
         for (int i = 0; i < timestampAddedSystemExclusive.length; i += (bufferSize - 1)) {
             // Don't send 0xF7 timestamp LSB inside of SysEx(MIDI parser will fail) 0x7f -> 0x7e
@@ -241,7 +294,7 @@ public abstract class MidiOutputDevice {
             writeBuffer[0] = (byte) (0x80 | ((timestamp >> 7) & 0x3f));
 
             // immediately transfer data
-            while (true) {
+            while (transferDataThreadAlive) {
                 if (transferData(writeBuffer)) {
                     break;
                 }
@@ -250,6 +303,9 @@ public abstract class MidiOutputDevice {
                     Thread.sleep(10); // BluetoothGatt.WRITE_CHARACTERISTIC_TIME_TO_WAIT
                 } catch (InterruptedException ignored) {
                 }
+            }
+            if (!transferDataThreadAlive) {
+                return;
             }
 
             timestamp = System.currentTimeMillis() % MAX_TIMESTAMP;

@@ -162,6 +162,10 @@ public interface OnMidiInputEventListener {
     /**
      * RPN message<br />
      * invoked when value's MSB or LSB changed
+     * <p>
+     * {@code value} is 7 bits or 14 bits. Distinguish them with
+     * {@link jp.kshoji.blemidi.util.RpnNrpnValueWidthTracker} from {@link #onMidiControlChange}
+     * (this callback is queued before the matching Control Change).
      *
      * @param sender the device sent this message
      * @param channel 0-15
@@ -173,6 +177,10 @@ public interface OnMidiInputEventListener {
     /**
      * NRPN message<br />
      * invoked when value's MSB or LSB changed
+     * <p>
+     * {@code value} is 7 bits or 14 bits. Distinguish them with
+     * {@link jp.kshoji.blemidi.util.RpnNrpnValueWidthTracker} from {@link #onMidiControlChange}
+     * (this callback is queued before the matching Control Change).
      *
      * @param sender the device sent this message
      * @param channel 0-15
